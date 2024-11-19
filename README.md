@@ -1,66 +1,36 @@
-## Foundry
+# GrindURUS Protocol
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Automated onchain yield harvesting and strategy trade protocol.
+Architecture of smart contracts consist of NFT, factory that deploys noncastodial strategy pool and GRIND ERC20 token.
 
-Foundry consists of:
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Build
 
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
+Initialize firstly .env
+```shell
+$ cp .env.example .env
+```
 
 ```shell
 $ forge build
 ```
 
-### Test
+## Run Tests
 
 ```shell
 $ forge test
 ```
 
-### Format
+## Deployment
 
+The deployment is implemented in scripts and handled by foundry framework.
+
+# Testing workablity of deployment
 ```shell
-$ forge fmt
+$ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript
 ```
 
-### Gas Snapshots
-
+### Arbitrum mainnet deployment
 ```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+$ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY 
 ```

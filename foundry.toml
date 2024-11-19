@@ -2,6 +2,32 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-solc_version = "0.8.27"
+solc_version = "0.8.28"
+evm_version = "cancun"
+
+[rpc_endpoints]
+arbitrum = "https://arb1.arbitrum.io/rpc"
+polygon = "https://polygon-rpc.com"
+base = "https://1rpc.io/base"
+optimism = "https://1rpc.io/op"
+
+[profile.scan_endpoints]
+arbiscan = "https://api.arbiscan.io/api"
+polygonscan = ""
+basescan = ""
+optimismscan = ""
+
+[profile.networks]
+arbitrum = { chain_id = 42161, url = "${rpc_endpoints.arbitrum}" }
+polygon = { chain_id=137, url = "${rpc_endpoints.polygon}" }
+base = { chain_id=8453, url = "${rpc_endpoints.base}" }
+optimism = { chain_id=10 , url = "${rpc_endpoints.optimism}" }
+
+[etherscan]
+arbitrum = { key = "${ARBITRUMSCAN_API_KEY}", url = "${scan_endpoints.arbiscan}",  chain="arbitrum" }
+polygon = { key = "${POLYGONSCAN_API_KEY}", url = "${scan_endpoints.polygonscan}",  chain="polygon" }
+base = { key = "${BASESCAN_API_KEY}", url = "${scan_endpoints.base}",  chain="base" }
+optimism = { key = "${OPTIMISMSCAN_API_KEY}", url = "${scan_endpoints.optimismscan}",  chain="optimism" }
+
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
