@@ -9,7 +9,6 @@ import {ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol"
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice incentivization token for grinding the strategy
 contract GrindToken is IGrindToken, ERC20 {
-
     /// @dev address of grindurus strategy positions NFT
     address public grindurusPoolsNFT;
 
@@ -29,20 +28,22 @@ contract GrindToken is IGrindToken, ERC20 {
     uint256 public totalGrinds;
 
     /// @dev actor address => total rewarded
-    mapping (address actor => uint256) public totalRewarded;
+    mapping(address actor => uint256) public totalRewarded;
 
-    constructor (address _grindurusPoolsNFT) ERC20("GrindURUS Token", "GRIND") {
+    constructor(address _grindurusPoolsNFT) ERC20("GrindURUS Token", "GRIND") {
         grindurusPoolsNFT = _grindurusPoolsNFT;
-        grinderReward =         1 * 1e18;
-        poolOwnerReward =       0.02 * 1e18;
+        grinderReward = 1 * 1e18;
+        poolOwnerReward = 0.02 * 1e18;
         royaltyReceiverReward = 0.01 * 1e18;
-        ownerReward =           0.005 * 1e18;
+        ownerReward = 0.005 * 1e18;
         totalGrinds = 0;
     }
 
     /// @notice checks that msg.sender is grindurus pools NFT
     function _onlyGrindurusPoolsNFT() private view {
-        if (msg.sender != grindurusPoolsNFT) { revert NotGrindURUSPoolsNFT(); }
+        if (msg.sender != grindurusPoolsNFT) {
+            revert NotGrindURUSPoolsNFT();
+        }
     }
 
     /// @notice rewards grinder for grinding
@@ -81,5 +82,4 @@ contract GrindToken is IGrindToken, ERC20 {
         _mint(owner, ownerReward);
         totalRewarded[owner] += ownerReward;
     }
-
 }

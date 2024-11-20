@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {IGrindURUSPoolStrategy} from "./IGrindURUSPoolStrategy.sol";
 
 interface IFactoryGrindURUSPoolStrategy {
-
     error NotGrindurusPoolsNFT();
     error InvalidStrategyId(uint256 poolStrategyId, uint256 factoryStrategyId);
 
@@ -17,6 +16,5 @@ interface IFactoryGrindURUSPoolStrategy {
         address _quoteToken
     ) external returns (IGrindURUSPoolStrategy);
 
-    function strategyId() external pure returns (uint256);
-
+    function strategyId() external pure returns (uint16);
 }

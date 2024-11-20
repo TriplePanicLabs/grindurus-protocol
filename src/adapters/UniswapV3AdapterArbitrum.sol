@@ -15,13 +15,9 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
     /// @notice fee of uniswapV3 pool
     uint24 public fee;
 
-    constructor(
-        address baseToken,
-        address quoteToken,
-        bytes memory args
-    ) {
+    constructor(address baseToken, address quoteToken, bytes memory args) {
         (address _swapRouter, uint24 _fee) = decodeDexConstructorArgs(args);
-        
+
         // infinite approve for transferFrom uniswap
         IToken(baseToken).forceApprove(_swapRouter, type(uint256).max);
         IToken(quoteToken).forceApprove(_swapRouter, type(uint256).max);
@@ -40,10 +36,7 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
 
     function _onlyOwner() internal view virtual {}
 
-    function setDexData(
-        address _swapRouter,
-        uint24 _fee
-    ) public {
+    function setDexData(address _swapRouter, uint24 _fee) public {
         _onlyOwner();
         IToken baseToken = getBaseToken();
         IToken quoteToken = getQuoteToken();
@@ -79,4 +72,5 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         return IToken(address(0));
     }
 
+    function _distributeTradeProfit(IToken token, uint256 profit) internal virtual {}
 }

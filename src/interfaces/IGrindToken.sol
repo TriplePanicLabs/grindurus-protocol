@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {IToken} from "src/interfaces/IToken.sol";
 
 interface IGrindToken is IToken {
-
     error NotGrindURUSPoolsNFT();
 
     function grindurusPoolsNFT() external view returns (address);
@@ -18,7 +17,7 @@ interface IGrindToken is IToken {
     function ownerReward() external view returns (uint256);
 
     function totalGrinds() external view returns (uint256);
-    
+
     function rewardGrinder(address grinder) external;
 
     function rewardPoolOwner(address poolOwner) external;
@@ -26,5 +25,4 @@ interface IGrindToken is IToken {
     function rewardRoyaltyReceiver(address royaltyReceiver) external;
 
     function rewardOwner(address owner) external;
-
 }

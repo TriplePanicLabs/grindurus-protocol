@@ -17,9 +17,7 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
     /// @dev address of Token => invested amount
     mapping(IToken token => uint256) public investedAmount;
 
-    constructor (
-        bytes memory args
-    ) {
+    constructor(bytes memory args) {
         (address _aaveV3Pool) = decodeLendingConstructorArgs(args);
         aaveV3Pool = IAAVEV3PoolArbitrum(_aaveV3Pool);
     }
@@ -38,10 +36,10 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         _onlyOwner();
         aaveV3Pool = _aaveV3Pool;
     }
-    
+
     /// @notice retruns aToken
     /// @param token underlying token
-    function getAToken(IToken token) public view returns(IAAVEV3AToken) {
+    function getAToken(IToken token) public view returns (IAAVEV3AToken) {
         IAAVEV3PoolArbitrum.ReserveData memory reserveData = aaveV3Pool.getReserveData(address(token));
         return IAAVEV3AToken(reserveData.aTokenAddress);
     }
@@ -58,10 +56,10 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         uint256 poolBalanceBefore = aToken.balanceOf(onBehalfOf);
         uint256 tokenBalanceBefore = token.balanceOf(onBehalfOf);
 
-        try aaveV3Pool.supply(address(token), amount, onBehalfOf, 0) { // uint16 refferalCode = 0;
+        try aaveV3Pool.supply(address(token), amount, onBehalfOf, 0) {
+            // uint16 refferalCode = 0;
             _onSuccessfulPut(token, amount, onBehalfOf);
-        }
-        catch {
+        } catch {
             revert FailPut(address(token), amount);
         }
 
@@ -78,7 +76,7 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
     /// @param amount amount of `baseToken` or `quoteToken`
     /// @return poolTokenAmount amount of `aBaseToken` or `aQuoteToken` sent
     /// @return takeAmount amount of `baseToken` or `quoteToken` received
-    function take(IToken token, uint256 amount) public override returns (uint256 poolTokenAmount, uint256 takeAmount){
+    function take(IToken token, uint256 amount) public override returns (uint256 poolTokenAmount, uint256 takeAmount) {
         harvest(token);
         if (investedAmount[token] < amount) {
             amount = investedAmount[token];
@@ -125,13 +123,9 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         quoteTokenYield = harvest(getQuoteToken());
     }
 
-    function _onSuccessfulPut(IToken token, uint256 amount, address onBehalfOf) internal virtual {
+    function _onSuccessfulPut(IToken token, uint256 amount, address onBehalfOf) internal virtual {}
 
-    }
-
-    function _onSuccessfulTake(IToken token, uint256 amount, address to, uint256 withdrawn) internal virtual {
-
-    }
+    function _onSuccessfulTake(IToken token, uint256 amount, address to, uint256 withdrawn) internal virtual {}
 
     function _distributeYieldProfit(IToken token, uint256 profit) internal virtual {
         if (owner() != address(this)) {

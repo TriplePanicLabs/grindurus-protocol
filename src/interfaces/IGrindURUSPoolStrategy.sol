@@ -6,17 +6,17 @@ import {IERC5313} from "lib/openzeppelin-contracts/contracts/interfaces/IERC5313
 
 /// @notice the interface for Strategy Pool
 interface IGrindURUSPoolStrategy is IERC5313 {
-
     error InvalidConfig();
     error InvalidLongNumberMax();
     error InvalidHedgeNumberMax();
-    error NotQuoteToken();
-    error NotOwner(address sender, address owner);
+    error InvalidExtraCoef();
     error InvalidStrategyOpForFeeCoef();
     error InvalidStrategyOpForReturn();
+    error InvalidReturnOfInvestment();
+    error NotQuoteToken();
+    error NotOwner(address sender, address owner);
     error NotPositionsNFT(address sender, address owner);
     error QuoteTokenInvested();
-    error InvalidReturnOfInvestment();
     error LongNumberMax();
     error BuyUpperPriceMin(uint256 swap_price, uint256 priceMin);
     error NoBuy();
@@ -30,6 +30,9 @@ interface IGrindURUSPoolStrategy is IERC5313 {
     error NoHedge();
     error NotProfitableRebuy();
     error CantSweepYieldToken();
+    error ZeroETH();
+    error FailETHTransfer();
+    error FailTokenTransfer(address token);
 
     enum StrategyOp {
         LONG_BUY,
@@ -47,24 +50,24 @@ interface IGrindURUSPoolStrategy is IERC5313 {
         address feeToken;
         address baseToken;
         address quoteToken;
-        bytes lendingArgs;  // abi.encode(aaveV3Pool) <--- example 
-        bytes dexArgs;      // abi.encode(uniswapV3SwapRouter, uniswapV3PoolFee) <--- example 
+        bytes lendingArgs; // abi.encode(aaveV3Pool) <--- example
+        bytes dexArgs; // abi.encode(uniswapV3SwapRouter, uniswapV3PoolFee) <--- example
     }
 
-    struct FeeCoef {
-        uint256 longSellFeeCoef;            // [longSellFeeCoef] = (no dimension)
-        uint256 hedgeSellFeeCoef;           // [hedgeSellFeeCoef] = (no dimension)
-        uint256 hedgeRebuyFeeCoef;          // [hedgeRebuyFeeCoef] = (no dimension)
+    struct FeeConfig {
+        uint256 longSellFeeCoef; // [longSellFeeCoef] = (no dimension)
+        uint256 hedgeSellFeeCoef; // [hedgeSellFeeCoef] = (no dimension)
+        uint256 hedgeRebuyFeeCoef; // [hedgeRebuyFeeCoef] = (no dimension)
     }
 
     struct Config {
-        uint8 longNumberMax;                // [longNumberMax] = (no dimension)
-        uint8 hedgeNumberMax;               // [hedgeNumberMax] = (no dimension)
-        uint256 averagePriceVolatility;     // [averagePriceVolatility] = quoteToken / baseToken
-        uint256 extraCoef;                  // [extraCoef] = (no dimension)
-        uint256 returnPercentLongSell;      // [returnPercentLongSell] = %
-        uint256 returnPercentHedgeSell;     // [returnPercentHedgeSell] = %
-        uint256 returnPercentHedgeRebuy;    // [returnPercentHedgeRebuy] = %
+        uint8 longNumberMax; // [longNumberMax] = (no dimension)
+        uint8 hedgeNumberMax; // [hedgeNumberMax] = (no dimension)
+        uint256 averagePriceVolatility; // [averagePriceVolatility] = quoteToken / baseToken
+        uint256 extraCoef; // [extraCoef] = (no dimension)
+        uint256 returnPercentLongSell; // [returnPercentLongSell] = %
+        uint256 returnPercentHedgeSell; // [returnPercentHedgeSell] = %
+        uint256 returnPercentHedgeRebuy; // [returnPercentHedgeRebuy] = %
     }
 
     struct HelperData {
@@ -85,37 +88,28 @@ interface IGrindURUSPoolStrategy is IERC5313 {
         uint256 investCoef;
     }
 
-    struct Long {
-        uint8 number;       // [number] = (no dimension)
-        uint256 priceMin;   // [priceMin] = quoteToken/baseToken
-        uint256 liquidity;  // [liquidity] = quoteToken
-        uint256 qty;        // [qty] = baseToken
-        uint256 price;      // [price] = quoteToken/baseToken
-        uint256 feeQty;     // [feeQty] = feeToken
-        uint256 feePrice;   // [feePrice] = quoteToken/feeToken
-    }
-
-    struct Hedge {
-        uint8 number;       // [number] = (no dimension)
-        uint256 priceMin;   // [priceMin] = quoteToken/baseToken
-        uint256 liquidity;  // [liquidity] = quoteToken
-        uint256 qty;        // [qty] = baseToken
-        uint256 price;      // [price] = quoteToken/baseToken
-        uint256 feeQty;     // [feeQty] = feeToken
-        uint256 feePrice;   // [feePrice] = baseToken/feeToken
+    struct Position {
+        uint8 number; // [number] = (no dimension)
+        uint8 numberMax; // [numberMax] = (no dimension)
+        uint256 priceMin; // [priceMin] = quoteToken/baseToken
+        uint256 liquidity; // [liquidity] = quoteToken
+        uint256 qty; // [qty] = baseToken
+        uint256 price; // [price] = quoteToken/baseToken
+        uint256 feeQty; // [feeQty] = feeToken
+        uint256 feePrice; // [feePrice] = quoteToken/feeToken OR baseToken/feeToken
     }
 
     struct TotalProfits {
-        uint256 quoteTokenYieldProfit;
-        uint256 baseTokenYieldProfit;
-        uint256 quoteTokenTradeProfit;
-        uint256 baseTokenTradeProfit;
+        uint256 quoteTokenYieldProfit; // [quoteTokenYieldProfit] = quoteToken
+        uint256 baseTokenYieldProfit; // [baseTokenYieldProfit] = baseToken
+        uint256 quoteTokenTradeProfit; // [quoteTokenTradeProfit] = quoteToken
+        uint256 baseTokenTradeProfit; // [baseTokenTradeProfit] = baseToken
     }
 
     /// @notice deposits token to strategy
     function deposit(uint256 quoteTokenAmount) external returns (uint256 deposited);
 
-    /// @notice withdraw quoteTokem from strategy 
+    /// @notice withdraw quoteTokem from strategy
     function withdraw(address to, uint256 quoteTokenAmount) external returns (uint256 withdrawn);
 
     /// @notice exit from strategy
@@ -124,7 +118,7 @@ interface IGrindURUSPoolStrategy is IERC5313 {
     /// @notice take quoteToken from lending protocol, swaps quoteToken to baseToken, put baseToken to lending protocol
     function long_buy() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    /// @notice 
+    /// @notice
     function long_sell() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
     /// @notice hedge sell of the positions
@@ -133,7 +127,7 @@ interface IGrindURUSPoolStrategy is IERC5313 {
     /// @notice hedge rebuy of the position
     function hedge_rebuy() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    /// @notice transfer funds from pool to poolsNFT;  
+    /// @notice transfer funds from pool to poolsNFT;
     function beforeRebalance() external returns (uint256 baseTokenAmount, uint256 price);
 
     /// @notice transfer rebalanced funds from poolsNFT to poolLeft and pool right
@@ -143,25 +137,37 @@ interface IGrindURUSPoolStrategy is IERC5313 {
     function getPriceQuoteTokenPerBaseToken() external view returns (uint256 price);
 
     /// @notice
-    function getPriceQuoteTokensPerFeeToken() external view returns(uint256 price);
+    function getPriceQuoteTokensPerFeeToken() external view returns (uint256 price);
 
     /// @notice
-    function getPriceBaseTokensPerFeeToken(uint256 quoteTokenPerBaseTokenPrice) external view returns (uint256 baseTokensPerFeeTokenPrice);
+    function getPriceBaseTokensPerFeeToken(uint256 quoteTokenPerBaseTokenPrice)
+        external
+        view
+        returns (uint256 baseTokensPerFeeTokenPrice);
 
     /// @notice
-    function calcQuoteTokenByBaseToken(uint256 baseTokenAmount, uint256 quoteTokenPerBaseTokenPrice) external view returns (uint256 quoteTokenAmount);
+    function calcQuoteTokenByBaseToken(uint256 baseTokenAmount, uint256 quoteTokenPerBaseTokenPrice)
+        external
+        view
+        returns (uint256 quoteTokenAmount);
 
     /// @notice
-    function calcQuoteTokenByFeeToken(uint256 feeTokenAmount, uint256 quoteTokenPerFeeTokenPrice) external view returns (uint256 quoteTokenAmount);
+    function calcQuoteTokenByFeeToken(uint256 feeTokenAmount, uint256 quoteTokenPerFeeTokenPrice)
+        external
+        view
+        returns (uint256 quoteTokenAmount);
 
     /// @notice
-    function calcBaseTokenByFeeToken(uint256 feeTokenAmount, uint256 baseTokenPerFeeTokenPrice) external view returns (uint256 baseTokenAmount);
+    function calcBaseTokenByFeeToken(uint256 feeTokenAmount, uint256 baseTokenPerFeeTokenPrice)
+        external
+        view
+        returns (uint256 baseTokenAmount);
 
-    /// @notice 
+    /// @notice
     function calcFeeTokenByQuoteToken(uint256 quoteTokenAmount) external view returns (uint256 feeTokenAmount);
 
     /// @notice return strategy id
-    function strategyId() external pure returns (uint256);
+    function strategyId() external pure returns (uint16);
 
     /// @notice returns `quoteToken`
     function getQuoteToken() external view returns (IToken);
@@ -175,50 +181,64 @@ interface IGrindURUSPoolStrategy is IERC5313 {
     /// @notice return base token amount
     function getBaseTokenAmount() external view returns (uint256 baseTokenAmount);
 
+    /// @notice return Return of Investment
     function ROI() external view returns (uint256 ROINumerator, uint256 ROIDenominator, uint256 ROIPeriod);
 
+    /// @notice return Annual Percentage Rate
     function APR() external view returns (uint256 APRNumerator, uint256 APRDenominator);
 
     /// @notice return total profits data
-    function getTotalProfits() external view returns (
-        uint256 quoteTokenYieldProfit,
-        uint256 baseTokenYieldProfit,
-        uint256 quoteTokenTradeProfit,
-        uint256 baseTokenTradeProfit
-    );
+    function getTotalProfits()
+        external
+        view
+        returns (
+            uint256 quoteTokenYieldProfit,
+            uint256 baseTokenYieldProfit,
+            uint256 quoteTokenTradeProfit,
+            uint256 baseTokenTradeProfit
+        );
 
     /// @notice return positions and config
-    function getLongHedgeAndConfig() external view returns (Long memory, Hedge memory, Config memory);
+    function getLongHedgeAndConfig() external view returns (Position memory, Position memory, Config memory);
 
-    function getLong() external view returns (
-        uint8 number,
-        uint256 priceMin,
-        uint256 liquidity,
-        uint256 qty,
-        uint256 price,
-        uint256 feeQty,
-        uint256 feePrice
-    );
+    function getLong()
+        external
+        view
+        returns (
+            uint8 number,
+            uint8 numberMax,
+            uint256 priceMin,
+            uint256 liquidity,
+            uint256 qty,
+            uint256 price,
+            uint256 feeQty,
+            uint256 feePrice
+        );
 
-    function getHedge() external view returns (
-        uint8 number,
-        uint256 priceMin,
-        uint256 liquidity,
-        uint256 qty,
-        uint256 price,
-        uint256 feeQty,
-        uint256 feePrice
-    );
+    function getHedge()
+        external
+        view
+        returns (
+            uint8 number,
+            uint8 numberMax,
+            uint256 priceMin,
+            uint256 liquidity,
+            uint256 qty,
+            uint256 price,
+            uint256 feeQty,
+            uint256 feePrice
+        );
 
-    function getConfig() external view returns (
-        uint8 longNumberMax,
-        uint8 hedgeNumberMax,
-        uint256 averagePriceVolatility,
-        uint256 extraCoef,
-        uint256 returnPercentLongSell,
-        uint256 returnPercentHedgeSell,
-        uint256 returnPercentHedgeRebuy
-    );
-
-
+    function getConfig()
+        external
+        view
+        returns (
+            uint8 longNumberMax,
+            uint8 hedgeNumberMax,
+            uint256 averagePriceVolatility,
+            uint256 extraCoef,
+            uint256 returnPercentLongSell,
+            uint256 returnPercentHedgeSell,
+            uint256 returnPercentHedgeRebuy
+        );
 }

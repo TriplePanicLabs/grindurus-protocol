@@ -5,7 +5,6 @@ import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721
 import {IERC2981} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
 
 interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
-
     error NotOwner();
     error NotOwnerOfPool(uint256 poolId, address ownerOf);
     error NotPendingOwner();
@@ -16,6 +15,7 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
     error RoyaltyNumeratorExceedsMaxValue();
     error InvalidRoyaltyShares();
     error InvalidRoyaltyPriceShare();
+    error InvalidPoolNFTInfos();
     error RoyaltyNumeratorZero();
     error StrategyDontExist();
     error NotAllowedToRebalance();
@@ -30,10 +30,13 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
     error FailLastGrinderShare();
     error FailRefund();
     error FailBuyOwnership();
+    error ZeroETH();
+    error FailETHTransfer();
+    error FailTokenTransfer(address token);
 
     event SetFactoryStrategy(uint256 strategyId, address factoryStrategy);
     event Mint(
-        uint256 poolId, 
+        uint256 poolId,
         address oracleQuoteTokenPerFeeToken,
         address oracleQuoteTokenPerBaseToken,
         address feeToken,
@@ -80,15 +83,24 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
 
     function royaltyPrice(uint256 poolId) external view returns (uint256);
 
-    function royaltyShares(uint256 poolId, uint256 profit) external view returns (
-        uint8 length,
-        address[] memory receivers,
-        uint256[] memory amounts
-    );
+    function royaltyShares(uint256 poolId, uint256 profit)
+        external
+        view
+        returns (uint8 length, address[] memory receivers, uint256[] memory amounts);
 
     function pools(uint256 poolId) external view returns (address);
 
     function poolIds(address pool) external view returns (uint256);
+
+    function mint(
+        uint16 strategyId,
+        address oracleQuoteTokenPerFeeToken,
+        address oracleQuoteTokenPerBaseToken,
+        address feeToken,
+        address baseToken,
+        address quoteToken,
+        uint256 quoteTokenAmount
+    ) external returns (uint256 poolId);
 
     function grind(uint256 poolId) external;
 
@@ -96,39 +108,55 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
 
     function buyOwnership() external payable returns (uint256 ownershipPricePaid, uint256 refund);
 
-    function royaltyInfo(uint256 tokenId, uint256 salePrice) external view override returns (address receiver, uint256 royaltyAmount);
+    function royaltyInfo(uint256 tokenId, uint256 salePrice)
+        external
+        view
+        override
+        returns (address receiver, uint256 royaltyAmount);
 
-    function getPoolNFTInfos(uint256 fromPoolId, uint256 toPoolId) external view returns (PoolNFTInfo[] memory poolsInfo);
+    function getPoolNFTInfos(uint256 fromPoolId, uint256 toPoolId)
+        external
+        view
+        returns (PoolNFTInfo[] memory poolsInfo);
 
-    function getLong(uint256 poolId) external view returns (
-        uint8 number,
-        uint256 priceMin,
-        uint256 liquidity,
-        uint256 qty,
-        uint256 price,
-        uint256 feeQty,
-        uint256 feePrice
-    );
+    function getLong(uint256 poolId)
+        external
+        view
+        returns (
+            uint8 number,
+            uint8 numberMax,
+            uint256 priceMin,
+            uint256 liquidity,
+            uint256 qty,
+            uint256 price,
+            uint256 feeQty,
+            uint256 feePrice
+        );
 
-    function getHedge(uint256 poolId) external view returns (
-        uint8 number,
-        uint256 priceMin,
-        uint256 liquidity,
-        uint256 qty,
-        uint256 price,
-        uint256 feeQty,
-        uint256 feePrice
-    );
+    function getHedge(uint256 poolId)
+        external
+        view
+        returns (
+            uint8 number,
+            uint8 numberMax,
+            uint256 priceMin,
+            uint256 liquidity,
+            uint256 qty,
+            uint256 price,
+            uint256 feeQty,
+            uint256 feePrice
+        );
 
-    function getConfig(uint256 poolId) external view returns (
-        uint8 longNumberMax,
-        uint8 hedgeNumberMax,
-        uint256 averagePriceVolatility,
-        uint256 extraCoef,
-        uint256 returnPercentLongSell,
-        uint256 returnPercentHedgeSell,
-        uint256 returnPercentHedgeRebuy
-    );
-
-
+    function getConfig(uint256 poolId)
+        external
+        view
+        returns (
+            uint8 longNumberMax,
+            uint8 hedgeNumberMax,
+            uint256 averagePriceVolatility,
+            uint256 extraCoef,
+            uint256 returnPercentLongSell,
+            uint256 returnPercentHedgeSell,
+            uint256 returnPercentHedgeRebuy
+        );
 }

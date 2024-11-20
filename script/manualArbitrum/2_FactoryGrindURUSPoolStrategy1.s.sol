@@ -11,10 +11,9 @@ import {FactoryGrindURUSPoolStrategy1} from "src/strategy1/FactoryGrindURUSPoolS
 // $ forge script script/manualArbitrum/2_FactoryGrindURUSPoolStrategy1.s.sol:FactoryGrindURUSPoolStrategy1Script
 
 // Mainnet deploy command:
-// $ forge script script/manualArbitrum/2_FactoryGrindURUSPoolStrategy1.s.sol:FactoryGrindURUSPoolStrategy1Script --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY 
+// $ forge script script/manualArbitrum/2_FactoryGrindURUSPoolStrategy1.s.sol:FactoryGrindURUSPoolStrategy1Script --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 contract FactoryGrindURUSPoolStrategy1Script is Script {
-
     GrindURUSPoolsNFT public poolsNFT = GrindURUSPoolsNFT(payable(address(0x60a8CbB469f97dC205e498eEc4B5328d1fD9B00A)));
 
     FactoryGrindURUSPoolStrategy1 public factory1;
@@ -24,7 +23,7 @@ contract FactoryGrindURUSPoolStrategy1Script is Script {
         address deployer = vm.addr(deployerPrivateKey);
         console.log(deployer);
 
-        vm.createSelectFork('arbitrum');
+        vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
 
         factory1 = new FactoryGrindURUSPoolStrategy1(address(poolsNFT));

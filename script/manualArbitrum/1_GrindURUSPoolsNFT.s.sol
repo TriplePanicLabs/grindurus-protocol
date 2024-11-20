@@ -11,11 +11,9 @@ import {FactoryGrindURUSPoolStrategy1} from "src/strategy1/FactoryGrindURUSPoolS
 // $ forge script script/manualArbitrum/1_GrindURUSPoolsNFT.s.sol:GrindURUSPoolsNFTScript
 
 // Mainnet deploy command:
-// $ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript --slow --broadcast --verify--slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY 
-
+// $ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript --slow --broadcast --verify--slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 contract GrindURUSPoolsNFTScript is Script {
-
     GrindURUSPoolsNFT public poolsNFT;
 
     function run() public {
@@ -23,13 +21,13 @@ contract GrindURUSPoolsNFTScript is Script {
         address deployer = vm.addr(deployerPrivateKey);
         console.log(deployer);
 
-        vm.createSelectFork('arbitrum');
+        vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
 
         poolsNFT = new GrindURUSPoolsNFT();
 
         console.log("poolsNFT: ", address(poolsNFT));
-        
+
         vm.stopBroadcast();
     }
 }
