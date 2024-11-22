@@ -60,7 +60,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @dev total profits of pool
     TotalProfits public totalProfits;
 
-    constructor() {} // only for verification simplification
+    constructor() {} // only for verification simplification. As constructor call initStrategy
 
     function initStrategy(
         address _grindurusPoolsNFT,
@@ -316,10 +316,16 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
 
     /// @notice calculates invest coeficient
     /// @dev q_n = (e+1) ^ (n-1) * q_1 => investCoef = (e+1)^(n-1)
-    function calcInvestCoef() public view returns (uint256) {
+    function calcInvestCoef() public view returns (uint256 investCoef) {
         uint8 exponent = config.longNumberMax - 1;
         uint256 multiplier = helper.extraCoefMultiplier;
-        return (config.extraCoef + multiplier) ** exponent / (multiplier ** (exponent - 1));
+        if (exponent >= 2) {
+            investCoef = (config.extraCoef + multiplier) ** exponent / (multiplier ** (exponent - 1));
+        } else if (exponent == 1) {
+            investCoef = config.extraCoef + multiplier;
+        } else {
+            investCoef == multiplier;
+        }
     }
 
     /// @notice grab all assets from strategy and send it to owner
@@ -329,12 +335,14 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         _onlyPoolsNFT();
         (quoteTokenAmount) = take(quoteToken, type(uint256).max);
         (baseTokenAmount) = take(baseToken, type(uint256).max);
+        uint256 quoteTokenBalance = quoteToken.balanceOf(address(this));
+        uint256 baseTokenBalance = baseToken.balanceOf(address(this));
         address _owner = owner();
-        if (quoteTokenAmount > 0) {
-            quoteToken.safeTransfer(_owner, quoteTokenAmount);
+        if (quoteTokenBalance > 0) {
+            quoteToken.safeTransfer(_owner, quoteTokenBalance);
         }
-        if (baseTokenAmount > 0) {
-            baseToken.safeTransfer(_owner, baseTokenAmount);
+        if (baseTokenBalance > 0) {
+            baseToken.safeTransfer(_owner, baseTokenBalance);
         }
 
         long = Position({
@@ -831,7 +839,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
                 / helper.oracleQuoteTokenPerBaseTokenMultiplier;
         } else {
             quoteTokenAmount = baseTokenAmount * quoteTokenPerBaseTokenPrice
-                / (helper.oracleQuoteTokenPerBaseTokenMultiplier * 10 ** (bd - qd));
+                / (helper.oracleQuoteTokenPerBaseTokenMultiplier * (10 ** (bd - qd)));
         }
     }
 
@@ -870,7 +878,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
                 / helper.oracleQuoteTokenPerFeeTokenMultiplier;
         } else {
             baseTokenAmount = feeTokenAmount * baseTokenPerFeeTokenPrice
-                / (helper.oracleQuoteTokenPerFeeTokenMultiplier * 10 ** (fd - bd));
+                / (helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - bd)));
         }
     }
 
@@ -886,7 +894,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
                 / quoteTokenPerFeeTokenPrice;
         } else {
             feeTokenAmount = quoteTokenAmount * helper.oracleQuoteTokenPerFeeTokenMultiplier
-                / (quoteTokenPerFeeTokenPrice * 10 ** (qd - fd));
+                / (quoteTokenPerFeeTokenPrice * (10 ** (qd - fd)));
         }
     }
 
