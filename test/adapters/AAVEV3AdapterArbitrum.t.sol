@@ -45,7 +45,7 @@ contract AAVEV3AdapterArbitrumTest is Test {
         // console.log("aToken: ", address(aToken));
 
         uint256 baseTokenAmount = 2e18;
-        (, uint256 putAmount) = adapter.put(baseToken, baseTokenAmount);
+        (uint256 putAmount) = adapter.put(baseToken, baseTokenAmount);
         assertEq(baseTokenAmount, putAmount);
 
         uint256 aBaseTokenBalanceBefore = adapter.getAToken(baseToken).balanceOf(address(adapter));
@@ -56,7 +56,7 @@ contract AAVEV3AdapterArbitrumTest is Test {
         // console.log("Balance after: ", aBaseTokenBalanceAfter);
         assertGt(aBaseTokenBalanceAfter, aBaseTokenBalanceBefore);
 
-        (, uint256 takeAmount) = adapter.take(baseToken, baseTokenAmount);
+        (uint256 takeAmount) = adapter.take(baseToken, baseTokenAmount);
         assertEq(takeAmount, baseTokenAmount);
     }
 }

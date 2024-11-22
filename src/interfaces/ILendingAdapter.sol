@@ -5,14 +5,10 @@ import {IToken} from "./IToken.sol";
 
 interface ILendingAdapter {
     error LendingInitialized();
-    error FailPut(address token, uint256 amount);
-    error FailTake(address token, uint256 amount);
 
-    function put(IToken token, uint256 amount) external returns (uint256 poolTokenAmount, uint256 putAmount);
+    function put(IToken token, uint256 amount) external returns (uint256 putAmount);
 
-    function take(IToken token, uint256 amount) external returns (uint256 poolTokenAmount, uint256 putAmount);
-
-    function harvest(IToken token) external returns (uint256 harvestedYield);
+    function take(IToken token, uint256 amount) external returns (uint256 takeAmount);
 
     function getPendingYield(IToken token) external view returns (uint256);
 }

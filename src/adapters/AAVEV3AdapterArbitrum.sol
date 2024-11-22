@@ -38,7 +38,7 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
     function _onlyOwner() internal view virtual {}
 
     /// @notice sets pool
-    /// @param  _aaveV3Pool address of AAVEv3 pool 
+    /// @param _aaveV3Pool address of AAVEv3 pool
     function setPool(IAAVEV3PoolArbitrum _aaveV3Pool) public {
         _onlyOwner();
         aaveV3Pool = _aaveV3Pool;
@@ -54,25 +54,20 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
     /// @notice puts in `token` to lending protocol
     /// @param token address of `baseToken` or `quoteToken`
     /// @param amount amount of `baseToken` or `quoteToken`
-    /// @return poolTokenAmount amount of aaveV3Pool tokens received. Rate 1:1
     /// @return putAmount amount of `baseToken` or `quoteToken` sent
-    function put(IToken token, uint256 amount) public override returns (uint256 poolTokenAmount, uint256 putAmount) {
-        IAAVEV3AToken aToken = getAToken(token);
+    function put(IToken token, uint256 amount) public override returns (uint256 putAmount) {
         token.forceApprove(address(aaveV3Pool), amount);
         address onBehalfOf = address(this);
-        uint256 poolBalanceBefore = aToken.balanceOf(onBehalfOf);
         uint256 tokenBalanceBefore = token.balanceOf(onBehalfOf);
 
         try aaveV3Pool.supply(address(token), amount, onBehalfOf, 0) {
             // uint16 refferalCode = 0;
             _onSuccessfulPut(token, amount, onBehalfOf);
         } catch {
-            revert FailPut(address(token), amount);
+            return 0;
         }
 
-        uint256 poolBalanceAfter = aToken.balanceOf(onBehalfOf);
         uint256 tokenBalanceAfter = token.balanceOf(onBehalfOf);
-        poolTokenAmount = poolBalanceAfter - poolBalanceBefore;
         putAmount = tokenBalanceBefore - tokenBalanceAfter;
         investedAmount[token] += putAmount;
     }
@@ -81,53 +76,37 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
     /// @dev burn aToken and receive Token. Rate 1 aToken : 1 Token
     /// @param token address of `baseToken` or `quoteToken`
     /// @param amount amount of `baseToken` or `quoteToken`
-    /// @return poolTokenAmount amount of `aBaseToken` or `aQuoteToken` sent
     /// @return takeAmount amount of `baseToken` or `quoteToken` received
-    function take(IToken token, uint256 amount) public override returns (uint256 poolTokenAmount, uint256 takeAmount) {
-        harvest(token);
-        if (investedAmount[token] < amount) {
-            amount = investedAmount[token];
-        }
-        if (amount == 0) {
-            return (poolTokenAmount, takeAmount);
-        }
-        IAAVEV3AToken aToken = getAToken(token);
+    function take(IToken token, uint256 amount) public override returns (uint256 takeAmount) {
         address to = address(this);
-        uint256 aTokenBalanceBefore = aToken.balanceOf(to);
         uint256 tokenBalanceBefore = token.balanceOf(to);
 
-        try aaveV3Pool.withdraw(address(token), amount, to) returns (uint256 withdrawn) {
-            _onSuccessfulTake(token, amount, to, withdrawn);
+        try aaveV3Pool.withdraw(address(token), type(uint256).max, to) returns (uint256 withdrawn) {
+            _onSuccessfulTake(token, type(uint256).max, to, withdrawn);
         } catch {
-            revert FailTake(address(token), amount);
+            return 0;
         }
 
-        uint256 aTokenBalanceAfter = aToken.balanceOf(to);
         uint256 tokenBalanceAfter = token.balanceOf(to);
-        poolTokenAmount = aTokenBalanceBefore - aTokenBalanceAfter;
-        takeAmount = tokenBalanceAfter - tokenBalanceBefore;
-        investedAmount[token] -= amount;
-    }
-
-    /// @notice harvest yield and transfer it to `harvestReceiver`
-    /// @return harvestedYield yield amount that have been harvested from lending
-    function harvest(IToken token) public returns (uint256 harvestedYield) {
-        IAAVEV3AToken aToken = getAToken(token);
-        uint256 aTokenBalance = aToken.balanceOf(address(this));
-        if (aTokenBalance > investedAmount[token]) {
-            harvestedYield = aTokenBalance - investedAmount[token];
-            try aaveV3Pool.withdraw(address(token), harvestedYield, address(this)) returns (uint256 withdrawn) {
-                _distributeYieldProfit(token, withdrawn);
-            } catch {
-                // just not distribute
-            }
+        uint256 tokenAmount = tokenBalanceAfter - tokenBalanceBefore; // available tokens
+        uint256 investedTokenAmount = investedAmount[token];
+        // distribute yield profit
+        if (tokenAmount > investedTokenAmount) {
+            uint256 yieldProfit = tokenAmount - investedTokenAmount;
+            tokenAmount -= yieldProfit; // made tokenAmount == investmentAmount
+            _distributeYieldProfit(token, yieldProfit);
         }
-    }
-
-    /// @notice harvest all yield from lending protocol
-    function harvestAll() public returns (uint256 baseTokenYield, uint256 quoteTokenYield) {
-        baseTokenYield = harvest(getBaseToken());
-        quoteTokenYield = harvest(getQuoteToken());
+        if (amount > tokenAmount) {
+            amount = tokenAmount;
+        }
+        tokenAmount -= amount;
+        if (tokenAmount > 0) {
+            // put back unused
+            token.forceApprove(address(aaveV3Pool), tokenAmount);
+            try aaveV3Pool.supply(address(token), tokenAmount, to, 0) {} catch {}
+        }
+        takeAmount = amount;
+        investedAmount[token] -= takeAmount;
     }
 
     function _onSuccessfulPut(IToken token, uint256 amount, address onBehalfOf) internal virtual {}
@@ -141,6 +120,7 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
     }
 
     /// @notice calculates pending yield of `token`
+    /// @dev aToken to Token is 1:1 rate
     function getPendingYield(IToken token) public view virtual returns (uint256 yield) {
         IAAVEV3AToken aToken = getAToken(token);
         uint256 aTokenBalance = aToken.balanceOf(address(this));

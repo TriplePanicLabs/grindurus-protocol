@@ -249,7 +249,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         _onlyPoolsNFT();
         quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
         _invest(quoteTokenAmount);
-        (, uint256 putAmount) = put(quoteToken, quoteTokenAmount);
+        (uint256 putAmount) = put(quoteToken, quoteTokenAmount);
         deposited = putAmount;
     }
 
@@ -265,7 +265,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
             revert QuoteTokenAmountExceededMaxLiquidity();
         }
         if (long.number == 0) {
-            (, uint256 takeAmount) = take(quoteToken, quoteTokenAmount);
+            (uint256 takeAmount) = take(quoteToken, quoteTokenAmount);
             _divest(takeAmount);
             quoteToken.safeTransfer(to, takeAmount);
             withdrawn = takeAmount;
@@ -327,11 +327,15 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @return baseTokenAmount amount of baseToken in exit
     function exit() public returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         _onlyPoolsNFT();
-        (, quoteTokenAmount) = take(quoteToken, type(uint256).max);
-        (, baseTokenAmount) = take(baseToken, type(uint256).max);
+        (quoteTokenAmount) = take(quoteToken, type(uint256).max);
+        (baseTokenAmount) = take(baseToken, type(uint256).max);
         address _owner = owner();
-        baseToken.safeTransfer(_owner, baseTokenAmount);
-        quoteToken.safeTransfer(_owner, quoteTokenAmount);
+        if (quoteTokenAmount > 0) {
+            quoteToken.safeTransfer(_owner, quoteTokenAmount);
+        }
+        if (baseTokenAmount > 0) {
+            baseToken.safeTransfer(_owner, baseTokenAmount);
+        }
 
         long = Position({
             number: 0,
@@ -398,7 +402,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
             quoteTokenAmount = long.liquidity * config.extraCoef / helper.extraCoefMultiplier;
         }
         // 1.2. Take the quoteToken from lending protocol
-        (, quoteTokenAmount) = take(quoteToken, quoteTokenAmount);
+        (quoteTokenAmount) = take(quoteToken, quoteTokenAmount);
 
         // 2.0 Swap quoteTokenAmount to baseTokenAmount on DEX
         baseTokenAmount = swap(quoteToken, baseToken, quoteTokenAmount);
@@ -418,7 +422,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         long.priceMin = long.price - config.averagePriceVolatility;
 
         // 4.1. Put baseToken to lending protocol
-        (, baseTokenAmount) = put(baseToken, baseTokenAmount);
+        (baseTokenAmount) = put(baseToken, baseTokenAmount);
 
         // 5.1. Accumulate fees
         uint256 feePrice = getPriceQuoteTokensPerFeeToken(); // [long.feePrice] = quoteToken/feeToken
@@ -442,7 +446,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
 
         // 1. Take all qty from lending protocol
         baseTokenAmount = long.qty;
-        (, baseTokenAmount) = take(baseToken, baseTokenAmount);
+        (baseTokenAmount) = take(baseToken, baseTokenAmount);
 
         // 2.1. Swap baseTokenAmount to quoteTokenAmount
         quoteTokenAmount = swap(baseToken, quoteToken, baseTokenAmount);
@@ -458,7 +462,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         _distributeTradeProfit(quoteToken, profitPlusFees);
 
         // 4.0 Put the rest of `quouteToken` to lending protocol
-        (, quoteTokenAmount) = put(quoteToken, quoteTokenAmount);
+        (quoteTokenAmount) = put(quoteToken, quoteTokenAmount);
 
         long = Position({
             number: 0,
@@ -492,7 +496,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
             baseTokenAmount = long.qty;
         }
         // 1.2. Take the baseToken from lending protocol
-        (, baseTokenAmount) = take(baseToken, baseTokenAmount);
+        (baseTokenAmount) = take(baseToken, baseTokenAmount);
 
         // 2.1 Swap the base token amount to quote token
         quoteTokenAmount = swap(baseToken, quoteToken, baseTokenAmount);
@@ -523,7 +527,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         }
 
         // 3.1. Put the quote token to lending protocol
-        (, quoteTokenAmount) = put(quoteToken, quoteTokenAmount);
+        (quoteTokenAmount) = put(quoteToken, quoteTokenAmount);
 
         if (hedgeNumber < hedgeNumberMaxMinusOne) {
             long.qty -= baseTokenAmount;
@@ -568,7 +572,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         // 1.1. Define how much to rebuy
         quoteTokenAmount = hedge.liquidity;
         // 1.2. Take base token amount
-        (, quoteTokenAmount) = take(quoteToken, quoteTokenAmount);
+        (quoteTokenAmount) = take(quoteToken, quoteTokenAmount);
 
         // 2.1 Swap quoteToken to baseToken
         baseTokenAmount = swap(quoteToken, baseToken, quoteTokenAmount);
@@ -584,7 +588,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         baseTokenAmount -= profitPlusFees;
 
         // 3.1. Put the baseToken to lending protocol
-        (, baseTokenAmount) = put(baseToken, baseTokenAmount);
+        (baseTokenAmount) = put(baseToken, baseTokenAmount);
 
         long.price =
             (long.qty * long.price + hedge.qty * (swapPrice + long.price - hedge.price)) / (long.qty + hedge.qty);
@@ -608,7 +612,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
             revert NotLongNumberMax();
         }
 
-        (, baseTokenAmount) = take(baseToken, long.qty);
+        (baseTokenAmount) = take(baseToken, long.qty);
         baseToken.approve(address(grindurusPoolsNFT), baseTokenAmount);
         long.qty -= baseTokenAmount;
         price = long.price;
@@ -619,7 +623,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public {
         _onlyPoolsNFT();
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
-        (, baseTokenAmount) = put(baseToken, baseTokenAmount);
+        (baseTokenAmount) = put(baseToken, baseTokenAmount);
         long.liquidity = baseTokenAmount * newPrice / helper.oracleQuoteTokenPerBaseTokenMultiplier;
         long.qty = baseTokenAmount;
         long.price = newPrice;
