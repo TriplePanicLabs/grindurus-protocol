@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 /// @title Router token swapping functionality
 /// @notice Functions for swapping tokens via Uniswap V3
 interface ISwapRouterArbitrum {
-
     /// @notice struct of swap for arbitrum
     struct ExactInputSingleParams {
         address tokenIn;
@@ -20,5 +19,4 @@ interface ISwapRouterArbitrum {
     /// @param params The parameters necessary for the swap, encoded as `ExactInputSingleParams` in calldata
     /// @return amountOut The amount of the received token
     function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
-
 }
