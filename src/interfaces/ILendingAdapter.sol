@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {IToken} from "./IToken.sol";
 
 interface ILendingAdapter {
+    error LendingInitialized();
     error FailPut(address token, uint256 amount);
     error FailTake(address token, uint256 amount);
 

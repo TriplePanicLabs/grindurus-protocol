@@ -313,18 +313,18 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         uint256 quoteTokenAmount
     ) external returns (uint256 poolId) {
         poolId = totalPools;
-        IGrindURUSPoolStrategy pool = factoryStrategy[strategyId].deploy(
+        address pool = factoryStrategy[strategyId].deploy(
             poolId, oracleQuoteTokenPerFeeToken, oracleQuoteTokenPerBaseToken, feeToken, baseToken, quoteToken
         );
-        pools[poolId] = address(pool);
-        poolIds[address(pool)] = poolId;
+        pools[poolId] = pool;
+        poolIds[pool] = poolId;
         _mint(msg.sender, poolId);
         totalPools++;
         royaltyPrice[poolId] = calcInitialRoyaltyPrice(poolId, quoteTokenAmount);
 
         emit Mint(poolId, oracleQuoteTokenPerFeeToken, oracleQuoteTokenPerBaseToken, feeToken, baseToken, quoteToken);
-        _deposit(pool, IToken(quoteToken), quoteTokenAmount);
-        emit Deposit(poolId, address(pool), quoteToken, quoteTokenAmount);
+        _deposit(IGrindURUSPoolStrategy(pool), IToken(quoteToken), quoteTokenAmount);
+        emit Deposit(poolId, pool, quoteToken, quoteTokenAmount);
     }
 
     /// @notice deposit `quoteToken` to pool with `poolId`

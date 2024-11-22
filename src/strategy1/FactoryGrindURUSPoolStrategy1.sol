@@ -60,7 +60,7 @@ contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
         address feeToken,
         address baseToken,
         address quoteToken
-    ) public override returns (IGrindURUSPoolStrategy pool) {
+    ) public override returns (address pool) {
         _onlyGrindURUSPoolsNFT();
         IGrindURUSPoolStrategy.StrategyConstructorArgs memory strategyConstructorArgs = IGrindURUSPoolStrategy
             .StrategyConstructorArgs({
@@ -72,8 +72,10 @@ contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
             lendingArgs: abi.encode(aaveV3PoolArbitrum),
             dexArgs: abi.encode(uniswapV3SwapRouterArbitrum, uniswapV3PoolFeeArbitrum)
         });
-        pool = new GrindURUSPoolStrategy1(address(grindurusPoolsNFT), poolId, strategyConstructorArgs, defaultConfig);
-        uint256 poolStrategyId = pool.strategyId();
+        GrindURUSPoolStrategy1 grindURUSPoolStrategy1 = new GrindURUSPoolStrategy1();
+        grindURUSPoolStrategy1.initStrategy(address(grindurusPoolsNFT), poolId, strategyConstructorArgs, defaultConfig);
+        pool = address(grindURUSPoolStrategy1);
+        uint256 poolStrategyId = grindURUSPoolStrategy1.strategyId();
         uint256 factoryStrategyId = strategyId();
         if (poolStrategyId != factoryStrategyId) {
             revert InvalidStrategyId(poolStrategyId, factoryStrategyId);

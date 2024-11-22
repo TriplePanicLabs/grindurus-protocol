@@ -6,6 +6,7 @@ import {IERC5313} from "lib/openzeppelin-contracts/contracts/interfaces/IERC5313
 
 /// @notice the interface for Strategy Pool
 interface IGrindURUSPoolStrategy is IERC5313 {
+    error StrategyInitialized();
     error InvalidConfig();
     error InvalidLongNumberMax();
     error InvalidHedgeNumberMax();

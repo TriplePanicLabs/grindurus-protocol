@@ -14,7 +14,7 @@ interface IFactoryGrindURUSPoolStrategy {
         address _feeToken,
         address _baseToken,
         address _quoteToken
-    ) external returns (IGrindURUSPoolStrategy);
+    ) external returns (address);
 
     function strategyId() external pure returns (uint16);
 }

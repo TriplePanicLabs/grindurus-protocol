@@ -17,7 +17,12 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
     /// @dev address of Token => invested amount
     mapping(IToken token => uint256) public investedAmount;
 
-    constructor(bytes memory args) {
+    constructor() {}
+
+    function initLending(bytes memory args) public {
+        if (address(aaveV3Pool) != address(0)) {
+            revert LendingInitialized();
+        }
         (address _aaveV3Pool) = decodeLendingConstructorArgs(args);
         aaveV3Pool = IAAVEV3PoolArbitrum(_aaveV3Pool);
     }
@@ -32,6 +37,8 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
 
     function _onlyOwner() internal view virtual {}
 
+    /// @notice sets pool
+    /// @param  _aaveV3Pool address of AAVEv3 pool 
     function setPool(IAAVEV3PoolArbitrum _aaveV3Pool) public {
         _onlyOwner();
         aaveV3Pool = _aaveV3Pool;

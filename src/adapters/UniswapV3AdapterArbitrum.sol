@@ -2,7 +2,7 @@
 pragma solidity =0.8.28;
 
 import {IDexAdapter, IToken} from "../interfaces/IDexAdapter.sol";
-import {ISwapRouter} from "../interfaces/uniswapV3/ISwapRouter.sol";
+import {ISwapRouterArbitrum} from "../interfaces/uniswapV3/ISwapRouterArbitrum.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @dev adapter to UniswapV3 that inherrits by Strategy. Made for Arbitrum
@@ -10,19 +10,24 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
     using SafeERC20 for IToken;
 
     /// @notice address of swapRouter
-    ISwapRouter public swapRouter;
+    ISwapRouterArbitrum public swapRouter;
 
     /// @notice fee of uniswapV3 pool
     uint24 public fee;
 
-    constructor(address baseToken, address quoteToken, bytes memory args) {
+    constructor() {}
+
+    function initDex(address baseToken, address quoteToken, bytes memory args) public {
+        if (address(swapRouter) != address(0)) {
+            revert DexInitialized();
+        }
         (address _swapRouter, uint24 _fee) = decodeDexConstructorArgs(args);
 
-        // infinite approve for transferFrom uniswap
+        // infinite approve for transferFrom Uniswap
         IToken(baseToken).forceApprove(_swapRouter, type(uint256).max);
         IToken(quoteToken).forceApprove(_swapRouter, type(uint256).max);
 
-        swapRouter = ISwapRouter(_swapRouter);
+        swapRouter = ISwapRouterArbitrum(_swapRouter);
         fee = _fee;
     }
 
@@ -36,21 +41,21 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
 
     function _onlyOwner() internal view virtual {}
 
+    /// @notice set DEX data
     function setDexData(address _swapRouter, uint24 _fee) public {
         _onlyOwner();
-        IToken baseToken = getBaseToken();
-        IToken quoteToken = getQuoteToken();
-        baseToken.forceApprove(address(swapRouter), 0);
-        quoteToken.forceApprove(address(swapRouter), 0);
-        swapRouter = ISwapRouter(_swapRouter);
-        baseToken.forceApprove(address(swapRouter), type(uint256).max);
-        quoteToken.forceApprove(address(swapRouter), type(uint256).max);
+        getBaseToken().forceApprove(address(swapRouter), 0);
+        getQuoteToken().forceApprove(address(swapRouter), 0);
+        swapRouter = ISwapRouterArbitrum(_swapRouter);
+        getBaseToken().forceApprove(address(swapRouter), type(uint256).max);
+        getQuoteToken().forceApprove(address(swapRouter), type(uint256).max);
         fee = _fee;
     }
 
+    /// @notice swaps assets
     function swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) public override returns (uint256 amountOut) {
         uint256 tokenOutBalanceBefore = tokenOut.balanceOf(address(this));
-        ISwapRouter.ExactInputSingleParamsArbitrum memory params = ISwapRouter.ExactInputSingleParamsArbitrum({
+        ISwapRouterArbitrum.ExactInputSingleParams memory params = ISwapRouterArbitrum.ExactInputSingleParams({
             tokenIn: address(tokenIn),
             tokenOut: address(tokenOut),
             fee: fee,
@@ -64,10 +69,12 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         amountOut = tokenOutBalanceAfter - tokenOutBalanceBefore;
     }
 
+    /// @notice get base token
     function getBaseToken() public view virtual returns (IToken) {
         return IToken(address(0));
     }
 
+    /// @notice get quote token
     function getQuoteToken() public view virtual returns (IToken) {
         return IToken(address(0));
     }

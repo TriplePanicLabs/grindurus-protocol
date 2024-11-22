@@ -60,15 +60,20 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @dev total profits of pool
     TotalProfits public totalProfits;
 
-    constructor(
+    constructor() {} // only for verification simplification
+
+    function initStrategy(
         address _grindurusPoolsNFT,
         uint256 _poolId,
         StrategyConstructorArgs memory strategyArgs,
         Config memory conf
-    )
-        AAVEV3AdapterArbitrum(strategyArgs.lendingArgs)
-        UniswapV3AdapterArbitrum(strategyArgs.baseToken, strategyArgs.quoteToken, strategyArgs.dexArgs)
-    {
+    ) public {
+        if (address(grindurusPoolsNFT) != address(0)) {
+            revert StrategyInitialized();
+        }
+        initLending(strategyArgs.lendingArgs);
+        initDex(strategyArgs.baseToken, strategyArgs.quoteToken, strategyArgs.dexArgs);
+
         grindurusPoolsNFT = IGrindURUSPoolsNFT(_grindurusPoolsNFT);
         poolId = _poolId;
         poolDeploymentTimestamp = block.timestamp;
