@@ -4,7 +4,7 @@ pragma solidity =0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 import {UniswapV3AdapterArbitrum, IToken} from "../../src/adapters/UniswapV3AdapterArbitrum.sol";
 
-// $ forge test --match-path test/UniswapV3AdapterArbitrum.t.sol
+// $ forge test --match-path test/adapters/UniswapV3AdapterArbitrum.t.sol
 contract UniswapV3AdapterArbitrumTest is Test {
     address arbitrumOracle_weth_usd = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
 
@@ -26,7 +26,8 @@ contract UniswapV3AdapterArbitrumTest is Test {
         quoteToken = IToken(usdt);
         bytes memory args = abi.encode(uniswapV3SwapRouter, 500);
 
-        adapter = new UniswapV3AdapterArbitrum(address(baseToken), address(quoteToken), args);
+        adapter = new UniswapV3AdapterArbitrum();
+        adapter.initDex(address(baseToken), address(quoteToken), args);
     }
 
     function test_swap_baseToken_to_quoteToken() public {

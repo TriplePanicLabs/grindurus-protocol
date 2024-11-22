@@ -9,7 +9,7 @@ import {
     IToken
 } from "../../src/adapters/AAVEV3AdapterArbitrum.sol";
 
-// $ forge test --match-path test/AAVEV3AdapterArbitrum.t.sol
+// $ forge test --match-path test/adapters/AAVEV3AdapterArbitrum.t.sol
 contract AAVEV3AdapterArbitrumTest is Test {
     address arbitrumOracle_weth_usd = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
 
@@ -35,7 +35,8 @@ contract AAVEV3AdapterArbitrumTest is Test {
         quoteToken = IToken(usdtArbitrum);
 
         bytes memory lendingConstructorArgs = abi.encode(address(aaveV3PoolArbitrum));
-        adapter = new AAVEV3AdapterArbitrum(lendingConstructorArgs);
+        adapter = new AAVEV3AdapterArbitrum();
+        adapter.initLending(lendingConstructorArgs);
     }
 
     function test_baseToken_put_and_take() public {
