@@ -34,14 +34,23 @@ interface IGrindURUSPoolStrategy is IERC5313 {
     error FailETHTransfer();
     error FailTokenTransfer(address token);
 
+    /// @dev OPeration to number:
+    ///     LONG_BUY == 0
+    ///     LONG_SELL ==  1
+    ///     HEDGE_SELL ==  2
+    ///     HEDGE_REBUY ==  3
+    ///     REBALANCE ==  4
+    ///     INVEST ==  5
+    ///     DIVEST ==  6
     enum StrategyOp {
-        LONG_BUY,
-        LONG_SELL,
-        HEDGE_SELL,
-        HEDGE_REBUY,
-        REBALANCE,
-        INVEST,
-        DEVEST
+        LONG_BUY, // 0
+        LONG_SELL, // 1
+        HEDGE_SELL, // 2
+        HEDGE_REBUY, // 3
+        REBALANCE, // 4
+        INVEST, // 5
+        DIVEST // 6
+
     }
 
     struct StrategyConstructorArgs {
@@ -199,8 +208,9 @@ interface IGrindURUSPoolStrategy is IERC5313 {
         );
 
     /// @notice return positions and config
-    function getLongHedgeAndConfig() external view returns (Position memory, Position memory, Config memory);
+    function getPositions() external view returns (Position memory, Position memory);
 
+    /// @notice return long position
     function getLong()
         external
         view
@@ -215,6 +225,7 @@ interface IGrindURUSPoolStrategy is IERC5313 {
             uint256 feePrice
         );
 
+    /// @notice return hedge position
     function getHedge()
         external
         view

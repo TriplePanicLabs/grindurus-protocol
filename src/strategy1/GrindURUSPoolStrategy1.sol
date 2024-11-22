@@ -965,8 +965,8 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     }
 
     /// @notice returns long, hedge and config
-    function getLongHedgeAndConfig() public view override returns (Position memory, Position memory, Config memory) {
-        return (long, hedge, config);
+    function getPositions() public view override returns (Position memory, Position memory) {
+        return (long, hedge);
     }
 
     /// @notice return long position
