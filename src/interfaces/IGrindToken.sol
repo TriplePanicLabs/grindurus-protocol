@@ -5,8 +5,9 @@ import {IToken} from "src/interfaces/IToken.sol";
 
 interface IGrindToken is IToken {
     error NotGrindURUSPoolsNFT();
+    error NotGrindURUSOwner();
 
-    function grindurusPoolsNFT() external view returns (address);
+    function grindURUSPoolsNFT() external view returns (address);
 
     function grinderReward() external view returns (uint256);
 
@@ -14,15 +15,15 @@ interface IGrindToken is IToken {
 
     function royaltyReceiverReward() external view returns (uint256);
 
-    function ownerReward() external view returns (uint256);
+    function grindURUSOwnerReward() external view returns (uint256);
 
     function totalGrinds() external view returns (uint256);
 
-    function rewardGrinder(address grinder) external;
+    function rewardGrinder(address grinder) external returns (uint256);
 
-    function rewardPoolOwner(address poolOwner) external;
+    function rewardPoolOwner(address poolOwner) external returns (uint256);
 
-    function rewardRoyaltyReceiver(address royaltyReceiver) external;
+    function rewardRoyaltyReceiver(address royaltyReceiver) external returns (uint256);
 
-    function rewardOwner(address owner) external;
+    function rewardGrindURUSOwner() external returns (uint256);
 }
