@@ -102,6 +102,16 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
         uint256 quoteTokenAmount
     ) external returns (uint256 poolId);
 
+    function deposit(uint256 poolId, uint256 quoteTokenAmount) external returns (uint256 deposited);
+
+    function withdraw(uint256 poolId, uint256 quoteTokenAmount) external returns (uint256 withdrawn);
+
+    function withdrawTo(uint256 poolId, address to, uint256 quoteTokenAmount) external returns (uint256 withdrawn);
+
+    function exit(uint256 poolId) external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
+
+    function rebalance(uint256 poolIdLeft, uint256 poolIdRight) external;
+
     function grind(uint256 poolId) external;
 
     function buyRoyalty(uint256 poolId) external payable returns (uint256 royaltyPricePaid, uint256 refund);

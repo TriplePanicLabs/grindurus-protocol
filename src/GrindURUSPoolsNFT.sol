@@ -119,13 +119,14 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     mapping(address pool => uint256) public poolIds;
 
     constructor() ERC721("GRINDURUS Strategy Pools Collection", "GRINDURUS_POOLS") {
-        baseURI = "";
+        baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/";
         totalPools = 0;
         pendingOwner = payable(address(0));
         pendingPrimaryReceiverRoyalty = payable(address(0));
         owner = payable(msg.sender);
         primaryReceiverRoyalty = payable(msg.sender);
         lastGrinder = payable(msg.sender);
+        isStrategiest[msg.sender] = true;
 
         royaltyPriceCompensationShareNumerator = 101_00; // 101%
         royaltyPricePrimaryReceiverShareNumerator = 1_00; // 1%
@@ -138,21 +139,22 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         primaryReceiverRoyaltyShareNumerator = 19_00; // 19%
         receiverRoyaltyShareNumerator = 80_00; // 80%
         lastGrinderRoyaltyShareNumerator = 1_00; // 1%
-        //  profit = 1 USDT
-        //  profit to pool owner = 1 * 90% = 0.9 USDT
-        //  royalty = 1 * 10% = 0.1 USDT
-        //      royalty primary receiver = 0.1 * 19% = 0.019 USDT
-        //      royalty receiver = 0.1 * 80% = 0.08 USDT
-        //      royalty last grinder = 0.1 * 1% = 0.001 USDT
-        isStrategiest[msg.sender] = true;
+            //  profit = 1 USDT
+            //  profit to pool owner = 1 * 90% = 0.9 USDT
+            //  royalty = 1 * 10% = 0.1 USDT
+            //      royalty primary receiver = 0.1 * 19% = 0.019 USDT
+            //      royalty receiver = 0.1 * 80% = 0.08 USDT
+            //      royalty last grinder = 0.1 * 1% = 0.001 USDT
     }
 
+    /// @notice checks that msg.sender is owner
     function _onlyOwner() private view {
         if (msg.sender != owner) {
             revert NotOwner();
         }
     }
 
+    /// @notice checks that msg.sender is owner of pool id
     function _onlyOwnerOf(uint256 poolId) private view {
         address _ownerOf = ownerOf(poolId);
         if (msg.sender != _ownerOf) {
@@ -160,13 +162,14 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         }
     }
 
+    /// @notice checks that msg.sender is strategiest
     function _onlyStrategiest() private view {
         if (!isStrategiest[msg.sender]) revert NotStrategiest();
     }
 
     /// @notice sets base URI
     /// @param _baseURI string with baseURI
-    function setBaseURI(string memory _baseURI) public {
+    function setBaseURI(string memory _baseURI) external {
         _onlyOwner();
         baseURI = _baseURI;
     }
@@ -175,14 +178,14 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
 
     /// @notice sets strategiest
     /// @dev callable only by owner
-    function setStrategiest(address strategiest, bool _isStrategiest) public {
+    function setStrategiest(address strategiest, bool _isStrategiest) external {
         _onlyOwner();
         isStrategiest[strategiest] = _isStrategiest;
     }
 
     /// @notice sets start royalty price
     /// @dev callable only by owner
-    function setStartRoyaltyPrice(uint16 _initRoyaltyPriceNumerator) public {
+    function setStartRoyaltyPrice(uint16 _initRoyaltyPriceNumerator) external {
         _onlyOwner();
         if (_initRoyaltyPriceNumerator == 0) {
             revert StartRoyaltyPriceNumeratorZero();
@@ -192,7 +195,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
 
     /// @notice sets royalty numerator amount of native token
     /// @dev callable only by owner
-    function setRoyaltyNumerator(uint16 _royaltyNumerator) public {
+    function setRoyaltyNumerator(uint16 _royaltyNumerator) external {
         _onlyOwner();
         if (_royaltyNumerator > MAX_ROYALTY_NUMERATOR) {
             revert RoyaltyNumeratorExceedsMaxValue();
@@ -209,7 +212,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         uint16 _primaryReceiverRoyaltyShareNumerator,
         uint16 _receiverRoyaltyShareNumerator,
         uint16 _lastGrinderRoyaltyShareNumerator
-    ) public {
+    ) external {
         _onlyOwner();
         if (
             _primaryReceiverRoyaltyShareNumerator + _receiverRoyaltyShareNumerator + _lastGrinderRoyaltyShareNumerator
@@ -229,7 +232,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         uint16 _royaltyPricePrimaryReceiverShareNumerator,
         uint16 _royaltyPricePoolOwnerShareNumerator,
         uint16 _royaltyPriceLastGrinderShareNumerator
-    ) public {
+    ) external {
         _onlyOwner();
         if (_royaltyPriceCompensationShareNumerator <= DENOMINATOR) {
             revert InvalidRoyaltyPriceShare();
@@ -242,19 +245,19 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
 
     /// @notice sets grind token
     /// @dev sets only once
-    function setGrindToken(address _grindToken) public {
+    function setGrindToken(address _grindToken) external {
         _onlyOwner();
         grindToken = IGrindToken(_grindToken);
     }
 
     /// @notice First step for transfering ownership
-    function transferOwnership(address newOwner) public {
+    function transferOwnership(address newOwner) external {
         _onlyOwner();
         pendingOwner = payable(newOwner);
     }
 
     /// @notice Second step for transfering ownership
-    function acceptOwnership() public {
+    function acceptOwnership() external {
         if (msg.sender != pendingOwner) {
             revert NotPendingOwner();
         }
@@ -263,7 +266,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     }
 
     /// @notice first step to transfer primary receiver royalty
-    function transferPrimaryReceiverRoyalty(address _primaryReceiverRoyalty) public {
+    function transferPrimaryReceiverRoyalty(address _primaryReceiverRoyalty) external {
         if (msg.sender != primaryReceiverRoyalty) {
             revert NotPrimaryReceiverRoyalty();
         }
@@ -271,7 +274,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     }
 
     /// @notice second step to transfer primary royalty receiver
-    function acceptPrimaryReceiver() public {
+    function acceptPrimaryReceiver() external {
         if (msg.sender != pendingPrimaryReceiverRoyalty) {
             revert NotPendingPrimaryReceiverRoyalty();
         }
@@ -283,7 +286,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
 
     /// @notice set factrory strategy
     /// @dev callable only by strategiest
-    function setFactoryStrategy(address _factoryStrategy) public {
+    function setFactoryStrategy(address _factoryStrategy) external {
         _onlyStrategiest();
         uint16 strategyId = IFactoryGrindURUSPoolStrategy(_factoryStrategy).strategyId();
         factoryStrategy[strategyId] = IFactoryGrindURUSPoolStrategy(_factoryStrategy);
@@ -308,7 +311,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         address baseToken,
         address quoteToken,
         uint256 quoteTokenAmount
-    ) public returns (uint256 poolId) {
+    ) external returns (uint256 poolId) {
         poolId = totalPools;
         IGrindURUSPoolStrategy pool = factoryStrategy[strategyId].deploy(
             poolId, oracleQuoteTokenPerFeeToken, oracleQuoteTokenPerBaseToken, feeToken, baseToken, quoteToken
@@ -329,7 +332,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @param poolId id of pool in array `pools`
     /// @param quoteTokenAmount amount of `quoteToken`
     /// @return deposited amount of deposited `quoteToken`
-    function deposit(uint256 poolId, uint256 quoteTokenAmount) public returns (uint256 deposited) {
+    function deposit(uint256 poolId, uint256 quoteTokenAmount) external returns (uint256 deposited) {
         _onlyOwnerOf(poolId);
         IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
         IToken quoteToken = pool.getQuoteToken();
@@ -349,7 +352,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
 
     /// @notice withdraw `quoteToken` from poolId to `msg.sender`
     /// @dev callcable only by owner of poolId
-    function withdraw(uint256 poolId, uint256 quoteTokenAmount) public returns (uint256 withdrawn) {
+    function withdraw(uint256 poolId, uint256 quoteTokenAmount) external returns (uint256 withdrawn) {
         withdrawn = withdrawTo(poolId, msg.sender, quoteTokenAmount);
     }
 
@@ -371,7 +374,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @notice exit from strategy and transfer ownership to royalty receiver
     /// @dev callable only by owner of poolId
     /// @param poolId pool id of pool in array `pools`
-    function exit(uint256 poolId) public returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+    function exit(uint256 poolId) external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         _onlyOwnerOf(poolId);
         IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
         (quoteTokenAmount, baseTokenAmount) = pool.exit();
@@ -385,7 +388,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @dev only owner of pools can rebalance with equal strategy id
     /// @param poolIdLeft pool id of pool to rebalance
     /// @param poolIdRight pool id of pool to rebalance
-    function rebalance(uint256 poolIdLeft, uint256 poolIdRight) public {
+    function rebalance(uint256 poolIdLeft, uint256 poolIdRight) external {
         _onlyOwnerOf(poolIdLeft);
         if (ownerOf(poolIdLeft) != ownerOf(poolIdRight)) {
             revert NotAllowedToRebalance();
@@ -423,47 +426,55 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
 
     /// @notice grind the pool with `poolId`
     /// @param poolId pool id of pool in array `pools`
-    function grind(uint256 poolId) public {
+    function grind(uint256 poolId) external {
         IGrindURUSPoolStrategy strategy = IGrindURUSPoolStrategy(pools[poolId]);
-        (
-            IGrindURUSPoolStrategy.Position memory long,
-            IGrindURUSPoolStrategy.Position memory hedge,
-            IGrindURUSPoolStrategy.Config memory config
-        ) = strategy.getLongHedgeAndConfig();
-        uint8 longNumber = long.number;
-        uint8 hedgeNumber = hedge.number;
-        uint8 longNumberMax = config.longNumberMax;
-        if (longNumber < longNumberMax) {
-            if (longNumber == 0) {
-                try strategy.long_buy() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
-                    rewardActors(poolId);
-                    emit LongBuy(poolId, quoteTokenAmount, baseTokenAmount);
-                } catch {}
-            } else {
-                try strategy.long_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
-                    rewardActors(poolId);
-                    emit LongSell(poolId, quoteTokenAmount, baseTokenAmount);
-                } catch {}
+        (IGrindURUSPoolStrategy.Position memory long, IGrindURUSPoolStrategy.Position memory hedge) =
+            strategy.getPositions();
+        if (long.number == 0) {
+            // BUY
+            try strategy.long_buy() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+                rewardActors(poolId);
+                emit LongBuy(poolId, quoteTokenAmount, baseTokenAmount);
+            } catch {}
+        } else if (long.number < long.numberMax) {
+            // SELL
+            try strategy.long_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+                rewardActors(poolId);
+                emit LongSell(poolId, quoteTokenAmount, baseTokenAmount);
+            } catch {
+                // EXTRA BUY
                 try strategy.long_buy() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
                     rewardActors(poolId);
                     emit LongBuy(poolId, quoteTokenAmount, baseTokenAmount);
                 } catch {}
             }
         } else {
-            if (hedgeNumber == 0) {
-                try strategy.hedge_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+            // long.number == long.numberMax
+            if (hedge.number == 0) {
+                // TRY SELL
+                try strategy.long_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
                     rewardActors(poolId);
-                    emit HedgeSell(poolId, quoteTokenAmount, baseTokenAmount);
-                } catch {}
+                    emit LongSell(poolId, quoteTokenAmount, baseTokenAmount);
+                } catch {
+                    // INIT HEDGE SELL
+                    try strategy.hedge_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+                        rewardActors(poolId);
+                        emit HedgeSell(poolId, quoteTokenAmount, baseTokenAmount);
+                    } catch {}
+                }
             } else {
+                // hedge.number > 0
+                // REBUY
                 try strategy.hedge_rebuy() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
                     rewardActors(poolId);
                     emit HedgeRebuy(poolId, quoteTokenAmount, baseTokenAmount);
-                } catch {}
-                try strategy.hedge_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
-                    rewardActors(poolId);
-                    emit HedgeSell(poolId, quoteTokenAmount, baseTokenAmount);
-                } catch {}
+                } catch {
+                    // TRY HEDGE SELL
+                    try strategy.hedge_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+                        rewardActors(poolId);
+                        emit HedgeSell(poolId, quoteTokenAmount, baseTokenAmount);
+                    } catch {}
+                }
             }
         }
         lastGrinder = payable(msg.sender);
@@ -477,7 +488,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         grindToken.rewardGrinder(grinder);
         grindToken.rewardPoolOwner(ownerOf(poolId));
         grindToken.rewardRoyaltyReceiver(getRoyaltyReceiver(poolId));
-        grindToken.rewardOwner(owner);
+        grindToken.rewardGrindURUSOwner();
     }
 
     /// @notice buy royalty for pool with `poolId`
@@ -485,7 +496,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @return royaltyPricePaid paid for royalty
     /// @return refund excess of msg.value
     function buyRoyalty(uint256 poolId)
-        public
+        external
         payable
         nonReentrant
         returns (uint256 royaltyPricePaid, uint256 refund)
@@ -565,7 +576,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @notice buy grindurus ownership for `grindurusOwnershipPrice()` to owner
     /// @return ownershipPricePaid paid ownership price
     /// @return refund refund to buyer of royalty
-    function buyOwnership() public payable nonReentrant returns (uint256 ownershipPricePaid, uint256 refund) {
+    function buyOwnership() external payable nonReentrant returns (uint256 ownershipPricePaid, uint256 refund) {
         address payable _owner = payable(owner);
         address payable _sender = payable(msg.sender);
         uint256 _grindurusOwnershipPrice = grindurusOwnershipPrice();
@@ -677,15 +688,13 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     }
 
     /// @notice returns tokenURI of `tokenId`
-    /// @param tokenId pool id of pool in array `pools`
+    /// @param poolId pool id of pool in array `pools`
     /// @return uri unified reference indentificator for `tokenId`
-    function tokenURI(uint256 tokenId) public view override returns (string memory uri) {
-        _requireOwned(tokenId);
-        uint256 poolId = tokenId;
-        // https://api.grindurus.io/{poolId}/info.json
+    function tokenURI(uint256 poolId) public view override returns (string memory uri) {
+        _requireOwned(poolId);
+        // https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/{poolId}.json
         string memory path = string.concat(baseURI, poolId.toString());
-        string memory file = "/info.json";
-        uri = string.concat(path, file);
+        uri = string.concat(path, ".json");
     }
 
     /// @inheritdoc ERC721
@@ -779,7 +788,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @notice returns long position of poolId
     /// @param poolId pool id of pool in array `pools`
     function getLong(uint256 poolId)
-        public
+        external
         view
         override
         returns (
@@ -800,7 +809,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @notice returns hedge position of poolId
     /// @param poolId pool id of pool in array `pools`
     function getHedge(uint256 poolId)
-        public
+        external
         view
         override
         returns (
@@ -821,7 +830,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @notice returns long position of poolId
     /// @param poolId pool id of pool in array `pools`
     function getConfig(uint256 poolId)
-        public
+        external
         view
         override
         returns (
@@ -846,17 +855,10 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         ) = pool.getConfig();
     }
 
-    /// @notice return the balance of token on this contract
-    /// @param token address of token
-    /// @return balance of token on this smart contract
-    function balance(address token) public view returns (uint256) {
-        return IToken(token).balanceOf(address(this));
-    }
-
     /// @notice sweep token from this smart contract to `to`
     /// @param token address of ERC20 token
     /// @param to address of receiver fee amount
-    function sweep(address token, address to) public payable {
+    function sweep(address token, address to) external payable {
         _onlyOwner();
         uint256 _balance;
         if (token == address(0)) {
