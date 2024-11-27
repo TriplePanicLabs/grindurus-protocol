@@ -560,7 +560,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             uint256 poolOwnerShare,
             uint256 treasuryShare,
             uint256 lastGrinderShare,
-            ,
+            /**uint256 oldRoyaltyPrice */,
             uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + treasuryShare + lastGrinderShare
         ) = royaltyPriceShares(poolId);
         if (msg.value < newRoyaltyPrice) {

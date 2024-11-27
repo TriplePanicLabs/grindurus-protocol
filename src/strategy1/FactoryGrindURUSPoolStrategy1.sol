@@ -25,7 +25,11 @@ contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
     uint24 public uniswapV3PoolFeeArbitrum = 500;
 
     constructor(address _grindurusPoolsNFT) {
-        grindurusPoolsNFT = IGrindURUSPoolsNFT(_grindurusPoolsNFT);
+        if (_grindurusPoolsNFT != address(0)) {
+            grindurusPoolsNFT = IGrindURUSPoolsNFT(_grindurusPoolsNFT);
+        } else {
+            grindurusPoolsNFT = IGrindURUSPoolsNFT(msg.sender);
+        }
         defaultConfig = IGrindURUSPoolStrategy.Config({
             // maxLiquidity = initLiquidity * (extraCoef + 1) ** (longNumberMax - 1)
             longNumberMax: 4,

@@ -323,8 +323,8 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
             investCoef = (config.extraCoef + multiplier) ** exponent / (multiplier ** (exponent - 1));
         } else if (exponent == 1) {
             investCoef = config.extraCoef + multiplier;
-        } else {
-            investCoef == multiplier;
+        } else { // exponent == 0
+            investCoef = multiplier;
         }
     }
 

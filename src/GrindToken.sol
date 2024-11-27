@@ -18,13 +18,17 @@ contract GrindToken is IGrindToken, ERC20 {
     mapping(address actor => uint256) public totalRewarded;
 
     constructor(address _grindurusPoolsNFT) ERC20("GrindURUS Token", "GRIND") {
-        grindURUSPoolsNFT = _grindurusPoolsNFT;
+        if (_grindurusPoolsNFT != address(0)) {
+            grindURUSPoolsNFT = _grindurusPoolsNFT;
+        } else {
+            grindURUSPoolsNFT == msg.sender;
+        }
         /// initial rewards
         totalGrinds = 0;
     }
 
     /// @notice checks that msg.sender is grindurus pools NFT
-    function _onlyGrindURUSPoolsNFT() private view {
+    function _onlyPoolsNFT() private view {
         if (msg.sender != grindURUSPoolsNFT) {
             revert NotGrindURUSPoolsNFT();
         }
@@ -44,7 +48,7 @@ contract GrindToken is IGrindToken, ERC20 {
     }
 
     function reward(address[] memory actors, uint256[] memory rewards) public returns (uint256 totalReward) {
-        _onlyGrindURUSPoolsNFT();
+        _onlyPoolsNFT();
         if (actors.length != rewards.length) {
             return 0;
         }
