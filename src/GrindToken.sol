@@ -21,8 +21,11 @@ contract GrindToken is IGrindToken, ERC20 {
     /// @notice reward to royalty receiver of pool strategy
     uint256 public royaltyReceiverReward;
 
+    /// @notice reward to treasury
+    uint256 public treasuryReward;
+
     /// @notice reward to owner of grindurus protocol for his blessed mind
-    uint256 public grindURUSOwnerReward;
+    uint256 public ownerReward;
 
     /// @notice total amount of call grind
     uint256 public totalGrinds;
@@ -36,19 +39,20 @@ contract GrindToken is IGrindToken, ERC20 {
         grinderReward = 1 * 1e18;
         poolOwnerReward = 0.02 * 1e18;
         royaltyReceiverReward = 0.01 * 1e18;
-        grindURUSOwnerReward = 0.005 * 1e18;
+        treasuryReward = 1 * 1e18;
+        ownerReward = 0.005 * 1e18;
         totalGrinds = 0;
     }
 
     /// @notice checks that msg.sender is grindurus pools NFT
-    function _onlyGrindurusPoolsNFT() private view {
+    function _onlyGrindURUSPoolsNFT() private view {
         if (msg.sender != grindURUSPoolsNFT) {
             revert NotGrindURUSPoolsNFT();
         }
     }
 
     /// @notice check that msg.sender is grindURUS owner
-    function _onlyGrindURUSOwner() private view {
+    function _onlyOwner() private view {
         address owner;
         try IGrindURUSPoolsNFT(grindURUSPoolsNFT).owner() returns (address payable _owner) {
             owner = _owner;
@@ -63,36 +67,36 @@ contract GrindToken is IGrindToken, ERC20 {
     /// @notice sets grinder reward
     /// @param _grinderReward new grinder reward in terms of GRIND token
     function setGrinderReward(uint256 _grinderReward) public {
-        _onlyGrindURUSOwner();
+        _onlyOwner();
         grinderReward = _grinderReward;
     }
 
     /// @notice sets pool owner reward
     /// @param _poolOwnerReward new pool owner reward in terms of GRIND token
     function setPoolOwnerReward(uint256 _poolOwnerReward) public {
-        _onlyGrindURUSOwner();
+        _onlyOwner();
         poolOwnerReward = _poolOwnerReward;
     }
 
     /// @notice sets royalty receiver reward
     /// @param _royaltyReceiverReward new royalty receiver reward in terms of GRIND token
     function setRoyaltyReceiverReward(uint256 _royaltyReceiverReward) public {
-        _onlyGrindURUSOwner();
+        _onlyOwner();
         royaltyReceiverReward = _royaltyReceiverReward;
     }
 
     /// @notice sets grindURUS owner reward
-    /// @param _grindURUSOwnerReward new grindURUS owner reward in terms of GRIND token
-    function setGrindURUSOwnerReward(uint256 _grindURUSOwnerReward) public {
-        _onlyGrindURUSOwner();
-        grindURUSOwnerReward = _grindURUSOwnerReward;
+    /// @param _ownerReward new grindURUS owner reward in terms of GRIND token
+    function setOwnerReward(uint256 _ownerReward) public {
+        _onlyOwner();
+        ownerReward = _ownerReward;
     }
 
     /// @notice rewards grinder for grinding
     /// @dev callable by grindurus pools NFT
     /// @param grinder address of grinder, that will receive GRIND reward
     function rewardGrinder(address grinder) public returns (uint256) {
-        _onlyGrindurusPoolsNFT();
+        _onlyGrindURUSPoolsNFT();
         _mint(grinder, grinderReward);
         totalRewarded[grinder] += grinderReward;
         totalGrinds++;
@@ -103,7 +107,7 @@ contract GrindToken is IGrindToken, ERC20 {
     /// @dev callable by grindurus pools NFT
     /// @param poolOwner address of pool owner, that will receive GRIND reward
     function rewardPoolOwner(address poolOwner) public returns (uint256) {
-        _onlyGrindurusPoolsNFT();
+        _onlyGrindURUSPoolsNFT();
         _mint(poolOwner, poolOwnerReward);
         totalRewarded[poolOwner] += poolOwnerReward;
         return poolOwnerReward;
@@ -113,19 +117,24 @@ contract GrindToken is IGrindToken, ERC20 {
     /// @dev callable by grindurus pools NFT
     /// @param royaltyReceiver address of royalty receiver, that will receive GRIND reward
     function rewardRoyaltyReceiver(address royaltyReceiver) public returns (uint256) {
-        _onlyGrindurusPoolsNFT();
+        _onlyGrindURUSPoolsNFT();
         _mint(royaltyReceiver, royaltyReceiverReward);
         totalRewarded[royaltyReceiver] += royaltyReceiverReward;
         return royaltyReceiverReward;
     }
 
+    function rewardTreasury(address treasury) public returns (uint256) {
+        _onlyGrindURUSPoolsNFT();
+        _mint(treasury, treasuryReward);
+        return treasuryReward;
+    }
+
     /// @notice rewards royalty receiver for oppotunity to buy royalty
     /// @dev callable by grindURUS pools NFT
-    function rewardGrindURUSOwner() public returns (uint256) {
-        _onlyGrindurusPoolsNFT();
-        address grindURUSOwner = IGrindURUSPoolsNFT(grindURUSPoolsNFT).owner();
-        _mint(grindURUSOwner, grindURUSOwnerReward);
-        totalRewarded[grindURUSOwner] += grindURUSOwnerReward;
-        return grindURUSOwnerReward;
+    function rewardOwner(address owner) public returns (uint256) {
+        _onlyGrindURUSPoolsNFT();
+        _mint(owner, ownerReward);
+        totalRewarded[owner] += ownerReward;
+        return ownerReward;
     }
 }

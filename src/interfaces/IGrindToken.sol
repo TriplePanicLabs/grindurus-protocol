@@ -15,7 +15,7 @@ interface IGrindToken is IToken {
 
     function royaltyReceiverReward() external view returns (uint256);
 
-    function grindURUSOwnerReward() external view returns (uint256);
+    function ownerReward() external view returns (uint256);
 
     function totalGrinds() external view returns (uint256);
 
@@ -25,5 +25,7 @@ interface IGrindToken is IToken {
 
     function rewardRoyaltyReceiver(address royaltyReceiver) external returns (uint256);
 
-    function rewardGrindURUSOwner() external returns (uint256);
+    function rewardTreasury(address treasury) external returns (uint256);
+
+    function rewardOwner(address owner) external returns (uint256);
 }

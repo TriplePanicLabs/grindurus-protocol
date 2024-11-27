@@ -368,7 +368,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         _distributeProfit(token, profit);
     }
 
-    /// @notice distribute profit
+    /// @notice distribute trade profit
     function _distributeTradeProfit(IToken token, uint256 profit) internal override {
         if (token == baseToken) {
             totalProfits.baseTokenTradeProfit += profit;
@@ -378,10 +378,12 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         _distributeProfit(token, profit);
     }
 
+    /// @notice distribute profit 
     function _distributeProfit(IToken token, uint256 profit) internal {
-        (uint8 length, address[] memory receivers, uint256[] memory amounts) =
-            grindurusPoolsNFT.royaltyShares(poolId, profit);
-        length;
+        (address[] memory receivers, uint256[] memory amounts) = grindurusPoolsNFT.royaltyShares(poolId, profit);
+        if (receivers.length != amounts.length || receivers.length != 4) {
+            revert InvalidLength();
+        }
         if (amounts[0] > 0) {
             token.safeTransfer(receivers[0], amounts[0]);
         }
@@ -390,6 +392,9 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         }
         if (amounts[2] > 0) {
             token.safeTransfer(receivers[2], amounts[2]);
+        }
+        if (amounts[3] > 0) {
+            token.safeTransfer(receivers[3], amounts[3]);
         }
     }
 
@@ -984,6 +989,13 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @notice returns long, hedge and config
     function getPositions() public view override returns (Position memory, Position memory) {
         return (long, hedge);
+    }
+
+    /// @notice return pool total value locked based on positions
+    /// @dev [TVL] = quoteToken
+    function getTVL() public view override returns (uint256) {
+        return investedAmount[quoteToken] + calcQuoteTokenByBaseToken(long.qty, long.price)
+            + calcQuoteTokenByBaseToken(hedge.qty, hedge.price);
     }
 
     /// @notice return long position

@@ -14,6 +14,7 @@ interface IGrindURUSPoolStrategy is IERC5313 {
     error InvalidStrategyOpForFeeCoef();
     error InvalidStrategyOpForReturn();
     error InvalidReturnOfInvestment();
+    error InvalidLength();
     error NotQuoteToken();
     error NotOwner(address sender, address owner);
     error NotPositionsNFT(address sender, address owner);
@@ -211,6 +212,9 @@ interface IGrindURUSPoolStrategy is IERC5313 {
     /// @notice return positions and config
     function getPositions() external view returns (Position memory, Position memory);
 
+    /// @notice returns TVL of pool
+    function getTVL() external view returns (uint256);
+
     /// @notice return long position
     function getLong()
         external
@@ -241,6 +245,7 @@ interface IGrindURUSPoolStrategy is IERC5313 {
             uint256 feePrice
         );
 
+    /// @notice return config
     function getConfig()
         external
         view
