@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
+import {IGrindToken} from 'src/interfaces/IGrindToken.sol';
 import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol"; // NFT
 import {IERC2981} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
 
@@ -76,13 +77,21 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
         uint256 royaltyPrice;
     }
 
-    function totalPools() external view returns (uint256);
+    function pendingOwner() external view returns (address payable);
 
     function owner() external view returns (address payable);
 
     function treasury() external view returns (address payable);
 
     function lastGrinder() external view returns (address payable);
+
+    function baseURI() external view returns (string memory);
+
+    function totalPools() external view returns (uint256);
+
+    function grindToken() external view returns (IGrindToken);
+
+    function grindTokenReward() external view returns (uint256);
 
     function royaltyReceiver(uint256 poolId) external view returns (address);
 
@@ -92,13 +101,15 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
 
     function poolIds(address pool) external view returns (uint256);
 
+    function TVL(address token) external view returns (uint256);
+
     /////// ONLY OWNER FUNCTIONS
 
     function setBaseURI(string memory _baseURI) external;
 
-    function setInitRoyaltyPriceNumerator(uint16 _initRoyaltyPriceNumerator) external;
+    function setGrindReward(uint256 _grindTokenReward) external;
 
-    function setRoyaltyNumerator(uint16 _royaltyNumerator) external;
+    function setInitRoyaltyPriceNumerator(uint16 _initRoyaltyPriceNumerator) external;
 
     function setRoyaltyShares(
         uint16 _poolOwnerRoyaltyShareNumerator,
@@ -118,11 +129,22 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
 
     function setTreasury(address payable _treasury) external;
 
-    function transferOwnership(address newOwner) external;
+    function transferOwnership(address payable _owner) external;
 
     function setFactoryStrategy(address _factoryStrategy) external;
-
+    
     function mint(
+        uint16 strategyId,
+        address oracleQuoteTokenPerFeeToken,
+        address oracleQuoteTokenPerBaseToken,
+        address feeToken,
+        address baseToken,
+        address quoteToken,
+        uint256 quoteTokenAmount
+    ) external returns (uint256 poolId);
+
+    function mintTo(
+        address to,
         uint16 strategyId,
         address oracleQuoteTokenPerFeeToken,
         address oracleQuoteTokenPerBaseToken,
@@ -170,6 +192,16 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
             uint256 oldRoyaltyPrice,
             uint256 newRoyaltyPrice
         );
+
+    function calcGrindRewards(uint256 poolId) external view returns (address[] memory actors, uint256[] memory rewards);
+
+    function calcInitialRoyaltyPrice(uint256 poolId, uint256 quoteTokenAmount) external view returns (uint256 initRoyaltyPrice);
+
+    function tokenURI(uint256 poolId) external view returns (string memory uri);
+
+    function getRoyaltyReceiver(uint256 poolId) external view returns (address receiver);
+
+    function getPoolIdsOf(address poolOwner) external view returns (uint256 totalPoolIds, uint256[] memory poolIdsOwnedByPoolOwner);
 
     function getPoolNFTInfos(uint256 fromPoolId, uint256 toPoolId)
         external
