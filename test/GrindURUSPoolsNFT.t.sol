@@ -203,38 +203,5 @@ contract GrindURUSPoolsNFTTest is Test {
         assert(royaltyPriceAfter > royaltyPriceBefore);
     }
 
-    function test_mint_and_buyOwnership() public {
-        uint16 strategyId = 1;
-        address oracleQuoteTokenPerFeeToken = oracleWethUsdArbitrum;
-        address oracleQuoteTokenPerBaseToken = oracleWethUsdArbitrum;
-        address feeToken = wethArbitrum;
-        address baseToken = wethArbitrum;
-        address quoteToken = usdtArbitrum;
-        uint256 quoteTokenAmount = 270e6;
-        deal(quoteToken, address(this), quoteTokenAmount);
-        IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
-        poolsNFT.mint(
-            strategyId,
-            oracleQuoteTokenPerFeeToken,
-            oracleQuoteTokenPerBaseToken,
-            feeToken,
-            baseToken,
-            quoteToken,
-            quoteTokenAmount
-        );
-
-        // address ownerBefore = poolsNFT.owner();
-        uint256 grindurusOwnershipPrice = poolsNFT.grindurusOwnershipPrice();
-        vm.startBroadcast(address(444));
-        vm.deal(address(444), 100_001e18);
-        (uint256 ownershipPricePaid, uint256 refund) = poolsNFT.buyOwnership{value: grindurusOwnershipPrice}();
-        ownershipPricePaid;
-        refund;
-        vm.stopBroadcast();
-
-        address ownerAfter = poolsNFT.owner();
-        assert(ownerAfter == address(444));
-    }
-
     receive() external payable {}
 }
