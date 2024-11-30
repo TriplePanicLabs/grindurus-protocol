@@ -2,7 +2,8 @@
 pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
-import {IGrindToken} from "src/interfaces/IGrindToken.sol";
+import {IGRETH} from "src/interfaces/IGRETH.sol";
+import {IGrindURUSTreasury} from "src/interfaces/IGrindURUSTreasury.sol";
 import {IGrindURUSPoolsNFT} from "src/interfaces/IGrindURUSPoolsNFT.sol";
 import {IGrindURUSPoolStrategy} from "src/interfaces/IGrindURUSPoolStrategy.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
@@ -10,16 +11,16 @@ import {IFactoryGrindURUSPoolStrategy} from "src/interfaces/IFactoryGrindURUSPoo
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-import {
-    ERC721,
-    ERC721Enumerable,
-    IERC165
-} from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import {ERC721, ERC721Enumerable, IERC165} from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 /// @title GrindURUSPoolsNFT
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice NFT that represets ownership of every grindurus strategy pools
-contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGuard {
+contract GrindURUSPoolsNFT is
+    IGrindURUSPoolsNFT,
+    ERC721Enumerable,
+    ReentrancyGuard
+{
     using SafeERC20 for IToken;
     using Strings for uint256;
 
@@ -27,7 +28,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @dev this value of denominator is 100%
     uint16 public constant DENOMINATOR = 100_00;
 
-    /// @notice maximum numerator of init royalty price. 
+    /// @notice maximum numerator of init royalty price.
     /// @dev this value is 20%.
     /// Anybody should be able to buy royalty!
     uint16 public constant MAX_INIT_ROYALTY_PRICE_NUMERATOR = 20_00;
@@ -60,16 +61,16 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
 
     /// @notice the numerator of royalty
     /// @dev royaltyNumerator = DENIMINATOR - poolOwnerShareNumerator
-    /// @dev example: royaltyNumerator == 20_00 == 20% 
+    /// @dev example: royaltyNumerator == 20_00 == 20%
     uint16 public royaltyNumerator;
 
     /// @notice the numerator of pool owner share
     /// @dev poolOwnerShareNumerator = DENOMINATOR - royaltyNumerator
-    /// @dev example: poolOwnerShareNumerator == 80_00 == 80% 
+    /// @dev example: poolOwnerShareNumerator == 80_00 == 80%
     uint16 public poolOwnerShareNumerator;
 
     /// @notice royalty share of treasure
-    /// @dev example: poolOwnerShareNumerator == 3_50 == 3.5% 
+    /// @dev example: poolOwnerShareNumerator == 3_50 == 3.5%
     uint16 public treasuryRoyaltyShareNumerator;
 
     /// @notice royalty share of royalty receiver. You can buy it
@@ -90,7 +91,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     address payable public owner;
 
     /// @dev address of treasury. May be smart contract with sofisticated logic
-    address payable public treasury;
+    IGrindURUSTreasury public treasury;
 
     /// @notice address,that last called grind()
     /// @dev address of last grinder
@@ -105,14 +106,15 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @notice total amount of pools
     uint256 public totalPools;
 
-    /// @dev grind token address
-    IGrindToken public grindToken;
+    /// @dev grETH token address
+    IGRETH public grETH;
 
-    /// @dev amount of GRIND as reward for interaction
-    uint256 public grindTokenReward;
+    /// @dev amount of GRETH as compensation for interaction
+    uint256 public grETHReward;
 
     /// @dev strategyId => address of grindurus pool strategy implementation
-    mapping(uint16 strategyId => IFactoryGrindURUSPoolStrategy) public factoryStrategy;
+    mapping(uint16 strategyId => IFactoryGrindURUSPoolStrategy)
+        public factoryStrategy;
 
     /// @dev poolId => royalty receiver
     mapping(uint256 poolId => address) public royaltyReceiver;
@@ -129,15 +131,21 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @dev token => total value locked
     mapping(address token => uint256) public TVL;
 
-    constructor() ERC721("GRINDURUS Strategy Pools Collection", "GRINDURUS_POOLS") {
+    /// @dev token => TVL cap
+    /// @dev if capTVL == 0, than cap is unlimited
+    mapping(address token => uint256) public capTVL;
+
+    constructor()
+        ERC721("GRINDURUS Strategy Pools Collection", "GRINDURUS_POOLS")
+    {
         baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/";
         totalPools = 0;
         pendingOwner = payable(address(0));
         owner = payable(msg.sender);
-        treasury = payable(msg.sender); // Will be transfer to smart contract with logic
+        treasury = IGrindURUSTreasury(msg.sender);
         lastGrinder = payable(msg.sender);
 
-        grindTokenReward = 1e18;
+        grETHReward = 0.00001e18; // 0.00001 ETH
 
         royaltyPriceCompensationShareNumerator = 101_00; // 101%
         royaltyPriceTreasuryShareNumerator = 1_00; // 1%
@@ -148,22 +156,35 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         // poolOwnerShareNumerator + treasuryRoyaltyShareNumerator + receiverRoyaltyShareNumerator + grinderRoyaltyShareNumerator == DENOMINATOR
         royaltyNumerator = 20_00; // 20%
         poolOwnerShareNumerator = 80_00; // 80%
-        require(royaltyNumerator + poolOwnerShareNumerator == DENOMINATOR);
         treasuryRoyaltyShareNumerator = 3_50; // 3.5%
         receiverRoyaltyShareNumerator = 16_00; // 16%
         grinderRoyaltyShareNumerator = 50; // 0.5%
+        require(royaltyNumerator + poolOwnerShareNumerator == DENOMINATOR);
+        require(
+            poolOwnerShareNumerator +
+                treasuryRoyaltyShareNumerator +
+                receiverRoyaltyShareNumerator +
+                grinderRoyaltyShareNumerator ==
+                DENOMINATOR
+        );
         //  profit = 1 USDT
         //  profit to pool owner = 1 * (100% - 20%) = 0.8 USDT
         //  royalty = 1 * 20% = 0.2 USDT
-        //      royalty to treasury  = 0.2 * 19% = 0.0038 USDT
-        //      royalty receiver = 0.2 * 80% = 0.16 USDT
-        //      royalty last grinder = 0.2 * 1% = 0.002 USDT
+        //      royalty to treasury  = 0.2 * 3.5% = 0.007 USDT
+        //      royalty receiver = 0.2 * 16% = 0.032 USDT
+        //      royalty grinder = 0.2 * 0.5% = 0.001 USDT
     }
 
     /// @notice checks that msg.sender is owner
     function _onlyOwner() private view {
         if (msg.sender != owner) {
             revert NotOwner();
+        }
+    }
+
+    function _onlyTreasury() private view {
+        if (msg.sender != address(treasury)) {
+            revert NotTreasury();
         }
     }
 
@@ -184,18 +205,31 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         baseURI = _baseURI;
     }
 
-    /// @notice sets grind reward
-    /// @param _grindTokenReward new amount of GRIND token
-    function setGrindReward(uint256 _grindTokenReward) external override {
+    /// @notice sets cap tvl
+    /// @param token address of token
+    /// @param _capTVL amount of token
+    function setCapTVL(address token, uint256 _capTVL) external override {
         _onlyOwner();
-        grindTokenReward = _grindTokenReward;
+        capTVL[token] = _capTVL;
+    }
+
+    /// @notice sets grind grETHReward
+    /// @param _grETHReward new amount of grETH token
+    function setGRETHReward(uint256 _grETHReward) external override {
+        _onlyTreasury();
+        grETHReward = _grETHReward;
     }
 
     /// @notice sets start royalty price
     /// @dev callable only by owner
-    function setInitRoyaltyPriceNumerator(uint16 _initRoyaltyPriceNumerator) external override {
+    function setInitRoyaltyPriceNumerator(
+        uint16 _initRoyaltyPriceNumerator
+    ) external override {
         _onlyOwner();
-        if (_initRoyaltyPriceNumerator == 0 || _initRoyaltyPriceNumerator > MAX_INIT_ROYALTY_PRICE_NUMERATOR) {
+        if (
+            _initRoyaltyPriceNumerator == 0 ||
+            _initRoyaltyPriceNumerator > MAX_INIT_ROYALTY_PRICE_NUMERATOR
+        ) {
             revert InvalidInitRoyaltyPriceNumerator();
         }
         initRoyaltyPriceNumerator = _initRoyaltyPriceNumerator;
@@ -210,7 +244,13 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         uint16 _grinderRoyaltyShareNumerator
     ) external override {
         _onlyOwner();
-        if (_poolOwnerRoyaltyShareNumerator + _treasuryRoyaltyShareNumerator + _receiverRoyaltyShareNumerator + _grinderRoyaltyShareNumerator != DENOMINATOR) {
+        if (
+            _poolOwnerRoyaltyShareNumerator +
+                _treasuryRoyaltyShareNumerator +
+                _receiverRoyaltyShareNumerator +
+                _grinderRoyaltyShareNumerator !=
+            DENOMINATOR
+        ) {
             revert InvalidRoyaltyShares();
         }
         royaltyNumerator = DENOMINATOR - _poolOwnerRoyaltyShareNumerator;
@@ -238,25 +278,27 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         royaltyPriceGrinderShareNumerator = _royaltyPriceGrinderShareNumerator;
     }
 
-    /// @notice sets grind token
+    /// @notice sets grETH token
     /// @dev callable only by owner
-    function setGrindToken(address _grindToken) external override {
+    function setGRETH(address _grETH) external override {
         _onlyOwner();
-        grindToken = IGrindToken(_grindToken);
+        grETH = IGRETH(_grETH);
     }
 
     /// @notice sets treasury
     /// @dev callable only by owner
-    function setTreasury(address payable _treasury) external override {
+    function setTreasury(address _treasury) external override {
         _onlyOwner();
-        treasury = _treasury;
+        treasury = IGrindURUSTreasury(_treasury);
     }
 
     /// @notice First step - transfering ownership to `newOwner`
     ///         Second step - accept ownership
     /// @dev for future DAO
     function transferOwnership(address payable _owner) external override {
-        if (payable(msg.sender) != owner && payable(msg.sender) != pendingOwner) {
+        if (
+            payable(msg.sender) != owner && payable(msg.sender) != pendingOwner
+        ) {
             revert NotOwnerOrPending();
         }
         if (payable(msg.sender) == owner) {
@@ -271,8 +313,11 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @dev callable only by strategiest
     function setFactoryStrategy(address _factoryStrategy) external override {
         _onlyOwner();
-        uint16 strategyId = IFactoryGrindURUSPoolStrategy(_factoryStrategy).strategyId();
-        factoryStrategy[strategyId] = IFactoryGrindURUSPoolStrategy(_factoryStrategy);
+        uint16 strategyId = IFactoryGrindURUSPoolStrategy(_factoryStrategy)
+            .strategyId();
+        factoryStrategy[strategyId] = IFactoryGrindURUSPoolStrategy(
+            _factoryStrategy
+        );
         emit SetFactoryStrategy(strategyId, _factoryStrategy);
     }
 
@@ -306,7 +351,6 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             quoteToken,
             quoteTokenAmount
         );
-    
     }
 
     /// @notice mints NFT with deployment of strategy
@@ -330,16 +374,35 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     ) public override returns (uint256 poolId) {
         poolId = totalPools;
         address pool = factoryStrategy[strategyId].deploy(
-            poolId, oracleQuoteTokenPerFeeToken, oracleQuoteTokenPerBaseToken, feeToken, baseToken, quoteToken
+            poolId,
+            oracleQuoteTokenPerFeeToken,
+            oracleQuoteTokenPerBaseToken,
+            feeToken,
+            baseToken,
+            quoteToken
         );
         pools[poolId] = pool;
         poolIds[pool] = poolId;
         _mint(to, poolId);
         totalPools++;
-        royaltyPrice[poolId] = calcInitialRoyaltyPrice(poolId, quoteTokenAmount);
+        royaltyPrice[poolId] = calcInitialRoyaltyPrice(
+            poolId,
+            quoteTokenAmount
+        );
 
-        emit Mint(poolId, oracleQuoteTokenPerFeeToken, oracleQuoteTokenPerBaseToken, feeToken, baseToken, quoteToken);
-        _deposit(IGrindURUSPoolStrategy(pool), IToken(quoteToken), quoteTokenAmount);
+        emit Mint(
+            poolId,
+            oracleQuoteTokenPerFeeToken,
+            oracleQuoteTokenPerBaseToken,
+            feeToken,
+            baseToken,
+            quoteToken
+        );
+        _deposit(
+            IGrindURUSPoolStrategy(pool),
+            IToken(quoteToken),
+            quoteTokenAmount
+        );
         emit Deposit(poolId, pool, quoteToken, quoteTokenAmount);
     }
 
@@ -348,20 +411,40 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @param poolId id of pool in array `pools`
     /// @param quoteTokenAmount amount of `quoteToken`
     /// @return deposited amount of deposited `quoteToken`
-    function deposit(uint256 poolId, uint256 quoteTokenAmount) external override returns (uint256 deposited) {
+    function deposit(
+        uint256 poolId,
+        uint256 quoteTokenAmount
+    ) external override returns (uint256 deposited) {
         _onlyOwnerOf(poolId);
         IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
         IToken quoteToken = pool.getQuoteToken();
         deposited = _deposit(pool, quoteToken, quoteTokenAmount);
-        emit Deposit(poolId, address(pool), address(quoteToken), quoteTokenAmount);
+        emit Deposit(
+            poolId,
+            address(pool),
+            address(quoteToken),
+            quoteTokenAmount
+        );
     }
 
     /// @dev make transfer from msg.sender, approve to pool, call deposit on pool
-    function _deposit(IGrindURUSPoolStrategy pool, IToken quoteToken, uint256 quoteTokenAmount)
-        internal
-        returns (uint256 deposited)
-    {
-        quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
+    function _deposit(
+        IGrindURUSPoolStrategy pool,
+        IToken quoteToken,
+        uint256 quoteTokenAmount
+    ) internal returns (uint256 deposited) {
+        if (
+            (capTVL[address(quoteToken)] > 0) &&
+            (TVL[address(quoteToken)] + quoteTokenAmount >
+                capTVL[address(quoteToken)])
+        ) {
+            revert ExceededTVLCap();
+        }
+        quoteToken.safeTransferFrom(
+            msg.sender,
+            address(this),
+            quoteTokenAmount
+        );
         quoteToken.forceApprove(address(pool), quoteTokenAmount);
         deposited = pool.deposit(quoteTokenAmount);
         _increaseTVL(address(quoteToken), quoteTokenAmount);
@@ -369,7 +452,10 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
 
     /// @notice withdraw `quoteToken` from poolId to `msg.sender`
     /// @dev callcable only by owner of poolId
-    function withdraw(uint256 poolId, uint256 quoteTokenAmount) external override returns (uint256 withdrawn) {
+    function withdraw(
+        uint256 poolId,
+        uint256 quoteTokenAmount
+    ) external override returns (uint256 withdrawn) {
         withdrawn = withdrawTo(poolId, msg.sender, quoteTokenAmount);
     }
 
@@ -380,11 +466,11 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @param to address of receiver of withdrawed funds
     /// @param quoteTokenAmount amount of `quoteToken`
     /// @return withdrawn amount of withdrawn quoteToken
-    function withdrawTo(uint256 poolId, address to, uint256 quoteTokenAmount)
-        public
-        override
-        returns (uint256 withdrawn)
-    {
+    function withdrawTo(
+        uint256 poolId,
+        address to,
+        uint256 quoteTokenAmount
+    ) public override returns (uint256 withdrawn) {
         _onlyOwnerOf(poolId);
         IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
         IToken quoteToken = pool.getQuoteToken();
@@ -396,7 +482,13 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @notice exit from strategy and transfer ownership to royalty receiver
     /// @dev callable only by owner of poolId
     /// @param poolId pool id of pool in array `pools`
-    function exit(uint256 poolId) external override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+    function exit(
+        uint256 poolId
+    )
+        external
+        override
+        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
+    {
         _onlyOwnerOf(poolId);
         IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
         IToken quoteToken = pool.getQuoteToken();
@@ -431,13 +523,20 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @dev only owner of pools can rebalance with equal strategy id
     /// @param poolIdLeft pool id of pool to rebalance
     /// @param poolIdRight pool id of pool to rebalance
-    function rebalance(uint256 poolIdLeft, uint256 poolIdRight) external override {
+    function rebalance(
+        uint256 poolIdLeft,
+        uint256 poolIdRight
+    ) external override {
         _onlyOwnerOf(poolIdLeft);
         if (ownerOf(poolIdLeft) != ownerOf(poolIdRight)) {
             revert NotAllowedToRebalance();
         }
-        IGrindURUSPoolStrategy poolLeft = IGrindURUSPoolStrategy(pools[poolIdLeft]);
-        IGrindURUSPoolStrategy poolRight = IGrindURUSPoolStrategy(pools[poolIdRight]);
+        IGrindURUSPoolStrategy poolLeft = IGrindURUSPoolStrategy(
+            pools[poolIdLeft]
+        );
+        IGrindURUSPoolStrategy poolRight = IGrindURUSPoolStrategy(
+            pools[poolIdRight]
+        );
         if (poolLeft.strategyId() != poolRight.strategyId()) {
             revert DifferentStrategyId();
         }
@@ -452,17 +551,29 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             revert DifferentBaseTokens();
         }
 
-        (uint256 baseTokenAmountLeft, uint256 priceLeft) = poolLeft.beforeRebalance();
-        (uint256 baseTokenAmountRight, uint256 priceRight) = poolRight.beforeRebalance();
+        (uint256 baseTokenAmountLeft, uint256 priceLeft) = poolLeft
+            .beforeRebalance();
+        (uint256 baseTokenAmountRight, uint256 priceRight) = poolRight
+            .beforeRebalance();
         // second step: rebalance
-        uint256 totalBaseTokenAmount = baseTokenAmountLeft + baseTokenAmountRight;
-        uint256 rebalancedPrice =
-            (baseTokenAmountLeft * priceLeft + baseTokenAmountRight * priceRight) / totalBaseTokenAmount;
+        uint256 totalBaseTokenAmount = baseTokenAmountLeft +
+            baseTokenAmountRight;
+        uint256 rebalancedPrice = (baseTokenAmountLeft *
+            priceLeft +
+            baseTokenAmountRight *
+            priceRight) / totalBaseTokenAmount;
         uint256 newBaseTokenAmountLeft = totalBaseTokenAmount / 2;
-        uint256 newBaseTokenAmountRight = totalBaseTokenAmount - newBaseTokenAmountLeft;
+        uint256 newBaseTokenAmountRight = totalBaseTokenAmount -
+            newBaseTokenAmountLeft;
 
-        poolLeftBaseToken.forceApprove(address(poolLeft), newBaseTokenAmountLeft);
-        poolRightBaseToken.forceApprove(address(poolRight), newBaseTokenAmountRight);
+        poolLeftBaseToken.forceApprove(
+            address(poolLeft),
+            newBaseTokenAmountLeft
+        );
+        poolRightBaseToken.forceApprove(
+            address(poolRight),
+            newBaseTokenAmountRight
+        );
         poolLeft.afterRebalance(newBaseTokenAmountLeft, rebalancedPrice);
         poolRight.afterRebalance(newBaseTokenAmountRight, rebalancedPrice);
     }
@@ -471,23 +582,34 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @param poolId pool id of pool in array `pools`
     function grind(uint256 poolId) external override {
         IGrindURUSPoolStrategy strategy = IGrindURUSPoolStrategy(pools[poolId]);
-        (IGrindURUSPoolStrategy.Position memory long, IGrindURUSPoolStrategy.Position memory hedge) =
-            strategy.getPositions();
+        (
+            IGrindURUSPoolStrategy.Position memory long,
+            IGrindURUSPoolStrategy.Position memory hedge
+        ) = strategy.getPositions();
         if (long.number == 0) {
             // BUY
-            try strategy.long_buy() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
-                _rewardActors(poolId);
+            try strategy.long_buy() returns (
+                uint256 quoteTokenAmount,
+                uint256 baseTokenAmount
+            ) {
+                _mintGRETH(poolId);
                 emit LongBuy(poolId, quoteTokenAmount, baseTokenAmount);
             } catch {}
         } else if (long.number < long.numberMax) {
             // SELL
-            try strategy.long_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
-                _rewardActors(poolId);
+            try strategy.long_sell() returns (
+                uint256 quoteTokenAmount,
+                uint256 baseTokenAmount
+            ) {
+                _mintGRETH(poolId);
                 emit LongSell(poolId, quoteTokenAmount, baseTokenAmount);
             } catch {
                 // EXTRA BUY
-                try strategy.long_buy() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
-                    _rewardActors(poolId);
+                try strategy.long_buy() returns (
+                    uint256 quoteTokenAmount,
+                    uint256 baseTokenAmount
+                ) {
+                    _mintGRETH(poolId);
                     emit LongBuy(poolId, quoteTokenAmount, baseTokenAmount);
                 } catch {}
             }
@@ -495,47 +617,72 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             // long.number == long.numberMax
             if (hedge.number == 0) {
                 // TRY SELL
-                try strategy.long_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
-                    _rewardActors(poolId);
+                try strategy.long_sell() returns (
+                    uint256 quoteTokenAmount,
+                    uint256 baseTokenAmount
+                ) {
+                    _mintGRETH(poolId);
                     emit LongSell(poolId, quoteTokenAmount, baseTokenAmount);
                 } catch {
                     // INIT HEDGE SELL
-                    try strategy.hedge_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
-                        _rewardActors(poolId);
-                        emit HedgeSell(poolId, quoteTokenAmount, baseTokenAmount);
+                    try strategy.hedge_sell() returns (
+                        uint256 quoteTokenAmount,
+                        uint256 baseTokenAmount
+                    ) {
+                        _mintGRETH(poolId);
+                        emit HedgeSell(
+                            poolId,
+                            quoteTokenAmount,
+                            baseTokenAmount
+                        );
                     } catch {}
                 }
             } else {
                 // hedge.number > 0
                 // REBUY
-                try strategy.hedge_rebuy() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
-                    _rewardActors(poolId);
+                try strategy.hedge_rebuy() returns (
+                    uint256 quoteTokenAmount,
+                    uint256 baseTokenAmount
+                ) {
+                    _mintGRETH(poolId);
                     emit HedgeRebuy(poolId, quoteTokenAmount, baseTokenAmount);
                 } catch {
                     // TRY HEDGE SELL
-                    try strategy.hedge_sell() returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
-                        _rewardActors(poolId);
-                        emit HedgeSell(poolId, quoteTokenAmount, baseTokenAmount);
+                    try strategy.hedge_sell() returns (
+                        uint256 quoteTokenAmount,
+                        uint256 baseTokenAmount
+                    ) {
+                        _mintGRETH(poolId);
+                        emit HedgeSell(
+                            poolId,
+                            quoteTokenAmount,
+                            baseTokenAmount
+                        );
                     } catch {}
                 }
             }
         }
+        treasury.onGrind(poolId);
         lastGrinder = payable(msg.sender);
         emit Grind(poolId, msg.sender);
     }
 
-    /// @notice reward actors for participation in protocol
+    /// @notice grETHReward actors for participation in protocol
     /// @param poolId pool id of pool in array `pools`
-    function _rewardActors(uint256 poolId) internal {
-        (address[] memory actors, uint256[] memory rewards) = calcGrindRewards(poolId);
-        grindToken.reward(actors, rewards);
+    function _mintGRETH(uint256 poolId) internal {
+        (address[] memory actors, uint256[] memory shares) = calcGRETHShares(
+            poolId
+        );
+        grETH.mint(actors, shares);
     }
 
     /// @notice buy royalty for pool with `poolId`
     /// @param poolId pool id of pool in array `pools`
     /// @return royaltyPricePaid paid for royalty
     /// @return refund excess of msg.value
-    function buyRoyalty(uint256 poolId)
+    function buyRoyalty(
+        uint256 poolId
+    )
         external
         payable
         override
@@ -548,7 +695,10 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @param poolId pool id of pool in array `pools`
     /// @return royaltyPricePaid paid for royalty
     /// @return refund excess of msg.value
-    function buyRoyaltyTo(uint256 poolId, address payable to)
+    function buyRoyaltyTo(
+        uint256 poolId,
+        address payable to
+    )
         public
         payable
         override
@@ -560,22 +710,26 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             uint256 poolOwnerShare,
             uint256 treasuryShare,
             uint256 lastGrinderShare,
-            /**uint256 oldRoyaltyPrice */,
-            uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + treasuryShare + lastGrinderShare
+            ,
+            /**uint256 oldRoyaltyPrice */ uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + treasuryShare + lastGrinderShare
         ) = royaltyPriceShares(poolId);
         if (msg.value < newRoyaltyPrice) {
             revert InsufficientRoyaltyPrice();
         }
-        address payable oldRoyaltyReceiver = payable(getRoyaltyReceiver(poolId));
+        address payable oldRoyaltyReceiver = payable(
+            getRoyaltyReceiver(poolId)
+        );
         // instantiate new royalty receiver
         royaltyReceiver[poolId] = to;
         royaltyPrice[poolId] = newRoyaltyPrice; // newRoyaltyPrice always increase!
-        
+
         bool success;
         if (compensationShare > 0) {
-            (success,) = oldRoyaltyReceiver.call{value: compensationShare}("");
+            (success, ) = oldRoyaltyReceiver.call{value: compensationShare}("");
             if (!success) {
-                (success,) = treasury.call{value: compensationShare}("");
+                (success, ) = address(treasury).call{value: compensationShare}(
+                    ""
+                );
                 if (!success) {
                     revert FailCompensationShare();
                 }
@@ -583,9 +737,11 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             royaltyPricePaid += compensationShare;
         }
         if (poolOwnerShare > 0) {
-            (success,) = payable(ownerOf(poolId)).call{value: poolOwnerShare}("");
+            (success, ) = payable(ownerOf(poolId)).call{value: poolOwnerShare}(
+                ""
+            );
             if (!success) {
-                (success,) = treasury.call{value: poolOwnerShare}("");
+                (success, ) = address(treasury).call{value: poolOwnerShare}("");
                 if (!success) {
                     revert FailPoolOwnerShare();
                 }
@@ -593,9 +749,9 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             royaltyPricePaid += poolOwnerShare;
         }
         if (treasuryShare > 0) {
-            (success,) = treasury.call{value: treasuryShare}("");
+            (success, ) = address(treasury).call{value: treasuryShare}("");
             if (!success) {
-                (success,) = owner.call{value: treasuryShare}("");
+                (success, ) = owner.call{value: treasuryShare}("");
                 if (!success) {
                     revert FailPrimaryReceiverShare();
                 }
@@ -603,9 +759,11 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             royaltyPricePaid += treasuryShare;
         }
         if (lastGrinderShare > 0) {
-            (success,) = lastGrinder.call{value: lastGrinderShare}("");
+            (success, ) = lastGrinder.call{value: lastGrinderShare}("");
             if (!success) {
-                (success,) = treasury.call{value: lastGrinderShare}("");
+                (success, ) = address(treasury).call{value: lastGrinderShare}(
+                    ""
+                );
                 if (!success) {
                     revert FailLastGrinderShare();
                 }
@@ -614,14 +772,15 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         }
         refund = msg.value - royaltyPricePaid;
         if (refund > 0) {
-            (success,) = payable(msg.sender).call{value: refund}("");
+            (success, ) = payable(msg.sender).call{value: refund}("");
             if (!success) {
-                (success,) = treasury.call{value: refund}("");
+                (success, ) = address(treasury).call{value: refund}("");
                 if (!success) {
                     revert FailRefund();
                 }
             }
         }
+        treasury.onRoyaltyBuy(poolId);
     }
 
     /// @notice implementation of royalty standart ERC2981
@@ -629,22 +788,23 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @param salePrice amount of asset
     /// @return receiver address of receiver
     /// @return royaltyAmount amount of royalty
-    function royaltyInfo(uint256 tokenId, uint256 salePrice)
-        public
-        view
-        override
-        returns (address receiver, uint256 royaltyAmount)
-    {
+    function royaltyInfo(
+        uint256 tokenId,
+        uint256 salePrice
+    ) public view override returns (address receiver, uint256 royaltyAmount) {
         uint256 poolId = tokenId;
         receiver = getRoyaltyReceiver(poolId);
-        royaltyAmount = salePrice * royaltyNumerator / DENOMINATOR;
+        royaltyAmount = (salePrice * royaltyNumerator) / DENOMINATOR;
     }
 
     /// @notice calculates royalty shares
     /// @param poolId pool id of pool in array `pools`
     /// @param profit amount of token to be distributed
     /// @dev returns array of receivers and amounts
-    function royaltyShares(uint256 poolId, uint256 profit)
+    function royaltyShares(
+        uint256 poolId,
+        uint256 profit
+    )
         public
         view
         override
@@ -653,13 +813,13 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         receivers = new address[](4);
         amounts = new uint256[](4);
         receivers[0] = ownerOf(poolId);
-        receivers[1] = treasury;
+        receivers[1] = address(treasury);
         receivers[2] = getRoyaltyReceiver(poolId);
         receivers[3] = lastGrinder;
         uint256 denominator = DENOMINATOR;
-        amounts[1] = profit * treasuryRoyaltyShareNumerator / denominator;
-        amounts[2] = profit * receiverRoyaltyShareNumerator / denominator;
-        amounts[3] = profit * grinderRoyaltyShareNumerator / denominator;
+        amounts[1] = (profit * treasuryRoyaltyShareNumerator) / denominator;
+        amounts[2] = (profit * receiverRoyaltyShareNumerator) / denominator;
+        amounts[3] = (profit * grinderRoyaltyShareNumerator) / denominator;
         amounts[0] = profit - (amounts[1] + amounts[2] + amounts[3]);
     }
 
@@ -671,7 +831,9 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @return lastGrinderShare feeToken amount to be received to last grinder
     /// @return oldRoyaltyPrice feeToken amount of old royalty price
     /// @return newRoyaltyPrice feeToken amount of new royalty price
-    function royaltyPriceShares(uint256 poolId)
+    function royaltyPriceShares(
+        uint256 poolId
+    )
         public
         view
         returns (
@@ -685,46 +847,79 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     {
         uint256 _royaltyPrice = royaltyPrice[poolId];
         uint256 _denominator = DENOMINATOR;
-        compensationShare = _royaltyPrice * royaltyPriceCompensationShareNumerator / _denominator;
-        poolOwnerShare = _royaltyPrice * royaltyPricePoolOwnerShareNumerator / _denominator;
-        treasuryShare = _royaltyPrice * royaltyPriceTreasuryShareNumerator / _denominator;
-        lastGrinderShare = _royaltyPrice * royaltyPriceGrinderShareNumerator / _denominator;
+        compensationShare =
+            (_royaltyPrice * royaltyPriceCompensationShareNumerator) /
+            _denominator;
+        poolOwnerShare =
+            (_royaltyPrice * royaltyPricePoolOwnerShareNumerator) /
+            _denominator;
+        treasuryShare =
+            (_royaltyPrice * royaltyPriceTreasuryShareNumerator) /
+            _denominator;
+        lastGrinderShare =
+            (_royaltyPrice * royaltyPriceGrinderShareNumerator) /
+            _denominator;
         oldRoyaltyPrice = _royaltyPrice;
-        newRoyaltyPrice = compensationShare + poolOwnerShare + treasuryShare + lastGrinderShare;
+        newRoyaltyPrice =
+            compensationShare +
+            poolOwnerShare +
+            treasuryShare +
+            lastGrinderShare;
     }
 
-    /// @notice calculates rewards for actors
-    /// @dev based on 
-    function calcGrindRewards(uint256 poolId) public view override returns (address[] memory actors, uint256[] memory rewards) {
+    /// @notice calculates shares of grETH for actors
+    function calcGRETHShares(
+        uint256 poolId
+    )
+        public
+        view
+        override
+        returns (address[] memory actors, uint256[] memory shares)
+    {
         actors = new address[](4);
-        rewards = new uint256[](4);
-        actors[0] = msg.sender; // grinder
-        actors[1] = ownerOf(poolId); // poolOwner
+        shares = new uint256[](4);
+        uint16 denominator = DENOMINATOR;
+        actors[0] = ownerOf(poolId); // poolOwner
+        actors[1] = address(treasury); // treasury
         actors[2] = getRoyaltyReceiver(poolId); // royalty receiver
-        actors[3] = treasury; // treasury
-        rewards[0] = (DENOMINATOR - grinderRoyaltyShareNumerator) * grindTokenReward / DENOMINATOR;
-        rewards[1] = (DENOMINATOR - poolOwnerShareNumerator) * grindTokenReward / DENOMINATOR;
-        rewards[2] = (royaltyNumerator - receiverRoyaltyShareNumerator) * grindTokenReward / DENOMINATOR;
-        rewards[3] = (DENOMINATOR - treasuryRoyaltyShareNumerator) * grindTokenReward / DENOMINATOR;
+        actors[3] = msg.sender; // grinder
+
+        shares[0] =
+            (grETHReward * (denominator - poolOwnerShareNumerator)) /
+            denominator;
+        shares[1] = (grETHReward * treasuryRoyaltyShareNumerator) / denominator;
+        shares[2] =
+            (grETHReward * (royaltyNumerator - receiverRoyaltyShareNumerator)) /
+            denominator;
+        shares[3] = grETHReward - (shares[0] + shares[1] + shares[2]);
     }
 
     /// @notice calc initial royalty price
     /// @param poolId pool id of pool in array `pools`
     /// @param quoteTokenAmount amount of `quoteToken`
     /// @return initRoyaltyPrice fee token amount
-    function calcInitialRoyaltyPrice(uint256 poolId, uint256 quoteTokenAmount)
-        public
-        view
-        returns (uint256 initRoyaltyPrice)
-    {
-        uint256 feeTokenAmount = IGrindURUSPoolStrategy(pools[poolId]).calcFeeTokenByQuoteToken(quoteTokenAmount);
-        initRoyaltyPrice = feeTokenAmount * initRoyaltyPriceNumerator / DENOMINATOR;
+    function calcInitialRoyaltyPrice(
+        uint256 poolId,
+        uint256 quoteTokenAmount
+    ) public view returns (uint256 initRoyaltyPrice) {
+        uint256 feeTokenAmount = IGrindURUSPoolStrategy(pools[poolId])
+            .calcFeeTokenByQuoteToken(quoteTokenAmount);
+        initRoyaltyPrice =
+            (feeTokenAmount * initRoyaltyPriceNumerator) /
+            DENOMINATOR;
     }
 
     /// @notice returns tokenURI of `tokenId`
     /// @param poolId pool id of pool in array `pools`
     /// @return uri unified reference indentificator for `tokenId`
-    function tokenURI(uint256 poolId) public view override(ERC721, IGrindURUSPoolsNFT) returns (string memory uri) {
+    function tokenURI(
+        uint256 poolId
+    )
+        public
+        view
+        override(ERC721, IGrindURUSPoolsNFT)
+        returns (string memory uri)
+    {
         _requireOwned(poolId);
         // https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/{poolId}.json
         string memory path = string.concat(baseURI, poolId.toString());
@@ -732,17 +927,21 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     }
 
     /// @inheritdoc ERC721
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721Enumerable, IERC165) returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721Enumerable, IERC165) returns (bool) {
         return ERC721Enumerable.supportsInterface(interfaceId);
     }
 
     /// @notice return royalty receiver
     /// @param poolId pool id of pool in array `pools`
     /// @return receiver address of royalty receiver
-    function getRoyaltyReceiver(uint256 poolId) public view returns (address receiver) {
+    function getRoyaltyReceiver(
+        uint256 poolId
+    ) public view returns (address receiver) {
         receiver = royaltyReceiver[poolId];
         if (receiver == address(0)) {
-            receiver = treasury;
+            receiver = address(treasury);
         }
     }
 
@@ -750,7 +949,9 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @param poolOwner address of pool owner
     /// @return totalPoolIds total amount of pool ids owned by `poolOwner`
     /// @return poolIdsOwnedByPoolOwner array of owner pool ids
-    function getPoolIdsOf(address poolOwner)
+    function getPoolIdsOf(
+        address poolOwner
+    )
         public
         view
         returns (uint256 totalPoolIds, uint256[] memory poolIdsOwnedByPoolOwner)
@@ -761,7 +962,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
         }
         uint256 i = 0;
         poolIdsOwnedByPoolOwner = new uint256[](totalPoolIds);
-        for (; i < totalPoolIds;) {
+        for (; i < totalPoolIds; ) {
             poolIdsOwnedByPoolOwner[i] = tokenOfOwnerByIndex(poolOwner, i);
             unchecked {
                 ++i;
@@ -773,18 +974,17 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @notice pagination for table on dashboard with poolNFT info
     /// @param fromPoolId pool id from
     /// @param toPoolId pool id to
-    function getPoolNFTInfos(uint256 fromPoolId, uint256 toPoolId)
-        public
-        view
-        returns (PoolNFTInfo[] memory poolsInfo)
-    {
+    function getPoolNFTInfos(
+        uint256 fromPoolId,
+        uint256 toPoolId
+    ) public view returns (PoolNFTInfo[] memory poolsInfo) {
         if (fromPoolId > toPoolId) {
             revert InvalidPoolNFTInfos();
         }
         poolsInfo = new PoolNFTInfo[](toPoolId - fromPoolId + 1);
         uint256 poolId = fromPoolId;
         uint256 poolInfoId = 0;
-        for (; poolId <= toPoolId;) {
+        for (; poolId <= toPoolId; ) {
             IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
             IToken quoteToken = pool.getQuoteToken();
             IToken baseToken = pool.getBaseToken();
@@ -828,11 +1028,13 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
     /// @notice calculates TVL based on provided tokens
     /// @param tokens array of tokens to calculate tvl
     /// @return tvls tvl of every token
-    function getTotalTVL(address[] memory tokens) external view returns (uint256[] memory tvls) {
+    function getTotalTVL(
+        address[] memory tokens
+    ) external view returns (uint256[] memory tvls) {
         uint256 len = tokens.length;
         tvls = new uint256[](len);
         uint256 i = 0;
-        for (; i < len;) {
+        for (; i < len; ) {
             tvls[i] += TVL[tokens[i]];
             unchecked {
                 i++;
@@ -842,7 +1044,9 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
 
     /// @notice returns long position of poolId
     /// @param poolId pool id of pool in array `pools`
-    function getLong(uint256 poolId)
+    function getLong(
+        uint256 poolId
+    )
         external
         view
         override
@@ -857,13 +1061,23 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             uint256 feePrice
         )
     {
-        (number, numberMax, priceMin, liquidity, qty, price, feeQty, feePrice) =
-            IGrindURUSPoolStrategy(pools[poolId]).getLong();
+        (
+            number,
+            numberMax,
+            priceMin,
+            liquidity,
+            qty,
+            price,
+            feeQty,
+            feePrice
+        ) = IGrindURUSPoolStrategy(pools[poolId]).getLong();
     }
 
     /// @notice returns hedge position of poolId
     /// @param poolId pool id of pool in array `pools`
-    function getHedge(uint256 poolId)
+    function getHedge(
+        uint256 poolId
+    )
         external
         view
         override
@@ -878,13 +1092,23 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             uint256 feePrice
         )
     {
-        (number, numberMax, priceMin, liquidity, qty, price, feeQty, feePrice) =
-            IGrindURUSPoolStrategy(pools[poolId]).getHedge();
+        (
+            number,
+            numberMax,
+            priceMin,
+            liquidity,
+            qty,
+            price,
+            feeQty,
+            feePrice
+        ) = IGrindURUSPoolStrategy(pools[poolId]).getHedge();
     }
 
     /// @notice returns long position of poolId
     /// @param poolId pool id of pool in array `pools`
-    function getConfig(uint256 poolId)
+    function getConfig(
+        uint256 poolId
+    )
         external
         view
         override
@@ -921,7 +1145,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
             if (balance == 0) {
                 revert ZeroETH();
             }
-            (bool success,) = payable(to).call{value: balance}("");
+            (bool success, ) = payable(to).call{value: balance}("");
             if (!success) {
                 revert FailETHTransfer();
             }
@@ -936,7 +1160,7 @@ contract GrindURUSPoolsNFT is IGrindURUSPoolsNFT, ERC721Enumerable, ReentrancyGu
 
     receive() external payable {
         if (msg.value > 0) {
-            (bool success,) = owner.call{value: msg.value}("");
+            (bool success, ) = owner.call{value: msg.value}("");
             if (!success) {
                 emit ReceiveETH(msg.value);
             }

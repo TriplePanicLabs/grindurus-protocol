@@ -13,7 +13,11 @@ import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice strategy pool, that put and take baseToken and quouteToken on AAVEV3 and swaps tokens on UniswapV3
 /// @dev stores the tokens LP and handles tokens swaps
-contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum, UniswapV3AdapterArbitrum {
+contract GrindURUSPoolStrategy1 is
+    IGrindURUSPoolStrategy,
+    AAVEV3AdapterArbitrum,
+    UniswapV3AdapterArbitrum
+{
     using SafeERC20 for IToken;
 
     /// @dev address of NFT collection of pools
@@ -72,14 +76,22 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
             revert StrategyInitialized();
         }
         initLending(strategyArgs.lendingArgs);
-        initDex(strategyArgs.baseToken, strategyArgs.quoteToken, strategyArgs.dexArgs);
+        initDex(
+            strategyArgs.baseToken,
+            strategyArgs.quoteToken,
+            strategyArgs.dexArgs
+        );
 
         grindurusPoolsNFT = IGrindURUSPoolsNFT(_grindurusPoolsNFT);
         poolId = _poolId;
         poolDeploymentTimestamp = block.timestamp;
 
-        oracleQuoteTokenPerFeeToken = AggregatorV3Interface(strategyArgs.oracleQuoteTokenPerFeeToken);
-        oracleQuoteTokenPerBaseToken = AggregatorV3Interface(strategyArgs.oracleQuoteTokenPerBaseToken);
+        oracleQuoteTokenPerFeeToken = AggregatorV3Interface(
+            strategyArgs.oracleQuoteTokenPerFeeToken
+        );
+        oracleQuoteTokenPerBaseToken = AggregatorV3Interface(
+            strategyArgs.oracleQuoteTokenPerBaseToken
+        );
 
         feeToken = IToken(strategyArgs.feeToken);
         baseToken = IToken(strategyArgs.baseToken);
@@ -92,8 +104,10 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         });
 
         if (
-            conf.longNumberMax == 0 || conf.hedgeNumberMax == 0 || conf.averagePriceVolatility == 0
-                || conf.extraCoef == 0
+            conf.longNumberMax == 0 ||
+            conf.hedgeNumberMax == 0 ||
+            conf.averagePriceVolatility == 0 ||
+            conf.extraCoef == 0
         ) {
             revert InvalidConfig();
         }
@@ -114,7 +128,16 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
             feeQty: 0,
             feePrice: 0
         });
-        hedge = Position({number: 0, numberMax: 0, priceMin: 0, liquidity: 0, qty: 0, price: 0, feeQty: 0, feePrice: 0});
+        hedge = Position({
+            number: 0,
+            numberMax: 0,
+            priceMin: 0,
+            liquidity: 0,
+            qty: 0,
+            price: 0,
+            feeQty: 0,
+            feePrice: 0
+        });
     }
 
     function _initHelperTokensDecimalsParams() private {
@@ -124,10 +147,15 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     }
 
     function _initHelperOracleParams() private {
-        helper.oracleQuoteTokenPerFeeTokenDecimals = oracleQuoteTokenPerFeeToken.decimals();
-        helper.oracleQuoteTokenPerBaseTokenDecimals = oracleQuoteTokenPerBaseToken.decimals();
-        helper.oracleQuoteTokenPerFeeTokenMultiplier = 10 ** helper.oracleQuoteTokenPerFeeTokenDecimals;
-        helper.oracleQuoteTokenPerBaseTokenMultiplier = 10 ** helper.oracleQuoteTokenPerBaseTokenDecimals;
+        helper.oracleQuoteTokenPerFeeTokenDecimals = oracleQuoteTokenPerFeeToken
+            .decimals();
+        helper
+            .oracleQuoteTokenPerBaseTokenDecimals = oracleQuoteTokenPerBaseToken
+            .decimals();
+        helper.oracleQuoteTokenPerFeeTokenMultiplier =
+            10 ** helper.oracleQuoteTokenPerFeeTokenDecimals;
+        helper.oracleQuoteTokenPerBaseTokenMultiplier =
+            10 ** helper.oracleQuoteTokenPerBaseTokenDecimals;
     }
 
     function _initHelperCoefParams() private {
@@ -143,11 +171,17 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     function _setHelperInitLiquidityAndInvestCoef() private {
         uint256 maxLiquidity = calcMaxLiquidity();
         helper.investCoef = calcInvestCoef();
-        helper.initLiquidity = maxLiquidity * helper.investCoefMultiplier / helper.investCoef;
+        helper.initLiquidity =
+            (maxLiquidity * helper.investCoefMultiplier) /
+            helper.investCoef;
     }
 
     /// @dev makes request of ownership to NFT
-    function _onlyOwner() internal view override(AAVEV3AdapterArbitrum, UniswapV3AdapterArbitrum) {
+    function _onlyOwner()
+        internal
+        view
+        override(AAVEV3AdapterArbitrum, UniswapV3AdapterArbitrum)
+    {
         address _owner = owner();
         if (msg.sender != _owner) {
             revert NotOwner(msg.sender, _owner);
@@ -166,7 +200,11 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @notice sets config of strategy pool
     function setConfig(Config memory conf) public {
         _onlyOwner();
-        if (conf.longNumberMax == 0 || conf.hedgeNumberMax == 0 || conf.extraCoef == 0) {
+        if (
+            conf.longNumberMax == 0 ||
+            conf.hedgeNumberMax == 0 ||
+            conf.extraCoef == 0
+        ) {
             revert InvalidConfig();
         }
         config = conf;
@@ -227,7 +265,8 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @param returnPercent return scaled by helper.returnPercentMultiplier
     function setOpReturnPercent(StrategyOp op, uint256 returnPercent) public {
         _onlyOwner();
-        if (returnPercent < 100 * helper.returnPercentMultiplier) revert InvalidReturnOfInvestment();
+        if (returnPercent < 100 * helper.returnPercentMultiplier)
+            revert InvalidReturnOfInvestment();
         if (op == StrategyOp.LONG_SELL) {
             config.returnPercentLongSell = returnPercent;
         } else if (op == StrategyOp.HEDGE_SELL) {
@@ -245,11 +284,17 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @dev callable only by pools NFT
     /// @param quoteTokenAmount raw amount of `quoteToken`
     /// @return deposited quoteToken amount
-    function deposit(uint256 quoteTokenAmount) public returns (uint256 deposited) {
+    function deposit(
+        uint256 quoteTokenAmount
+    ) public returns (uint256 deposited) {
         _onlyPoolsNFT();
-        quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
+        quoteToken.safeTransferFrom(
+            msg.sender,
+            address(this),
+            quoteTokenAmount
+        );
         _invest(quoteTokenAmount);
-        (uint256 putAmount) = put(quoteToken, quoteTokenAmount);
+        uint256 putAmount = put(quoteToken, quoteTokenAmount);
         deposited = putAmount;
     }
 
@@ -258,14 +303,17 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @param to address that receive the `quoteTokenAmount`
     /// @param quoteTokenAmount amount of quoteToken
     /// @return withdrawn quoteToken amount
-    function withdraw(address to, uint256 quoteTokenAmount) public returns (uint256 withdrawn) {
+    function withdraw(
+        address to,
+        uint256 quoteTokenAmount
+    ) public returns (uint256 withdrawn) {
         _onlyPoolsNFT();
         uint256 maxLiqudity = calcMaxLiquidity();
         if (quoteTokenAmount > maxLiqudity) {
             revert QuoteTokenAmountExceededMaxLiquidity();
         }
         if (long.number == 0) {
-            (uint256 takeAmount) = take(quoteToken, quoteTokenAmount);
+            uint256 takeAmount = take(quoteToken, quoteTokenAmount);
             _divest(takeAmount);
             quoteToken.safeTransfer(to, takeAmount);
             withdrawn = takeAmount;
@@ -277,7 +325,9 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @notice invest amount of `quoteToken`
     /// @dev recalculates the initLiquidity
     /// @param investAmount amount of `quoteToken` to invest. Accumulates from fee
-    function _invest(uint256 investAmount) internal returns (uint256 newMaxLiquidity) {
+    function _invest(
+        uint256 investAmount
+    ) internal returns (uint256 newMaxLiquidity) {
         if (investAmount == 0) {
             return 0;
         }
@@ -294,24 +344,32 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
          *         newInitLiqudity = 275 * 1_00 / 27_00 = 10.185185
          */
         newMaxLiquidity = calcMaxLiquidity() + investAmount;
-        helper.initLiquidity = newMaxLiquidity * helper.investCoefMultiplier / helper.investCoef;
+        helper.initLiquidity =
+            (newMaxLiquidity * helper.investCoefMultiplier) /
+            helper.investCoef;
     }
 
     /// @notice divest amount of quoteToken
     /// @dev recalculate the initLiquidity
     /// @param divestAmount amount of `quoteToken` to divest
-    function _divest(uint256 divestAmount) internal returns (uint256 newMaxLiquidity) {
+    function _divest(
+        uint256 divestAmount
+    ) internal returns (uint256 newMaxLiquidity) {
         uint256 maxLiqudity = calcMaxLiquidity();
         if (maxLiqudity < divestAmount) {
             revert DivestExceedsMaxLiquidity();
         }
         newMaxLiquidity = maxLiqudity - divestAmount;
-        helper.initLiquidity = newMaxLiquidity * helper.investCoefMultiplier / helper.investCoef;
+        helper.initLiquidity =
+            (newMaxLiquidity * helper.investCoefMultiplier) /
+            helper.investCoef;
     }
 
     /// @notice calculate max liquidity that can be used for buying
     function calcMaxLiquidity() public view returns (uint256) {
-        return helper.initLiquidity * helper.investCoef / helper.investCoefMultiplier;
+        return
+            (helper.initLiquidity * helper.investCoef) /
+            helper.investCoefMultiplier;
     }
 
     /// @notice calculates invest coeficient
@@ -320,10 +378,13 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         uint8 exponent = config.longNumberMax - 1;
         uint256 multiplier = helper.extraCoefMultiplier;
         if (exponent >= 2) {
-            investCoef = (config.extraCoef + multiplier) ** exponent / (multiplier ** (exponent - 1));
+            investCoef =
+                (config.extraCoef + multiplier) ** exponent /
+                (multiplier ** (exponent - 1));
         } else if (exponent == 1) {
             investCoef = config.extraCoef + multiplier;
-        } else { // exponent == 0
+        } else {
+            // exponent == 0
             investCoef = multiplier;
         }
     }
@@ -331,7 +392,10 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @notice grab all assets from strategy and send it to owner
     /// @return quoteTokenAmount amount of quoteToken in exit
     /// @return baseTokenAmount amount of baseToken in exit
-    function exit() public returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+    function exit()
+        public
+        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
+    {
         _onlyPoolsNFT();
         (quoteTokenAmount) = take(quoteToken, type(uint256).max);
         (baseTokenAmount) = take(baseToken, type(uint256).max);
@@ -355,11 +419,23 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
             feeQty: 0,
             feePrice: 0
         });
-        hedge = Position({number: 0, numberMax: 0, priceMin: 0, liquidity: 0, qty: 0, price: 0, feeQty: 0, feePrice: 0});
+        hedge = Position({
+            number: 0,
+            numberMax: 0,
+            priceMin: 0,
+            liquidity: 0,
+            qty: 0,
+            price: 0,
+            feeQty: 0,
+            feePrice: 0
+        });
     }
 
     /// @notice distribute yield profit
-    function _distributeYieldProfit(IToken token, uint256 profit) internal override {
+    function _distributeYieldProfit(
+        IToken token,
+        uint256 profit
+    ) internal override {
         if (token == baseToken) {
             totalProfits.baseTokenYieldProfit += profit;
         } else if (token == quoteToken) {
@@ -369,7 +445,10 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     }
 
     /// @notice distribute trade profit
-    function _distributeTradeProfit(IToken token, uint256 profit) internal override {
+    function _distributeTradeProfit(
+        IToken token,
+        uint256 profit
+    ) internal override {
         if (token == baseToken) {
             totalProfits.baseTokenTradeProfit += profit;
         } else if (token == quoteToken) {
@@ -378,9 +457,12 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         _distributeProfit(token, profit);
     }
 
-    /// @notice distribute profit 
+    /// @notice distribute profit
     function _distributeProfit(IToken token, uint256 profit) internal {
-        (address[] memory receivers, uint256[] memory amounts) = grindurusPoolsNFT.royaltyShares(poolId, profit);
+        (
+            address[] memory receivers,
+            uint256[] memory amounts
+        ) = grindurusPoolsNFT.royaltyShares(poolId, profit);
         if (receivers.length != amounts.length || receivers.length != 4) {
             revert InvalidLength();
         }
@@ -401,7 +483,11 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     //// GRIND FUNCTIONS ///////////////////////////////////////////////////////////////////////////
 
     /// @inheritdoc IGrindURUSPoolStrategy
-    function long_buy() public override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+    function long_buy()
+        public
+        override
+        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
+    {
         uint256 gasStart = gasleft();
         // 0. verify that liquidity limit not exceeded
         uint8 longNumber = long.number;
@@ -412,14 +498,19 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         if (longNumber == 0) {
             quoteTokenAmount = helper.initLiquidity;
         } else {
-            quoteTokenAmount = long.liquidity * config.extraCoef / helper.extraCoefMultiplier;
+            quoteTokenAmount =
+                (long.liquidity * config.extraCoef) /
+                helper.extraCoefMultiplier;
         }
         // 1.2. Take the quoteToken from lending protocol
         (quoteTokenAmount) = take(quoteToken, quoteTokenAmount);
 
         // 2.0 Swap quoteTokenAmount to baseTokenAmount on DEX
         baseTokenAmount = swap(quoteToken, baseToken, quoteTokenAmount);
-        uint256 baseTokenPrice = calcSwapPrice(quoteTokenAmount, baseTokenAmount); // [baseTokenPrice] = quoteToken/baseToken
+        uint256 baseTokenPrice = calcSwapPrice(
+            quoteTokenAmount,
+            baseTokenAmount
+        ); // [baseTokenPrice] = quoteToken/baseToken
         if (baseTokenPrice > long.priceMin) {
             revert BuyUpperPriceMin(baseTokenPrice, long.priceMin);
         }
@@ -429,7 +520,9 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
             long.numberMax = config.longNumberMax;
         }
         long.number += 1;
-        long.price = (long.qty * long.price + baseTokenAmount * baseTokenPrice) / (long.qty + baseTokenAmount);
+        long.price =
+            (long.qty * long.price + baseTokenAmount * baseTokenPrice) /
+            (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
         long.liquidity += quoteTokenAmount;
         long.priceMin = long.price - config.averagePriceVolatility;
@@ -442,13 +535,19 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         uint256 txGasPrice = tx.gasprice;
         if (txGasPrice > 0) {
             uint256 feeQty = (gasStart - gasleft() + 50) * txGasPrice; // gas * feeToken / gas = feeToken
-            long.feePrice = (long.feeQty * long.feePrice + feeQty * feePrice) / (long.feeQty + feeQty);
+            long.feePrice =
+                (long.feeQty * long.feePrice + feeQty * feePrice) /
+                (long.feeQty + feeQty);
             long.feeQty += feeQty;
         }
     }
 
     /// @inheritdoc IGrindURUSPoolStrategy
-    function long_sell() public override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+    function long_sell()
+        public
+        override
+        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
+    {
         // 0. Verify that number != 0
         if (long.number == 0) {
             revert NoBuy();
@@ -464,7 +563,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         // 2.1. Swap baseTokenAmount to quoteTokenAmount
         quoteTokenAmount = swap(baseToken, quoteToken, baseTokenAmount);
         // 2.2. Calculate threshold and swapPriceThreshold
-        (uint256 quoteTokenAmountThreshold,) = calcLongSellThreshold();
+        (uint256 quoteTokenAmountThreshold, ) = calcLongSellThreshold();
         if (quoteTokenAmount <= quoteTokenAmountThreshold) {
             revert NotProfitableLongSell();
         }
@@ -490,7 +589,11 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     }
 
     /// @inheritdoc IGrindURUSPoolStrategy
-    function hedge_sell() public override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+    function hedge_sell()
+        public
+        override
+        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
+    {
         uint256 gasStart = gasleft();
 
         // 0. Verify that under_sell can be executed
@@ -518,16 +621,26 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         if (hedgeNumber == 0) {
             // INITIALIZE HEDGE SELL
             uint256 thresholdHigh = long.priceMin;
-            uint256 thresholdLow = long.priceMin - 2 * config.averagePriceVolatility;
+            uint256 thresholdLow = long.priceMin -
+                2 *
+                config.averagePriceVolatility;
             if (swapPrice > thresholdHigh || thresholdLow < swapPrice) {
-                revert HedgeSellOutOfBound(swapPrice, thresholdHigh, thresholdLow);
+                revert HedgeSellOutOfBound(
+                    swapPrice,
+                    thresholdHigh,
+                    thresholdLow
+                );
             }
             hedge.priceMin = swapPrice;
             hedge.price = swapPrice;
         } else {
             // HEDGE SELL
-            (uint256 liquidity, uint256 quoteTokenAmountThreshold, uint256 targetPrice,) =
-                calcHedgeSellThreshold(baseTokenAmount);
+            (
+                uint256 liquidity,
+                uint256 quoteTokenAmountThreshold,
+                uint256 targetPrice,
+
+            ) = calcHedgeSellThreshold(baseTokenAmount);
             if (quoteTokenAmount <= quoteTokenAmountThreshold) {
                 revert NotProfitableHedgeSell();
             }
@@ -555,7 +668,9 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
                 uint256 feeQty = (gasStart - gasleft() + 50) * txGasPrice; // [feeQty] = gas * feeToken / gas = feeToken
                 // [hedge.feePrice] = (feeToken * (baseToken/feeToken) + feeToken * (baseToken/feeToken)) / (feeToken + feeToken) =
                 //                  = (baseToken + baseToken) / feeToken = baseToken / feeToken
-                hedge.feePrice = (hedge.feeQty * hedge.feePrice + feeQty * feePrice) / (hedge.feeQty + feeQty);
+                hedge.feePrice =
+                    (hedge.feeQty * hedge.feePrice + feeQty * feePrice) /
+                    (hedge.feeQty + feeQty);
                 hedge.feeQty += feeQty;
             }
         } else if (hedgeNumber == hedgeNumberMaxMinusOne) {
@@ -569,13 +684,25 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
                 feeQty: 0,
                 feePrice: 0
             });
-            hedge =
-                Position({number: 0, numberMax: 0, priceMin: 0, liquidity: 0, qty: 0, price: 0, feeQty: 0, feePrice: 0});
+            hedge = Position({
+                number: 0,
+                numberMax: 0,
+                priceMin: 0,
+                liquidity: 0,
+                qty: 0,
+                price: 0,
+                feeQty: 0,
+                feePrice: 0
+            });
         }
     }
 
     /// @inheritdoc IGrindURUSPoolStrategy
-    function hedge_rebuy() public override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+    function hedge_rebuy()
+        public
+        override
+        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
+    {
         // 0. Verify that hedge is activated
         uint8 hedgeNumber = hedge.number;
         if (hedgeNumber > 0) {
@@ -591,7 +718,9 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         baseTokenAmount = swap(quoteToken, baseToken, quoteTokenAmount);
         uint256 swapPrice = calcSwapPrice(quoteTokenAmount, baseTokenAmount);
 
-        (uint256 baseTokenAmountThreshold,) = calcHedgeRebuyThreshold(quoteTokenAmount);
+        (uint256 baseTokenAmountThreshold, ) = calcHedgeRebuyThreshold(
+            quoteTokenAmount
+        );
         if (baseTokenAmount <= baseTokenAmountThreshold) {
             revert NotProfitableRebuy();
         }
@@ -604,10 +733,23 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         (baseTokenAmount) = put(baseToken, baseTokenAmount);
 
         long.price =
-            (long.qty * long.price + hedge.qty * (swapPrice + long.price - hedge.price)) / (long.qty + hedge.qty);
+            (long.qty *
+                long.price +
+                hedge.qty *
+                (swapPrice + long.price - hedge.price)) /
+            (long.qty + hedge.qty);
         long.qty += baseTokenAmount;
 
-        hedge = Position({number: 0, numberMax: 0, priceMin: 0, liquidity: 0, qty: 0, price: 0, feeQty: 0, feePrice: 0});
+        hedge = Position({
+            number: 0,
+            numberMax: 0,
+            priceMin: 0,
+            liquidity: 0,
+            qty: 0,
+            price: 0,
+            feeQty: 0,
+            feePrice: 0
+        });
     }
 
     //// REBALANCE FUNCTIONS ////////////////////////////////////////////////////////////////////////
@@ -616,7 +758,10 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @dev called before rebalance by poolsNFT
     /// @return baseTokenAmount base token amount that take part in rebalance
     /// @return price base token price scaled by price multuplier
-    function beforeRebalance() public returns (uint256 baseTokenAmount, uint256 price) {
+    function beforeRebalance()
+        public
+        returns (uint256 baseTokenAmount, uint256 price)
+    {
         _onlyPoolsNFT();
         if (hedge.number > 0) {
             revert Hedged();
@@ -637,7 +782,9 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         _onlyPoolsNFT();
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         (baseTokenAmount) = put(baseToken, baseTokenAmount);
-        long.liquidity = baseTokenAmount * newPrice / helper.oracleQuoteTokenPerBaseTokenMultiplier;
+        long.liquidity =
+            (baseTokenAmount * newPrice) /
+            helper.oracleQuoteTokenPerBaseTokenMultiplier;
         long.qty = baseTokenAmount;
         long.price = newPrice;
     }
@@ -646,24 +793,37 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
 
     /// @notice returns `baseToken` price in terms of `quoteToken`
     /// @dev dimention [price]=quoteToken/baseToken
-    function getPriceQuoteTokenPerBaseToken() public view returns (uint256 price) {
-        (, int256 answer,,,) = oracleQuoteTokenPerBaseToken.latestRoundData();
+    function getPriceQuoteTokenPerBaseToken()
+        public
+        view
+        returns (uint256 price)
+    {
+        (, int256 answer, , , ) = oracleQuoteTokenPerBaseToken
+            .latestRoundData();
         price = uint256(answer);
     }
 
     /// @notice returns price of `feeToken` in terms of `quoteToken`
     /// @dev dimention [price]=quoteToken/feeToken
-    function getPriceQuoteTokensPerFeeToken() public view returns (uint256 price) {
-        (, int256 answer,,,) = oracleQuoteTokenPerFeeToken.latestRoundData();
+    function getPriceQuoteTokensPerFeeToken()
+        public
+        view
+        returns (uint256 price)
+    {
+        (, int256 answer, , , ) = oracleQuoteTokenPerFeeToken.latestRoundData();
         price = uint256(answer);
     }
 
     /// @notice returns price of `feeToken` in terms of `baseToken`
     /// @dev dimention [price]= baseToken/feeToken
-    function getPriceBaseTokensPerFeeToken(uint256 quoteTokenPerBaseTokenPrice) public view returns (uint256 price) {
-        (, int256 answer,,,) = oracleQuoteTokenPerFeeToken.latestRoundData();
+    function getPriceBaseTokensPerFeeToken(
+        uint256 quoteTokenPerBaseTokenPrice
+    ) public view returns (uint256 price) {
+        (, int256 answer, , , ) = oracleQuoteTokenPerFeeToken.latestRoundData();
         // [price] = quoteToken / feeToken * (1 / (quoteToken / baseToken)) = baseToken / feeToken
-        price = uint256(answer) * helper.oracleQuoteTokenPerBaseTokenMultiplier / quoteTokenPerBaseTokenPrice;
+        price =
+            (uint256(answer) * helper.oracleQuoteTokenPerBaseTokenMultiplier) /
+            quoteTokenPerBaseTokenPrice;
     }
 
     //// CALCULATE FUNCTIONS ////////////////////////////////////////////////////////////////////////////////
@@ -672,14 +832,21 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @param quoteTokenAmount amount of `quoteToken`
     /// @param baseTokenAmount amoint of `baseToken`
     /// @return price the price of 1 `baseToken`. Dimension: [price] = quoteToken/baseToken
-    function calcSwapPrice(uint256 quoteTokenAmount, uint256 baseTokenAmount) public view returns (uint256 price) {
+    function calcSwapPrice(
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    ) public view returns (uint256 price) {
         uint8 bd = helper.baseTokenDecimals;
         uint8 qd = helper.quoteTokenDecimals;
         uint8 pd = helper.oracleQuoteTokenPerBaseTokenDecimals;
         if (pd >= qd) {
-            price = (quoteTokenAmount * (10 ** (bd + pd - qd))) / baseTokenAmount;
+            price =
+                (quoteTokenAmount * (10 ** (bd + pd - qd))) /
+                baseTokenAmount;
         } else {
-            price = (quoteTokenAmount * (10 ** bd)) / (baseTokenAmount * (10 ** (qd - pd)));
+            price =
+                (quoteTokenAmount * (10 ** bd)) /
+                (baseTokenAmount * (10 ** (qd - pd)));
         }
     }
 
@@ -691,7 +858,8 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         view
         returns (uint256 quoteTokenAmountThreshold, uint256 swapPriceThreshold)
     {
-        uint256 feeQty = long.feeQty * feeConfig.longSellFeeCoef / helper.feeCoefMultiplier;
+        uint256 feeQty = (long.feeQty * feeConfig.longSellFeeCoef) /
+            helper.feeCoefMultiplier;
         uint256 buyFee;
         if (feeToken == quoteToken) {
             buyFee = feeQty; // [buyFee] = quoteToken
@@ -724,7 +892,8 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
          *                                   quoteTokenAmountThreshold
          */
         quoteTokenAmountThreshold =
-            (long.liquidity + fees) * config.returnPercentLongSell / helper.returnPercentMultiplier;
+            ((long.liquidity + fees) * config.returnPercentLongSell) /
+            helper.returnPercentMultiplier;
         swapPriceThreshold = calcSwapPrice(quoteTokenAmountThreshold, long.qty);
     }
 
@@ -732,25 +901,35 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @param hedgeNumber the number of hedge
     /// @param priceMin minimum price, when undersell happened on hedgeNumber==0
     /// @param priceMax maximum price, where are targeting to
-    function calcTargetHedgePrice(uint8 hedgeNumber, uint256 priceMin, uint256 priceMax)
-        public
-        view
-        returns (uint256 targetPrice)
-    {
+    function calcTargetHedgePrice(
+        uint8 hedgeNumber,
+        uint256 priceMin,
+        uint256 priceMax
+    ) public view returns (uint256 targetPrice) {
         uint8 hedgeNumberMax = hedge.numberMax;
         if (hedgeNumberMax == 1) {
             targetPrice = priceMax;
         } else {
-            targetPrice = priceMin + (priceMax - priceMin) * hedgeNumber / (hedgeNumberMax - 1);
+            targetPrice =
+                priceMin +
+                ((priceMax - priceMin) * hedgeNumber) /
+                (hedgeNumberMax - 1);
         }
     }
 
     /// @notice calculates hedge sell threshold
     /// @param baseTokenAmount base token amount
-    function calcHedgeSellThreshold(uint256 baseTokenAmount)
+    function calcHedgeSellThreshold(
+        uint256 baseTokenAmount
+    )
         public
         view
-        returns (uint256 liquidity, uint256 quoteTokenAmountThreshold, uint256 targetPrice, uint256 swapPriceThreshold)
+        returns (
+            uint256 liquidity,
+            uint256 quoteTokenAmountThreshold,
+            uint256 targetPrice,
+            uint256 swapPriceThreshold
+        )
     {
         /**
          * Proof of criteria formula
@@ -786,21 +965,35 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
          *                               = long.feeQty + long.feeQty = 2 * long.feeQty
          *       So, hedgeSellFee for 1 execution = 2 * long.feeQty / (hedgeNumberMax - 1)
          */
-        uint256 feeQty = long.feeQty * feeConfig.hedgeSellFeeCoef / helper.feeCoefMultiplier;
-        uint256 fees = 2 * calcQuoteTokenByFeeToken(feeQty, long.feePrice) / (hedge.numberMax - 1); // [fees] = quoteToken
+        uint256 feeQty = (long.feeQty * feeConfig.hedgeSellFeeCoef) /
+            helper.feeCoefMultiplier;
+        uint256 fees = (2 * calcQuoteTokenByFeeToken(feeQty, long.feePrice)) /
+            (hedge.numberMax - 1); // [fees] = quoteToken
         uint256 hedgeQty = hedge.qty;
 
         // liquidity = (hedge.qty + baseTokenAmount) * targetPrice - hedge.qty * hedge.price;
-        targetPrice = calcTargetHedgePrice(hedge.number, hedge.priceMin, long.price); // [targetPrice] = quoteToken/baseToken
-        liquidity = calcQuoteTokenByBaseToken(hedgeQty + baseTokenAmount, targetPrice)
-            - calcQuoteTokenByBaseToken(hedgeQty, hedge.price);
-        quoteTokenAmountThreshold = (liquidity + fees) * config.returnPercentHedgeSell / helper.returnPercentMultiplier;
-        swapPriceThreshold = calcSwapPrice(quoteTokenAmountThreshold, baseTokenAmount);
+        targetPrice = calcTargetHedgePrice(
+            hedge.number,
+            hedge.priceMin,
+            long.price
+        ); // [targetPrice] = quoteToken/baseToken
+        liquidity =
+            calcQuoteTokenByBaseToken(hedgeQty + baseTokenAmount, targetPrice) -
+            calcQuoteTokenByBaseToken(hedgeQty, hedge.price);
+        quoteTokenAmountThreshold =
+            ((liquidity + fees) * config.returnPercentHedgeSell) /
+            helper.returnPercentMultiplier;
+        swapPriceThreshold = calcSwapPrice(
+            quoteTokenAmountThreshold,
+            baseTokenAmount
+        );
     }
 
     /// @notice calculates hedge rebuy threshold
     /// @param quoteTokenAmount quote token amount
-    function calcHedgeRebuyThreshold(uint256 quoteTokenAmount)
+    function calcHedgeRebuyThreshold(
+        uint256 quoteTokenAmount
+    )
         public
         view
         returns (uint256 baseTokenAmountThreshold, uint256 swapPriceThreshold)
@@ -814,7 +1007,8 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
          *      hedgeRebuyFee = estimation for 1 execution of rebuy as sum of all hedge sell fees divided to hedge.number + sum of all hedge sell fees =
          *                    = hedgeSellFees / hedge.number + hedgeSellFees
          */
-        uint256 feeQty = hedge.feeQty * feeConfig.hedgeRebuyFeeCoef / helper.feeCoefMultiplier;
+        uint256 feeQty = (hedge.feeQty * feeConfig.hedgeRebuyFeeCoef) /
+            helper.feeCoefMultiplier;
         uint256 hedgeSellFees; // [hedgeSellFees] = baseToken
         if (feeToken == baseToken) {
             hedgeSellFees = feeQty;
@@ -823,47 +1017,60 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
         }
         uint256 hedgeRebuyFee = hedgeSellFees / hedge.number;
 
-        baseTokenAmountThreshold = (hedge.qty + hedgeSellFees + hedgeRebuyFee) * config.returnPercentHedgeRebuy
-            / helper.returnPercentMultiplier;
-        swapPriceThreshold = calcSwapPrice(quoteTokenAmount, baseTokenAmountThreshold);
+        baseTokenAmountThreshold =
+            ((hedge.qty + hedgeSellFees + hedgeRebuyFee) *
+                config.returnPercentHedgeRebuy) /
+            helper.returnPercentMultiplier;
+        swapPriceThreshold = calcSwapPrice(
+            quoteTokenAmount,
+            baseTokenAmountThreshold
+        );
     }
 
     /// @notice calculates baseTokenAmount in terms of `quoteToken` with `baseTokenPrice`
     /// @param baseTokenAmount amount of `baseToken`
     /// @param quoteTokenPerBaseTokenPrice price of `baseToken`
     /// @return quoteTokenAmount amount of `quoteToken`
-    function calcQuoteTokenByBaseToken(uint256 baseTokenAmount, uint256 quoteTokenPerBaseTokenPrice)
-        public
-        view
-        returns (uint256 quoteTokenAmount)
-    {
+    function calcQuoteTokenByBaseToken(
+        uint256 baseTokenAmount,
+        uint256 quoteTokenPerBaseTokenPrice
+    ) public view returns (uint256 quoteTokenAmount) {
         uint8 bd = helper.baseTokenDecimals;
         uint8 qd = helper.quoteTokenDecimals;
         if (qd >= bd) {
-            quoteTokenAmount = baseTokenAmount * quoteTokenPerBaseTokenPrice * (10 ** (qd - bd))
-                / helper.oracleQuoteTokenPerBaseTokenMultiplier;
+            quoteTokenAmount =
+                (baseTokenAmount *
+                    quoteTokenPerBaseTokenPrice *
+                    (10 ** (qd - bd))) /
+                helper.oracleQuoteTokenPerBaseTokenMultiplier;
         } else {
-            quoteTokenAmount = baseTokenAmount * quoteTokenPerBaseTokenPrice
-                / (helper.oracleQuoteTokenPerBaseTokenMultiplier * (10 ** (bd - qd)));
+            quoteTokenAmount =
+                (baseTokenAmount * quoteTokenPerBaseTokenPrice) /
+                (helper.oracleQuoteTokenPerBaseTokenMultiplier *
+                    (10 ** (bd - qd)));
         }
     }
 
     /// @notice calculate the feeTokenAmount in terms of `quoteToken`
     /// @param feeTokenAmount amount of `feeToken`. [feeTokenAmount]=feeToken
     /// @param quoteTokenPerFeeTokenPrice price of quoteToken per feeToken. [priceQuoteTokenPerFeeToken] = quoteToken/feeToken
-    function calcQuoteTokenByFeeToken(uint256 feeTokenAmount, uint256 quoteTokenPerFeeTokenPrice)
-        public
-        view
-        returns (uint256 quoteTokenAmount)
-    {
+    function calcQuoteTokenByFeeToken(
+        uint256 feeTokenAmount,
+        uint256 quoteTokenPerFeeTokenPrice
+    ) public view returns (uint256 quoteTokenAmount) {
         uint8 qd = helper.quoteTokenDecimals;
         uint8 fd = helper.feeTokenDecimals;
         if (qd >= fd) {
-            quoteTokenAmount = feeTokenAmount * quoteTokenPerFeeTokenPrice * (10 ** (qd - fd))
-                / helper.oracleQuoteTokenPerFeeTokenMultiplier;
+            quoteTokenAmount =
+                (feeTokenAmount *
+                    quoteTokenPerFeeTokenPrice *
+                    (10 ** (qd - fd))) /
+                helper.oracleQuoteTokenPerFeeTokenMultiplier;
         } else {
-            quoteTokenAmount = feeTokenAmount * quoteTokenPerFeeTokenPrice
-                / (helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - qd)));
+            quoteTokenAmount =
+                (feeTokenAmount * quoteTokenPerFeeTokenPrice) /
+                (helper.oracleQuoteTokenPerFeeTokenMultiplier *
+                    (10 ** (fd - qd)));
         }
     }
 
@@ -871,50 +1078,79 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @param feeTokenAmount amount of `feeToken`. [feeTokenAmount]=feeToken
     /// @param baseTokenPerFeeTokenPrice price of baseToken per feeToken. [baseTokenPerFeeTokenPrice]=baseToken/feeToken
     /// @return baseTokenAmount amount of `baseToken`
-    function calcBaseTokenByFeeToken(uint256 feeTokenAmount, uint256 baseTokenPerFeeTokenPrice)
-        public
-        view
-        returns (uint256 baseTokenAmount)
-    {
+    function calcBaseTokenByFeeToken(
+        uint256 feeTokenAmount,
+        uint256 baseTokenPerFeeTokenPrice
+    ) public view returns (uint256 baseTokenAmount) {
         uint8 bd = helper.baseTokenDecimals;
         uint8 fd = helper.feeTokenDecimals;
         if (bd >= fd) {
-            baseTokenAmount = feeTokenAmount * baseTokenPerFeeTokenPrice * (10 ** (bd - fd))
-                / helper.oracleQuoteTokenPerFeeTokenMultiplier;
+            baseTokenAmount =
+                (feeTokenAmount *
+                    baseTokenPerFeeTokenPrice *
+                    (10 ** (bd - fd))) /
+                helper.oracleQuoteTokenPerFeeTokenMultiplier;
         } else {
-            baseTokenAmount = feeTokenAmount * baseTokenPerFeeTokenPrice
-                / (helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - bd)));
+            baseTokenAmount =
+                (feeTokenAmount * baseTokenPerFeeTokenPrice) /
+                (helper.oracleQuoteTokenPerFeeTokenMultiplier *
+                    (10 ** (fd - bd)));
         }
     }
 
     /// @notice calcultes quoteTokenAmount in terms of `feeToken`
     /// @param quoteTokenAmount amount of `quoteToken`. [quoteTokenAmount] = quoteToken
     /// @return feeTokenAmount amount of `feeToken`
-    function calcFeeTokenByQuoteToken(uint256 quoteTokenAmount) public view returns (uint256 feeTokenAmount) {
+    function calcFeeTokenByQuoteToken(
+        uint256 quoteTokenAmount
+    ) public view returns (uint256 feeTokenAmount) {
         uint8 qd = helper.quoteTokenDecimals;
         uint8 fd = helper.feeTokenDecimals;
         uint256 quoteTokenPerFeeTokenPrice = getPriceQuoteTokensPerFeeToken(); // [feeTokenPrice] = quoteToken / feeToken
         if (fd >= qd) {
-            feeTokenAmount = quoteTokenAmount * helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - qd))
-                / quoteTokenPerFeeTokenPrice;
+            feeTokenAmount =
+                (quoteTokenAmount *
+                    helper.oracleQuoteTokenPerFeeTokenMultiplier *
+                    (10 ** (fd - qd))) /
+                quoteTokenPerFeeTokenPrice;
         } else {
-            feeTokenAmount = quoteTokenAmount * helper.oracleQuoteTokenPerFeeTokenMultiplier
-                / (quoteTokenPerFeeTokenPrice * (10 ** (qd - fd)));
+            feeTokenAmount =
+                (quoteTokenAmount *
+                    helper.oracleQuoteTokenPerFeeTokenMultiplier) /
+                (quoteTokenPerFeeTokenPrice * (10 ** (qd - fd)));
         }
     }
 
     /// @notice calculates return of investment of strategy pool.
     /// @dev returns the numerator and denominator of ROI. ROI = ROINumerator / ROIDenominator
-    function ROI() public view returns (uint256 ROINumerator, uint256 ROIDenominator, uint256 ROIPeriod) {
+    function ROI()
+        public
+        view
+        returns (
+            uint256 ROINumerator,
+            uint256 ROIDenominator,
+            uint256 ROIPeriod
+        )
+    {
         uint256 baseTokenPrice = getPriceQuoteTokenPerBaseToken();
-        uint256 investment =
-            investedAmount[quoteToken] + calcQuoteTokenByBaseToken(investedAmount[baseToken], baseTokenPrice);
-        uint256 profits = 0 // trade profits + yield profits + pending yield profits
-            + totalProfits.quoteTokenTradeProfit
-            + calcQuoteTokenByBaseToken(totalProfits.baseTokenTradeProfit, baseTokenPrice)
-            + totalProfits.quoteTokenYieldProfit
-            + calcQuoteTokenByBaseToken(totalProfits.baseTokenYieldProfit, baseTokenPrice) + getPendingYield(quoteToken)
-            + getPendingYield(baseToken);
+        uint256 investment = investedAmount[quoteToken] +
+            calcQuoteTokenByBaseToken(
+                investedAmount[baseToken],
+                baseTokenPrice
+            );
+        uint256 profits = 0 + // trade profits + yield profits + pending yield profits
+            totalProfits.quoteTokenTradeProfit +
+            calcQuoteTokenByBaseToken(
+                totalProfits.baseTokenTradeProfit,
+                baseTokenPrice
+            ) +
+            totalProfits.quoteTokenYieldProfit +
+            calcQuoteTokenByBaseToken(
+                totalProfits.baseTokenYieldProfit,
+                baseTokenPrice
+            ) +
+            getPendingYield(quoteToken) +
+            getPendingYield(baseToken);
         ROINumerator = profits;
         ROIDenominator = investment;
         ROIPeriod = block.timestamp - poolDeploymentTimestamp;
@@ -922,8 +1158,16 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
 
     /// @notice calculates annual percentage rate (APR) of strategy pool
     /// @dev returns the numerator and denominator of APR. APR = APRNumerator / APRDenominator
-    function APR() public view returns (uint256 APRNumerator, uint256 APRDenominator) {
-        (uint256 ROINumerator, uint256 ROIDenominator, uint256 ROIPeriod) = ROI();
+    function APR()
+        public
+        view
+        returns (uint256 APRNumerator, uint256 APRDenominator)
+    {
+        (
+            uint256 ROINumerator,
+            uint256 ROIDenominator,
+            uint256 ROIPeriod
+        ) = ROI();
         // convert ROI per 1 day
         uint256 oneDayInSeconds = 86400;
         APRNumerator = ROINumerator * ROIPeriod * 365;
@@ -934,7 +1178,11 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     function getQuoteToken()
         public
         view
-        override(AAVEV3AdapterArbitrum, UniswapV3AdapterArbitrum, IGrindURUSPoolStrategy)
+        override(
+            AAVEV3AdapterArbitrum,
+            UniswapV3AdapterArbitrum,
+            IGrindURUSPoolStrategy
+        )
         returns (IToken)
     {
         return quoteToken;
@@ -944,7 +1192,11 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     function getBaseToken()
         public
         view
-        override(AAVEV3AdapterArbitrum, UniswapV3AdapterArbitrum, IGrindURUSPoolStrategy)
+        override(
+            AAVEV3AdapterArbitrum,
+            UniswapV3AdapterArbitrum,
+            IGrindURUSPoolStrategy
+        )
         returns (IToken)
     {
         return baseToken;
@@ -978,7 +1230,12 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     }
 
     /// @notice returns the owner of strategy pool
-    function owner() public view override(AAVEV3AdapterArbitrum, IERC5313) returns (address) {
+    function owner()
+        public
+        view
+        override(AAVEV3AdapterArbitrum, IERC5313)
+        returns (address)
+    {
         try grindurusPoolsNFT.ownerOf(poolId) returns (address _owner) {
             return _owner;
         } catch {
@@ -987,15 +1244,22 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     }
 
     /// @notice returns long, hedge and config
-    function getPositions() public view override returns (Position memory, Position memory) {
+    function getPositions()
+        public
+        view
+        override
+        returns (Position memory, Position memory)
+    {
         return (long, hedge);
     }
 
     /// @notice return pool total value locked based on positions
     /// @dev [TVL] = quoteToken
     function getTVL() public view override returns (uint256) {
-        return investedAmount[quoteToken] + calcQuoteTokenByBaseToken(long.qty, long.price)
-            + calcQuoteTokenByBaseToken(hedge.qty, hedge.price);
+        return
+            investedAmount[quoteToken] +
+            calcQuoteTokenByBaseToken(long.qty, long.price) +
+            calcQuoteTokenByBaseToken(hedge.qty, hedge.price);
     }
 
     /// @notice return long position
@@ -1083,7 +1347,10 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
     /// @param token address of token to sweep
     function sweep(address token, address to) public payable {
         _onlyOwner();
-        if (token == address(getAToken(baseToken)) || token == address(getAToken(quoteToken))) {
+        if (
+            token == address(getAToken(baseToken)) ||
+            token == address(getAToken(quoteToken))
+        ) {
             revert CantSweepYieldToken();
         }
         uint256 _balance;
@@ -1092,7 +1359,7 @@ contract GrindURUSPoolStrategy1 is IGrindURUSPoolStrategy, AAVEV3AdapterArbitrum
             if (_balance == 0) {
                 revert ZeroETH();
             }
-            (bool success,) = payable(to).call{value: _balance}("");
+            (bool success, ) = payable(to).call{value: _balance}("");
             if (!success) {
                 revert FailETHTransfer();
             }

@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import {IGrindToken} from 'src/interfaces/IGrindToken.sol';
+import {IGRETH} from "src/interfaces/IGRETH.sol";
+import {IGrindURUSTreasury} from "src/interfaces/IGrindURUSTreasury.sol";
 import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol"; // NFT
 import {IERC2981} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
 
 interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
+    error NotTreasury();
     error NotOwnerOrPending();
+    error ExceededTVLCap();
     error NotOwnerOfPool(uint256 poolId, address ownerOf);
     error NotPendingOwner();
     error NotPrimaryReceiverRoyaltyOrPending();
@@ -45,15 +48,45 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
         address baseToken,
         address quoteToken
     );
-    event Deposit(uint256 poolId, address pool, address quoteToken, uint256 quoteTokenAmount);
-    event Withdraw(uint256 poolId, address to, address quoteToken, uint256 quoteTokenAmount);
-    event Exit(uint256 poolId, uint256 quoteTokenAmount, uint256 baseTokenAmount);
+    event Deposit(
+        uint256 poolId,
+        address pool,
+        address quoteToken,
+        uint256 quoteTokenAmount
+    );
+    event Withdraw(
+        uint256 poolId,
+        address to,
+        address quoteToken,
+        uint256 quoteTokenAmount
+    );
+    event Exit(
+        uint256 poolId,
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    );
 
     event Grind(uint256 poolId, address grinder);
-    event LongBuy(uint256 poolId, uint256 quoteTokenAmount, uint256 baseTokenAmount);
-    event LongSell(uint256 poolId, uint256 quoteTokenAmount, uint256 baseTokenAmount);
-    event HedgeSell(uint256 poolId, uint256 quoteTokenAmount, uint256 baseTokenAmount);
-    event HedgeRebuy(uint256 poolId, uint256 quoteTokenAmount, uint256 baseTokenAmount);
+    event LongBuy(
+        uint256 poolId,
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    );
+    event LongSell(
+        uint256 poolId,
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    );
+    event HedgeSell(
+        uint256 poolId,
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    );
+    event HedgeRebuy(
+        uint256 poolId,
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    );
     event ReceiveETH(uint256 ethAmount);
 
     struct PoolNFTInfo {
@@ -81,7 +114,7 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
 
     function owner() external view returns (address payable);
 
-    function treasury() external view returns (address payable);
+    function treasury() external view returns (IGrindURUSTreasury);
 
     function lastGrinder() external view returns (address payable);
 
@@ -89,9 +122,9 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
 
     function totalPools() external view returns (uint256);
 
-    function grindToken() external view returns (IGrindToken);
+    function grETH() external view returns (IGRETH);
 
-    function grindTokenReward() external view returns (uint256);
+    function grETHReward() external view returns (uint256);
 
     function royaltyReceiver(uint256 poolId) external view returns (address);
 
@@ -103,13 +136,19 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
 
     function TVL(address token) external view returns (uint256);
 
+    function capTVL(address token) external view returns (uint256);
+
     /////// ONLY OWNER FUNCTIONS
+
+    function setCapTVL(address token, uint256 _capTVL) external;
 
     function setBaseURI(string memory _baseURI) external;
 
-    function setGrindReward(uint256 _grindTokenReward) external;
+    function setGRETHReward(uint256 _grETHReward) external;
 
-    function setInitRoyaltyPriceNumerator(uint16 _initRoyaltyPriceNumerator) external;
+    function setInitRoyaltyPriceNumerator(
+        uint16 _initRoyaltyPriceNumerator
+    ) external;
 
     function setRoyaltyShares(
         uint16 _poolOwnerRoyaltyShareNumerator,
@@ -125,14 +164,14 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
         uint16 _royaltyPriceLastGrinderShareNumerator
     ) external;
 
-    function setGrindToken(address _grindToken) external;
+    function setGRETH(address _grETH) external;
 
-    function setTreasury(address payable _treasury) external;
+    function setTreasury(address _treasury) external;
 
     function transferOwnership(address payable _owner) external;
 
     function setFactoryStrategy(address _factoryStrategy) external;
-    
+
     function mint(
         uint16 strategyId,
         address oracleQuoteTokenPerFeeToken,
@@ -154,34 +193,55 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
         uint256 quoteTokenAmount
     ) external returns (uint256 poolId);
 
-    function deposit(uint256 poolId, uint256 quoteTokenAmount) external returns (uint256 deposited);
+    function deposit(
+        uint256 poolId,
+        uint256 quoteTokenAmount
+    ) external returns (uint256 deposited);
 
-    function withdraw(uint256 poolId, uint256 quoteTokenAmount) external returns (uint256 withdrawn);
+    function withdraw(
+        uint256 poolId,
+        uint256 quoteTokenAmount
+    ) external returns (uint256 withdrawn);
 
-    function withdrawTo(uint256 poolId, address to, uint256 quoteTokenAmount) external returns (uint256 withdrawn);
+    function withdrawTo(
+        uint256 poolId,
+        address to,
+        uint256 quoteTokenAmount
+    ) external returns (uint256 withdrawn);
 
-    function exit(uint256 poolId) external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
+    function exit(
+        uint256 poolId
+    ) external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
     function rebalance(uint256 poolIdLeft, uint256 poolIdRight) external;
 
     function grind(uint256 poolId) external;
 
-    function buyRoyalty(uint256 poolId) external payable returns (uint256 royaltyPricePaid, uint256 refund);
+    function buyRoyalty(
+        uint256 poolId
+    ) external payable returns (uint256 royaltyPricePaid, uint256 refund);
 
-    function buyRoyaltyTo(uint256 poolId, address payable to) external payable returns (uint256 royaltyPricePaid, uint256 refund);
+    function buyRoyaltyTo(
+        uint256 poolId,
+        address payable to
+    ) external payable returns (uint256 royaltyPricePaid, uint256 refund);
 
-    function royaltyInfo(uint256 tokenId, uint256 salePrice)
-        external
-        view
-        override
-        returns (address receiver, uint256 royaltyAmount);
+    function royaltyInfo(
+        uint256 tokenId,
+        uint256 salePrice
+    ) external view override returns (address receiver, uint256 royaltyAmount);
 
-    function royaltyShares(uint256 poolId, uint256 profit)
+    function royaltyShares(
+        uint256 poolId,
+        uint256 profit
+    )
         external
         view
         returns (address[] memory receivers, uint256[] memory amounts);
 
-    function royaltyPriceShares(uint256 poolId)
+    function royaltyPriceShares(
+        uint256 poolId
+    )
         external
         view
         returns (
@@ -193,26 +253,45 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
             uint256 newRoyaltyPrice
         );
 
-    function calcGrindRewards(uint256 poolId) external view returns (address[] memory actors, uint256[] memory rewards);
+    function calcGRETHShares(
+        uint256 poolId
+    ) external view returns (address[] memory actors, uint256[] memory shares);
 
-    function calcInitialRoyaltyPrice(uint256 poolId, uint256 quoteTokenAmount) external view returns (uint256 initRoyaltyPrice);
+    function calcInitialRoyaltyPrice(
+        uint256 poolId,
+        uint256 quoteTokenAmount
+    ) external view returns (uint256 initRoyaltyPrice);
 
     function tokenURI(uint256 poolId) external view returns (string memory uri);
 
-    function getRoyaltyReceiver(uint256 poolId) external view returns (address receiver);
+    function getRoyaltyReceiver(
+        uint256 poolId
+    ) external view returns (address receiver);
 
-    function getPoolIdsOf(address poolOwner) external view returns (uint256 totalPoolIds, uint256[] memory poolIdsOwnedByPoolOwner);
-
-    function getPoolNFTInfos(uint256 fromPoolId, uint256 toPoolId)
+    function getPoolIdsOf(
+        address poolOwner
+    )
         external
         view
-        returns (PoolNFTInfo[] memory poolsInfo);
+        returns (
+            uint256 totalPoolIds,
+            uint256[] memory poolIdsOwnedByPoolOwner
+        );
+
+    function getPoolNFTInfos(
+        uint256 fromPoolId,
+        uint256 toPoolId
+    ) external view returns (PoolNFTInfo[] memory poolsInfo);
 
     function getTVL(uint256 poolId) external view returns (uint256);
 
-    function getTotalTVL(address[] memory tokens) external view returns (uint256[] memory tvls);
+    function getTotalTVL(
+        address[] memory tokens
+    ) external view returns (uint256[] memory tvls);
 
-    function getLong(uint256 poolId)
+    function getLong(
+        uint256 poolId
+    )
         external
         view
         returns (
@@ -226,7 +305,9 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
             uint256 feePrice
         );
 
-    function getHedge(uint256 poolId)
+    function getHedge(
+        uint256 poolId
+    )
         external
         view
         returns (
@@ -240,7 +321,9 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
             uint256 feePrice
         );
 
-    function getConfig(uint256 poolId)
+    function getConfig(
+        uint256 poolId
+    )
         external
         view
         returns (
@@ -252,6 +335,6 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
             uint256 returnPercentHedgeSell,
             uint256 returnPercentHedgeRebuy
         );
-    
+
     function sweep(address token, address to) external payable;
 }

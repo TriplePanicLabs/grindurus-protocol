@@ -19,9 +19,11 @@ contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
     // address public wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     // address public usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
 
-    address public aaveV3PoolArbitrum = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    address public aaveV3PoolArbitrum =
+        0x794a61358D6845594F94dc1DB02A252b5b4814aD;
 
-    address public uniswapV3SwapRouterArbitrum = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address public uniswapV3SwapRouterArbitrum =
+        0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     uint24 public uniswapV3PoolFeeArbitrum = 500;
 
     constructor(address _grindurusPoolsNFT) {
@@ -66,18 +68,27 @@ contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
         address quoteToken
     ) public override returns (address pool) {
         _onlyGrindURUSPoolsNFT();
-        IGrindURUSPoolStrategy.StrategyConstructorArgs memory strategyConstructorArgs = IGrindURUSPoolStrategy
-            .StrategyConstructorArgs({
-            oracleQuoteTokenPerFeeToken: oracleQuoteTokenPerFeeToken,
-            oracleQuoteTokenPerBaseToken: oracleQuoteTokenPerBaseToken,
-            feeToken: feeToken,
-            baseToken: baseToken,
-            quoteToken: quoteToken,
-            lendingArgs: abi.encode(aaveV3PoolArbitrum),
-            dexArgs: abi.encode(uniswapV3SwapRouterArbitrum, uniswapV3PoolFeeArbitrum)
-        });
+        IGrindURUSPoolStrategy.StrategyConstructorArgs
+            memory strategyConstructorArgs = IGrindURUSPoolStrategy
+                .StrategyConstructorArgs({
+                    oracleQuoteTokenPerFeeToken: oracleQuoteTokenPerFeeToken,
+                    oracleQuoteTokenPerBaseToken: oracleQuoteTokenPerBaseToken,
+                    feeToken: feeToken,
+                    baseToken: baseToken,
+                    quoteToken: quoteToken,
+                    lendingArgs: abi.encode(aaveV3PoolArbitrum),
+                    dexArgs: abi.encode(
+                        uniswapV3SwapRouterArbitrum,
+                        uniswapV3PoolFeeArbitrum
+                    )
+                });
         GrindURUSPoolStrategy1 grindURUSPoolStrategy1 = new GrindURUSPoolStrategy1();
-        grindURUSPoolStrategy1.initStrategy(address(grindurusPoolsNFT), poolId, strategyConstructorArgs, defaultConfig);
+        grindURUSPoolStrategy1.initStrategy(
+            address(grindurusPoolsNFT),
+            poolId,
+            strategyConstructorArgs,
+            defaultConfig
+        );
         pool = address(grindURUSPoolStrategy1);
         uint256 poolStrategyId = grindURUSPoolStrategy1.strategyId();
         uint256 factoryStrategyId = strategyId();

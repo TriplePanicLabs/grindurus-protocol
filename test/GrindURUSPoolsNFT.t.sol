@@ -3,7 +3,7 @@ pragma solidity =0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {GrindURUSPoolsNFT} from "src/GrindURUSPoolsNFT.sol";
-import {GrindToken} from "src/GrindToken.sol";
+import {GRETH} from "src/GRETH.sol";
 import {GrindURUSPoolStrategy1, IToken, IGrindURUSPoolStrategy} from "src/strategy1/GrindURUSPoolStrategy1.sol";
 import {FactoryGrindURUSPoolStrategy1} from "src/strategy1/FactoryGrindURUSPoolStrategy1.sol";
 
@@ -21,7 +21,7 @@ contract GrindURUSPoolsNFTTest is Test {
 
     GrindURUSPoolsNFT public poolsNFT;
 
-    GrindToken public grindToken;
+    GRETH public grindToken;
 
     GrindURUSPoolStrategy1 public pool;
 
@@ -35,11 +35,11 @@ contract GrindURUSPoolsNFTTest is Test {
 
         poolsNFT = new GrindURUSPoolsNFT();
 
-        grindToken = new GrindToken(address(poolsNFT));
+        grindToken = new GRETH(address(poolsNFT));
 
         factory1 = new FactoryGrindURUSPoolStrategy1(address(poolsNFT));
 
-        poolsNFT.setGrindToken(address(grindToken));
+        poolsNFT.setGRETH(address(grindToken));
         poolsNFT.setFactoryStrategy(address(factory1));
     }
 
