@@ -3,7 +3,7 @@ pragma solidity =0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
 import {GrindURUSPoolsNFT} from "src/GrindURUSPoolsNFT.sol";
-import {GrindToken} from "src/GrindToken.sol";
+import {GRETH} from "src/GRETH.sol";
 import {GrindURUSPoolStrategy1, IToken, IGrindURUSPoolStrategy} from "src/strategy1/GrindURUSPoolStrategy1.sol";
 import {FactoryGrindURUSPoolStrategy1} from "src/strategy1/FactoryGrindURUSPoolStrategy1.sol";
 
@@ -11,7 +11,9 @@ import {FactoryGrindURUSPoolStrategy1} from "src/strategy1/FactoryGrindURUSPoolS
 // $ forge script script/manualArbitrum/1_GrindURUSPoolsNFT.s.sol:GrindURUSPoolsNFTScript
 
 // Mainnet deploy command:
-// $ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript --slow --broadcast --verify--slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge script script/manualArbitrum/1_GrindURUSPoolsNFT.s.sol:GrindURUSPoolsNFTScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+
+// $ forge verify-contract <GrindURUSPoolsNFT> src/GrindURUSPoolsNFT.sol:GrindURUSPoolsNFT --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 contract GrindURUSPoolsNFTScript is Script {
     GrindURUSPoolsNFT public poolsNFT;
