@@ -433,13 +433,7 @@ contract GrindURUSPoolsNFT is
         IToken quoteToken,
         uint256 quoteTokenAmount
     ) internal returns (uint256 deposited) {
-        if (
-            (capTVL[address(quoteToken)] > 0) &&
-            (TVL[address(quoteToken)] + quoteTokenAmount >
-                capTVL[address(quoteToken)])
-        ) {
-            revert ExceededTVLCap();
-        }
+        _checkTVL(address(quoteToken), quoteTokenAmount);
         quoteToken.safeTransferFrom(
             msg.sender,
             address(this),
@@ -499,6 +493,18 @@ contract GrindURUSPoolsNFT is
         transferFrom(poolOwner, newPoolOwner, poolId);
         _decreaseTVL(address(quoteToken), tvl);
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
+    }
+
+    /// @notice checks TVL of quoteToken
+    /// @param quoteToken address of quoteToken
+    /// @param quoteTokenAmount amount of quote token
+    function _checkTVL(address quoteToken, uint256 quoteTokenAmount) private view {
+        if (
+            (capTVL[address(quoteToken)] > 0) &&
+            (TVL[address(quoteToken)] + quoteTokenAmount > capTVL[address(quoteToken)])
+        ) {
+            revert ExceededTVLCap();
+        }
     }
 
     /// @notice increase Total Value Locked
@@ -952,7 +958,7 @@ contract GrindURUSPoolsNFT is
     function getPoolIdsOf(
         address poolOwner
     )
-        public
+        external
         view
         returns (uint256 totalPoolIds, uint256[] memory poolIdsOwnedByPoolOwner)
     {
@@ -977,7 +983,7 @@ contract GrindURUSPoolsNFT is
     function getPoolNFTInfos(
         uint256 fromPoolId,
         uint256 toPoolId
-    ) public view returns (PoolNFTInfo[] memory poolsInfo) {
+    ) external view returns (PoolNFTInfo[] memory poolsInfo) {
         if (fromPoolId > toPoolId) {
             revert InvalidPoolNFTInfos();
         }
