@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IToken} from "src/interfaces/IToken.sol";
 
-interface IGrindToken is IToken {
+interface IGRETH is IToken {
     error NotGrindURUSPoolsNFT();
     error NotGrindURUSOwner();
     error InvalidLength();
@@ -12,5 +12,8 @@ interface IGrindToken is IToken {
 
     function totalGrinds() external view returns (uint256);
 
-    function reward(address[] memory actors, uint256[] memory rewards) external returns (uint256 totalReward);
+    function mint(
+        address[] memory actors,
+        uint256[] memory rewards
+    ) external returns (uint256 totalReward);
 }
