@@ -23,7 +23,7 @@ contract GrindURUSTreasury is IGrindURUSTreasury {
 
     uint256 public onGrindCounter;
 
-    uint256 public onRoyaltyBuyCounter;
+    uint256 public onBuyRoyaltyCounter;
 
     constructor(address _grindurusPoolsNFT) {
         if (_grindurusPoolsNFT != address(0)) {
@@ -71,12 +71,14 @@ contract GrindURUSTreasury is IGrindURUSTreasury {
     /// @param poolId id of pool on `grindURUSPoolsNFT`
     function onGrind(uint256 poolId) external override {
         _onlyPoolsNFT();
+        poolId;
         onGrindCounter++;
     }
 
-    function onRoyaltyBuy(uint256 poolId) external override {
+    function onBuyRoyalty(uint256 poolId) external override {
         _onlyPoolsNFT();
-        onRoyaltyBuyCounter++;
+        poolId;
+        onBuyRoyaltyCounter++;
     }
 
     function execute(

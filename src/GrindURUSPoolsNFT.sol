@@ -780,7 +780,7 @@ contract GrindURUSPoolsNFT is
                 }
             }
         }
-        treasury.onRoyaltyBuy(poolId);
+        treasury.onBuyRoyalty(poolId);
     }
 
     /// @notice implementation of royalty standart ERC2981

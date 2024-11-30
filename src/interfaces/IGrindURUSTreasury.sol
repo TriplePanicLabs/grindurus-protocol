@@ -17,7 +17,7 @@ interface IGrindURUSTreasury {
 
     function onGrind(uint256 poolId) external;
 
-    function onRoyaltyBuy(uint256 poolId) external;
+    function onBuyRoyalty(uint256 poolId) external;
 
     function execute(address payable target, uint256 value, bytes calldata data) external;
 }
