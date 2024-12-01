@@ -5,7 +5,9 @@ import {IDexAdapter, IToken} from "../interfaces/IDexAdapter.sol";
 import {ISwapRouterArbitrum} from "../interfaces/uniswapV3/ISwapRouterArbitrum.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @dev adapter to UniswapV3 that inherrits by Strategy. Made for Arbitrum
+/// @title UniswapV3AdapterArbitrum
+/// @notice Adapter for UniswapV3
+/// @dev adapter to UniswapV3 that inherrits by Strategy. Made for Arbitrum network
 contract UniswapV3AdapterArbitrum is IDexAdapter {
     using SafeERC20 for IToken;
 
@@ -17,7 +19,11 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
 
     constructor() {}
 
-    function initDex(address baseToken, address quoteToken, bytes memory args) public {
+    function initDex(
+        address baseToken,
+        address quoteToken,
+        bytes memory args
+    ) public {
         if (address(swapRouter) != address(0)) {
             revert DexInitialized();
         }
@@ -31,11 +37,16 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         fee = _fee;
     }
 
-    function encodeDexConstructorArgs(address _swapRouter, uint24 _fee) public pure returns (bytes memory) {
+    function encodeDexConstructorArgs(
+        address _swapRouter,
+        uint24 _fee
+    ) public pure returns (bytes memory) {
         return abi.encode(_swapRouter, _fee);
     }
 
-    function decodeDexConstructorArgs(bytes memory args) public pure returns (address _swapRouter, uint24 _fee) {
+    function decodeDexConstructorArgs(
+        bytes memory args
+    ) public pure returns (address _swapRouter, uint24 _fee) {
         (_swapRouter, _fee) = abi.decode(args, (address, uint24));
     }
 
@@ -52,23 +63,33 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
     }
 
     /// @notice set fee
+    /// @param _fee fee for uniswapV3 pool
     function setUniFee(uint24 _fee) public {
         _onlyOwner();
         fee = _fee;
     }
 
     /// @notice swaps assets
-    function swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) public override returns (uint256 amountOut) {
+    /// @param tokenIn address of tokenIn
+    /// @param tokenOut address of token out
+    /// @param amountIn amount of tokenIn
+    /// @return amountOut amount of tokenOut
+    function swap(
+        IToken tokenIn,
+        IToken tokenOut,
+        uint256 amountIn
+    ) public override returns (uint256 amountOut) {
         uint256 tokenOutBalanceBefore = tokenOut.balanceOf(address(this));
-        ISwapRouterArbitrum.ExactInputSingleParams memory params = ISwapRouterArbitrum.ExactInputSingleParams({
-            tokenIn: address(tokenIn),
-            tokenOut: address(tokenOut),
-            fee: fee,
-            recipient: address(this),
-            amountIn: amountIn,
-            amountOutMinimum: 0, // any amount
-            sqrtPriceLimitX96: 0
-        });
+        ISwapRouterArbitrum.ExactInputSingleParams
+            memory params = ISwapRouterArbitrum.ExactInputSingleParams({
+                tokenIn: address(tokenIn),
+                tokenOut: address(tokenOut),
+                fee: fee,
+                recipient: address(this),
+                amountIn: amountIn,
+                amountOutMinimum: 0, // any amount
+                sqrtPriceLimitX96: 0
+            });
         swapRouter.exactInputSingle(params);
         uint256 tokenOutBalanceAfter = tokenOut.balanceOf(address(this));
         amountOut = tokenOutBalanceAfter - tokenOutBalanceBefore;
@@ -84,5 +105,8 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         return IToken(address(0));
     }
 
-    function _distributeTradeProfit(IToken token, uint256 profit) internal virtual {}
+    function _distributeTradeProfit(
+        IToken token,
+        uint256 profit
+    ) internal virtual {}
 }
