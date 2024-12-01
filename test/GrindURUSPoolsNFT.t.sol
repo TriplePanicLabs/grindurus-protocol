@@ -6,6 +6,7 @@ import {GrindURUSPoolsNFT} from "src/GrindURUSPoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
 import {GrindURUSPoolStrategy1, IToken, IGrindURUSPoolStrategy} from "src/strategy1/GrindURUSPoolStrategy1.sol";
 import {FactoryGrindURUSPoolStrategy1} from "src/strategy1/FactoryGrindURUSPoolStrategy1.sol";
+import {GrindURUSTreasury} from "src/GrindURUSTreasury.sol";
 
 // $ forge test --match-path test/GrindURUSPoolsNFT.t.sol
 contract GrindURUSPoolsNFTTest is Test {
@@ -23,6 +24,8 @@ contract GrindURUSPoolsNFTTest is Test {
 
     GRETH public grindToken;
 
+    GrindURUSTreasury public treasury;
+
     GrindURUSPoolStrategy1 public pool;
 
     FactoryGrindURUSPoolStrategy1 public factory1;
@@ -37,9 +40,12 @@ contract GrindURUSPoolsNFTTest is Test {
 
         grindToken = new GRETH(address(poolsNFT));
 
+        treasury = new GrindURUSTreasury(address(poolsNFT));
+
         factory1 = new FactoryGrindURUSPoolStrategy1(address(poolsNFT));
 
         poolsNFT.setGRETH(address(grindToken));
+        poolsNFT.setTreasury(address(treasury));
         poolsNFT.setFactoryStrategy(address(factory1));
     }
 
@@ -158,7 +164,9 @@ contract GrindURUSPoolsNFTTest is Test {
         poolsNFT.exit(poolId);
 
         address ownerOfAfter = poolsNFT.ownerOf(poolId);
-        assert(ownerOfAfter == address(this));
+        // console.log(ownerOfAfter);
+        // console.log(address(this));
+        assert(ownerOfAfter == address(treasury));
     }
 
     function test_mint_and_buyRoyalty() public {
