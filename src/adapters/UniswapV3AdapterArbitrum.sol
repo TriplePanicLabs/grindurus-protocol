@@ -41,14 +41,19 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
 
     function _onlyOwner() internal view virtual {}
 
-    /// @notice set DEX data
-    function setDexData(address _swapRouter, uint24 _fee) public {
+    /// @notice set swap router
+    function setUniSwapRouter(address _swapRouter) public {
         _onlyOwner();
         getBaseToken().forceApprove(address(swapRouter), 0);
         getQuoteToken().forceApprove(address(swapRouter), 0);
         swapRouter = ISwapRouterArbitrum(_swapRouter);
         getBaseToken().forceApprove(address(swapRouter), type(uint256).max);
         getQuoteToken().forceApprove(address(swapRouter), type(uint256).max);
+    }
+
+    /// @notice set fee
+    function setUniFee(uint24 _fee) public {
+        _onlyOwner();
         fee = _fee;
     }
 
