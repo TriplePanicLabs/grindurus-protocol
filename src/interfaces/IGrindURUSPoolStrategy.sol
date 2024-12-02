@@ -36,6 +36,27 @@ interface IGrindURUSPoolStrategy is IERC5313 {
     error FailETHTransfer();
     error FailTokenTransfer(address token);
 
+    event LongBuy(
+        uint256 poolId,
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    );
+    event LongSell(
+        uint256 poolId,
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    );
+    event HedgeSell(
+        uint256 poolId,
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    );
+    event HedgeRebuy(
+        uint256 poolId,
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    );
+
     /// @dev OPeration to number:
     ///     LONG_BUY == 0
     ///     LONG_SELL ==  1
@@ -138,6 +159,10 @@ interface IGrindURUSPoolStrategy is IERC5313 {
     /// @notice hedge rebuy of the position
     function hedge_rebuy() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
+    /// @notice iteration of URUS algorithm
+    /// @dev calls long_buy, long_sell, hedge_sell, hedge_rebuy
+    function iterate() external returns (bool iterated);
+
     /// @notice transfer funds from pool to poolsNFT;
     function beforeRebalance() external returns (uint256 baseTokenAmount, uint256 price);
 
@@ -168,7 +193,6 @@ interface IGrindURUSPoolStrategy is IERC5313 {
         view
         returns (uint256 quoteTokenAmount);
 
-    /// @notice
     function calcBaseTokenByFeeToken(uint256 feeTokenAmount, uint256 baseTokenPerFeeTokenPrice)
         external
         view

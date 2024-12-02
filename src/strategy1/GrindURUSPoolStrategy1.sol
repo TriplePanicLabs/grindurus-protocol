@@ -64,9 +64,9 @@ contract GrindURUSPoolStrategy1 is
     /// @dev total profits of pool
     TotalProfits public totalProfits;
 
-    constructor() {} // only for verification simplification. As constructor call initStrategy
+    constructor() {} // only for verification simplification. As constructor call init
 
-    function initStrategy(
+    function init(
         address _grindurusPoolsNFT,
         uint256 _poolId,
         StrategyConstructorArgs memory strategyArgs,
@@ -462,21 +462,19 @@ contract GrindURUSPoolStrategy1 is
         (
             address[] memory receivers,
             uint256[] memory amounts
-        ) = grindurusPoolsNFT.royaltyShares(poolId, profit);
-        if (receivers.length != amounts.length || receivers.length != 4) {
+        ) = grindurusPoolsNFT.calcRoyaltyShares(poolId, profit);
+        uint256 len = receivers.length;
+        if (len != amounts.length) {
             revert InvalidLength();
         }
-        if (amounts[0] > 0) {
-            token.safeTransfer(receivers[0], amounts[0]);
-        }
-        if (amounts[1] > 0) {
-            token.safeTransfer(receivers[1], amounts[1]);
-        }
-        if (amounts[2] > 0) {
-            token.safeTransfer(receivers[2], amounts[2]);
-        }
-        if (amounts[3] > 0) {
-            token.safeTransfer(receivers[3], amounts[3]);
+        uint256 i;
+        for (;i < len;) {
+            if (amounts[i] > 0) {
+                token.safeTransfer(receivers[i], amounts[i]);
+            }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -750,6 +748,89 @@ contract GrindURUSPoolStrategy1 is
             feeQty: 0,
             feePrice: 0
         });
+    }
+
+    /// @notice iteration of URUS algorithm
+    /// @dev calls long_buy, long_sell, hedge_sell, hedge_rebuy
+    /// @return iterated true if successfully operation made, false otherwise
+    function iterate() public returns (bool iterated) {
+        IGrindURUSPoolStrategy strategy = IGrindURUSPoolStrategy(address(this));
+        if (long.number == 0) {
+            // BUY
+            try strategy.long_buy() returns (
+                uint256 quoteTokenAmount,
+                uint256 baseTokenAmount
+            ) {
+                iterated = true;
+                emit LongBuy(poolId, quoteTokenAmount, baseTokenAmount);
+            } catch {}
+        } else if (long.number < long.numberMax) {
+            // SELL
+            try strategy.long_sell() returns (
+                uint256 quoteTokenAmount,
+                uint256 baseTokenAmount
+            ) {
+                iterated = true;
+                emit LongSell(poolId, quoteTokenAmount, baseTokenAmount);
+            } catch {
+                // EXTRA BUY
+                try strategy.long_buy() returns (
+                    uint256 quoteTokenAmount,
+                    uint256 baseTokenAmount
+                ) {
+                    iterated = true;
+                    emit LongBuy(poolId, quoteTokenAmount, baseTokenAmount);
+                } catch {}
+            }
+        } else {
+            // long.number == long.numberMax
+            if (hedge.number == 0) {
+                // TRY SELL
+                try strategy.long_sell() returns (
+                    uint256 quoteTokenAmount,
+                    uint256 baseTokenAmount
+                ) {
+                    iterated = true;
+                    emit LongSell(poolId, quoteTokenAmount, baseTokenAmount);
+                } catch {
+                    // INIT HEDGE SELL
+                    try strategy.hedge_sell() returns (
+                        uint256 quoteTokenAmount,
+                        uint256 baseTokenAmount
+                    ) {
+                        iterated = true;
+                        emit HedgeSell(
+                            poolId,
+                            quoteTokenAmount,
+                            baseTokenAmount
+                        );
+                    } catch {}
+                }
+            } else {
+                // hedge.number > 0
+                // REBUY
+                try strategy.hedge_rebuy() returns (
+                    uint256 quoteTokenAmount,
+                    uint256 baseTokenAmount
+                ) {
+                    iterated = true;
+                    emit HedgeRebuy(poolId, quoteTokenAmount, baseTokenAmount);
+                } catch {
+                    // TRY HEDGE SELL
+                    try strategy.hedge_sell() returns (
+                        uint256 quoteTokenAmount,
+                        uint256 baseTokenAmount
+                    ) {
+                        iterated = true;
+                        emit HedgeSell(
+                            poolId,
+                            quoteTokenAmount,
+                            baseTokenAmount
+                        );
+                    } catch {}
+                }
+            }
+        }
     }
 
     //// REBALANCE FUNCTIONS ////////////////////////////////////////////////////////////////////////

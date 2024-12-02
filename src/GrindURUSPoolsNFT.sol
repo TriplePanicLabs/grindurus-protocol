@@ -13,7 +13,7 @@ import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import {ERC721, ERC721Enumerable, IERC165} from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-/// @title GrindURUSPoolsNFT
+/// @title GrindURUS Pools NFT
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice NFT that represets ownership of every grindurus strategy pools
 contract GrindURUSPoolsNFT is
@@ -109,9 +109,6 @@ contract GrindURUSPoolsNFT is
     /// @dev grETH token address
     IGRETH public grETH;
 
-    /// @dev amount of GRETH as compensation for interaction
-    uint256 public grETHReward;
-
     /// @dev strategyId => address of grindurus pool strategy implementation
     mapping(uint16 strategyId => IFactoryGrindURUSPoolStrategy)
         public factoryStrategy;
@@ -144,8 +141,6 @@ contract GrindURUSPoolsNFT is
         owner = payable(msg.sender);
         treasury = IGrindURUSTreasury(msg.sender);
         lastGrinder = payable(msg.sender);
-
-        grETHReward = 0.00001e18; // 0.00001 ETH
 
         royaltyPriceCompensationShareNumerator = 101_00; // 101%
         royaltyPriceTreasuryShareNumerator = 1_00; // 1%
@@ -182,12 +177,6 @@ contract GrindURUSPoolsNFT is
         }
     }
 
-    function _onlyTreasury() private view {
-        if (msg.sender != address(treasury)) {
-            revert NotTreasury();
-        }
-    }
-
     /// @notice checks that msg.sender is owner of pool id
     function _onlyOwnerOf(uint256 poolId) private view {
         address _ownerOf = ownerOf(poolId);
@@ -211,13 +200,6 @@ contract GrindURUSPoolsNFT is
     function setCapTVL(address token, uint256 _capTVL) external override {
         _onlyOwner();
         capTVL[token] = _capTVL;
-    }
-
-    /// @notice sets grind grETHReward
-    /// @param _grETHReward new amount of grETH token
-    function setGRETHReward(uint256 _grETHReward) external override {
-        _onlyTreasury();
-        grETHReward = _grETHReward;
     }
 
     /// @notice sets start royalty price
@@ -525,161 +507,83 @@ contract GrindURUSPoolsNFT is
         }
     }
 
-    /// @notice rebalance the pools with poolIds `poolIdLeft` and `poolIdRight`
+    /// @notice rebalance the pools with poolIds `poolId0` and `poolId1`
     /// @dev only owner of pools can rebalance with equal strategy id
-    /// @param poolIdLeft pool id of pool to rebalance
-    /// @param poolIdRight pool id of pool to rebalance
+    /// @param poolId0 pool id of pool to rebalance
+    /// @param poolId1 pool id of pool to rebalance
     function rebalance(
-        uint256 poolIdLeft,
-        uint256 poolIdRight
+        uint256 poolId0,
+        uint256 poolId1
     ) external override {
-        _onlyOwnerOf(poolIdLeft);
-        if (ownerOf(poolIdLeft) != ownerOf(poolIdRight)) {
+        _onlyOwnerOf(poolId0);
+        if (ownerOf(poolId0) != ownerOf(poolId1)) {
             revert NotAllowedToRebalance();
         }
-        IGrindURUSPoolStrategy poolLeft = IGrindURUSPoolStrategy(
-            pools[poolIdLeft]
+        IGrindURUSPoolStrategy pool0 = IGrindURUSPoolStrategy(
+            pools[poolId0]
         );
-        IGrindURUSPoolStrategy poolRight = IGrindURUSPoolStrategy(
-            pools[poolIdRight]
+        IGrindURUSPoolStrategy pool1 = IGrindURUSPoolStrategy(
+            pools[poolId1]
         );
-        if (poolLeft.strategyId() != poolRight.strategyId()) {
+        if (pool0.strategyId() != pool1.strategyId()) {
             revert DifferentStrategyId();
         }
-        IToken poolLeftBaseToken = poolLeft.getBaseToken();
-        IToken poolRightBaseToken = poolRight.getBaseToken();
-        IToken poolLeftQuoteToken = poolLeft.getQuoteToken();
-        IToken poolRightQuoteToken = poolRight.getQuoteToken();
-        if (address(poolLeftQuoteToken) != address(poolRightQuoteToken)) {
+        IToken pool0BaseToken = pool0.getBaseToken();
+        IToken pool1BaseToken = pool1.getBaseToken();
+        IToken pool0QuoteToken = pool0.getQuoteToken();
+        IToken pool1QuoteToken = pool1.getQuoteToken();
+        if (address(pool0QuoteToken) != address(pool1QuoteToken)) {
             revert DifferentQuoteTokens();
         }
-        if (address(poolLeftBaseToken) != address(poolRightBaseToken)) {
+        if (address(pool0BaseToken) != address(pool1BaseToken)) {
             revert DifferentBaseTokens();
         }
 
-        (uint256 baseTokenAmountLeft, uint256 priceLeft) = poolLeft
+        (uint256 baseTokenAmount0, uint256 price0) = pool0
             .beforeRebalance();
-        (uint256 baseTokenAmountRight, uint256 priceRight) = poolRight
+        (uint256 baseTokenAmount1, uint256 price1) = pool1
             .beforeRebalance();
         // second step: rebalance
-        uint256 totalBaseTokenAmount = baseTokenAmountLeft +
-            baseTokenAmountRight;
-        uint256 rebalancedPrice = (baseTokenAmountLeft *
-            priceLeft +
-            baseTokenAmountRight *
-            priceRight) / totalBaseTokenAmount;
-        uint256 newBaseTokenAmountLeft = totalBaseTokenAmount / 2;
-        uint256 newBaseTokenAmountRight = totalBaseTokenAmount -
-            newBaseTokenAmountLeft;
+        uint256 totalBaseTokenAmount = baseTokenAmount0 +baseTokenAmount1;
+        uint256 rebalancedPrice = (baseTokenAmount0 * price0 + baseTokenAmount1 * price1) / totalBaseTokenAmount;
+        uint256 newBaseTokenAmount0 = totalBaseTokenAmount / 2;
+        uint256 newBaseTokenAmount1 = totalBaseTokenAmount - newBaseTokenAmount0;
 
-        poolLeftBaseToken.forceApprove(
-            address(poolLeft),
-            newBaseTokenAmountLeft
+        pool0BaseToken.forceApprove(
+            address(pool0),
+            newBaseTokenAmount0
         );
-        poolRightBaseToken.forceApprove(
-            address(poolRight),
-            newBaseTokenAmountRight
+        pool1BaseToken.forceApprove(
+            address(pool1),
+            newBaseTokenAmount1
         );
-        poolLeft.afterRebalance(newBaseTokenAmountLeft, rebalancedPrice);
-        poolRight.afterRebalance(newBaseTokenAmountRight, rebalancedPrice);
+        pool0.afterRebalance(newBaseTokenAmount0, rebalancedPrice);
+        pool1.afterRebalance(newBaseTokenAmount1, rebalancedPrice);
     }
 
     /// @notice grind the pool with `poolId`
+    /// @dev grETH == fee spend on iterate
     /// @param poolId pool id of pool in array `pools`
     function grind(uint256 poolId) external override {
-        IGrindURUSPoolStrategy strategy = IGrindURUSPoolStrategy(pools[poolId]);
-        (
-            IGrindURUSPoolStrategy.Position memory long,
-            IGrindURUSPoolStrategy.Position memory hedge
-        ) = strategy.getPositions();
-        if (long.number == 0) {
-            // BUY
-            try strategy.long_buy() returns (
-                uint256 quoteTokenAmount,
-                uint256 baseTokenAmount
-            ) {
-                _mintGRETH(poolId);
-                emit LongBuy(poolId, quoteTokenAmount, baseTokenAmount);
-            } catch {}
-        } else if (long.number < long.numberMax) {
-            // SELL
-            try strategy.long_sell() returns (
-                uint256 quoteTokenAmount,
-                uint256 baseTokenAmount
-            ) {
-                _mintGRETH(poolId);
-                emit LongSell(poolId, quoteTokenAmount, baseTokenAmount);
-            } catch {
-                // EXTRA BUY
-                try strategy.long_buy() returns (
-                    uint256 quoteTokenAmount,
-                    uint256 baseTokenAmount
-                ) {
-                    _mintGRETH(poolId);
-                    emit LongBuy(poolId, quoteTokenAmount, baseTokenAmount);
-                } catch {}
-            }
-        } else {
-            // long.number == long.numberMax
-            if (hedge.number == 0) {
-                // TRY SELL
-                try strategy.long_sell() returns (
-                    uint256 quoteTokenAmount,
-                    uint256 baseTokenAmount
-                ) {
-                    _mintGRETH(poolId);
-                    emit LongSell(poolId, quoteTokenAmount, baseTokenAmount);
-                } catch {
-                    // INIT HEDGE SELL
-                    try strategy.hedge_sell() returns (
-                        uint256 quoteTokenAmount,
-                        uint256 baseTokenAmount
-                    ) {
-                        _mintGRETH(poolId);
-                        emit HedgeSell(
-                            poolId,
-                            quoteTokenAmount,
-                            baseTokenAmount
-                        );
-                    } catch {}
-                }
-            } else {
-                // hedge.number > 0
-                // REBUY
-                try strategy.hedge_rebuy() returns (
-                    uint256 quoteTokenAmount,
-                    uint256 baseTokenAmount
-                ) {
-                    _mintGRETH(poolId);
-                    emit HedgeRebuy(poolId, quoteTokenAmount, baseTokenAmount);
-                } catch {
-                    // TRY HEDGE SELL
-                    try strategy.hedge_sell() returns (
-                        uint256 quoteTokenAmount,
-                        uint256 baseTokenAmount
-                    ) {
-                        _mintGRETH(poolId);
-                        emit HedgeSell(
-                            poolId,
-                            quoteTokenAmount,
-                            baseTokenAmount
-                        );
-                    } catch {}
-                }
-            }
+        uint256 gasStart = gasleft();
+        IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
+        bool successIterate;
+        try pool.iterate() returns (bool iterated) {
+            successIterate = iterated;
+        } catch {
+            successIterate = false;
         }
-        treasury.onGrind(poolId);
+        uint256 grethAmount = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
+        (address[] memory actors, uint256[] memory shares) = calcGRETHShares(
+            poolId,
+            grethAmount
+        );
+        if (successIterate) {
+            try grETH.mint(actors, shares) {} catch {}
+        }
+        try treasury.onGrind(poolId) {} catch {}
         lastGrinder = payable(msg.sender);
         emit Grind(poolId, msg.sender);
-    }
-
-    /// @notice grETHReward actors for participation in protocol
-    /// @param poolId pool id of pool in array `pools`
-    function _mintGRETH(uint256 poolId) internal {
-        (address[] memory actors, uint256[] memory shares) = calcGRETHShares(
-            poolId
-        );
-        grETH.mint(actors, shares);
     }
 
     /// @notice buy royalty for pool with `poolId`
@@ -718,7 +622,7 @@ contract GrindURUSPoolsNFT is
             uint256 lastGrinderShare,
             ,
             /**uint256 oldRoyaltyPrice */ uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + treasuryShare + lastGrinderShare
-        ) = royaltyPriceShares(poolId);
+        ) = calcRoyaltyPriceShares(poolId);
         if (msg.value < newRoyaltyPrice) {
             revert InsufficientRoyaltyPrice();
         }
@@ -786,7 +690,8 @@ contract GrindURUSPoolsNFT is
                 }
             }
         }
-        treasury.onBuyRoyalty(poolId);
+        try treasury.onBuyRoyalty(poolId) {} catch {}
+        emit BuyRoyalty(poolId, to, royaltyPricePaid);
     }
 
     /// @notice implementation of royalty standart ERC2981
@@ -807,7 +712,7 @@ contract GrindURUSPoolsNFT is
     /// @param poolId pool id of pool in array `pools`
     /// @param profit amount of token to be distributed
     /// @dev returns array of receivers and amounts
-    function royaltyShares(
+    function calcRoyaltyShares(
         uint256 poolId,
         uint256 profit
     )
@@ -818,10 +723,10 @@ contract GrindURUSPoolsNFT is
     {
         receivers = new address[](4);
         amounts = new uint256[](4);
-        receivers[0] = ownerOf(poolId);
-        receivers[1] = address(treasury);
-        receivers[2] = getRoyaltyReceiver(poolId);
-        receivers[3] = lastGrinder;
+        receivers[0] = ownerOf(poolId); // pool owner
+        receivers[1] = address(treasury); // treasury
+        receivers[2] = getRoyaltyReceiver(poolId); // royalty receiver
+        receivers[3] = lastGrinder; // last grinder
         uint256 denominator = DENOMINATOR;
         amounts[1] = (profit * treasuryRoyaltyShareNumerator) / denominator;
         amounts[2] = (profit * receiverRoyaltyShareNumerator) / denominator;
@@ -837,7 +742,7 @@ contract GrindURUSPoolsNFT is
     /// @return lastGrinderShare feeToken amount to be received to last grinder
     /// @return oldRoyaltyPrice feeToken amount of old royalty price
     /// @return newRoyaltyPrice feeToken amount of new royalty price
-    function royaltyPriceShares(
+    function calcRoyaltyPriceShares(
         uint256 poolId
     )
         public
@@ -875,7 +780,8 @@ contract GrindURUSPoolsNFT is
 
     /// @notice calculates shares of grETH for actors
     function calcGRETHShares(
-        uint256 poolId
+        uint256 poolId,
+        uint256 grethReward
     )
         public
         view
@@ -890,14 +796,10 @@ contract GrindURUSPoolsNFT is
         actors[2] = getRoyaltyReceiver(poolId); // royalty receiver
         actors[3] = msg.sender; // grinder
 
-        shares[0] =
-            (grETHReward * (denominator - poolOwnerShareNumerator)) /
-            denominator;
-        shares[1] = (grETHReward * treasuryRoyaltyShareNumerator) / denominator;
-        shares[2] =
-            (grETHReward * (royaltyNumerator - receiverRoyaltyShareNumerator)) /
-            denominator;
-        shares[3] = grETHReward - (shares[0] + shares[1] + shares[2]);
+        shares[0] = (grethReward * (denominator - poolOwnerShareNumerator)) / denominator;
+        shares[1] = grethReward * treasuryRoyaltyShareNumerator / denominator;
+        shares[2] = (grethReward * (royaltyNumerator - receiverRoyaltyShareNumerator)) / denominator;
+        shares[3] = grethReward - (shares[0] + shares[1] + shares[2]);
     }
 
     /// @notice calc initial royalty price

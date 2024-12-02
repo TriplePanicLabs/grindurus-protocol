@@ -67,26 +67,9 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
     );
 
     event Grind(uint256 poolId, address grinder);
-    event LongBuy(
-        uint256 poolId,
-        uint256 quoteTokenAmount,
-        uint256 baseTokenAmount
-    );
-    event LongSell(
-        uint256 poolId,
-        uint256 quoteTokenAmount,
-        uint256 baseTokenAmount
-    );
-    event HedgeSell(
-        uint256 poolId,
-        uint256 quoteTokenAmount,
-        uint256 baseTokenAmount
-    );
-    event HedgeRebuy(
-        uint256 poolId,
-        uint256 quoteTokenAmount,
-        uint256 baseTokenAmount
-    );
+
+    event BuyRoyalty(uint256 poolId, address buyer, uint256 paidPrice);
+
     event ReceiveETH(uint256 ethAmount);
 
     struct PoolNFTInfo {
@@ -124,8 +107,6 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
 
     function grETH() external view returns (IGRETH);
 
-    function grETHReward() external view returns (uint256);
-
     function royaltyReceiver(uint256 poolId) external view returns (address);
 
     function royaltyPrice(uint256 poolId) external view returns (uint256);
@@ -143,8 +124,6 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
     function setCapTVL(address token, uint256 _capTVL) external;
 
     function setBaseURI(string memory _baseURI) external;
-
-    function setGRETHReward(uint256 _grETHReward) external;
 
     function setInitRoyaltyPriceNumerator(
         uint16 _initRoyaltyPriceNumerator
@@ -231,7 +210,7 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
         uint256 salePrice
     ) external view override returns (address receiver, uint256 royaltyAmount);
 
-    function royaltyShares(
+    function calcRoyaltyShares(
         uint256 poolId,
         uint256 profit
     )
@@ -239,7 +218,7 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
         view
         returns (address[] memory receivers, uint256[] memory amounts);
 
-    function royaltyPriceShares(
+    function calcRoyaltyPriceShares(
         uint256 poolId
     )
         external
@@ -254,7 +233,8 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
         );
 
     function calcGRETHShares(
-        uint256 poolId
+        uint256 poolId,
+        uint256 grethReward
     ) external view returns (address[] memory actors, uint256[] memory shares);
 
     function calcInitialRoyaltyPrice(

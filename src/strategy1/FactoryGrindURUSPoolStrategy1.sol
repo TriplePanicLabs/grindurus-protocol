@@ -83,7 +83,7 @@ contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
                     )
                 });
         GrindURUSPoolStrategy1 grindURUSPoolStrategy1 = new GrindURUSPoolStrategy1();
-        grindURUSPoolStrategy1.initStrategy(
+        grindURUSPoolStrategy1.init(
             address(grindurusPoolsNFT),
             poolId,
             strategyConstructorArgs,
