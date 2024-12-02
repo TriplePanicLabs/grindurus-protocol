@@ -385,7 +385,6 @@ contract PoolsNFT is
             IToken(quoteToken),
             quoteTokenAmount
         );
-        emit Deposit(poolId, pool, quoteToken, quoteTokenAmount);
     }
 
     /// @notice deposit `quoteToken` to pool with `poolId`
@@ -401,12 +400,6 @@ contract PoolsNFT is
         IPoolStrategy pool = IPoolStrategy(pools[poolId]);
         IToken quoteToken = pool.getQuoteToken();
         deposited = _deposit(pool, quoteToken, quoteTokenAmount);
-        emit Deposit(
-            poolId,
-            address(pool),
-            address(quoteToken),
-            quoteTokenAmount
-        );
     }
 
     /// @dev make transfer from msg.sender, approve to pool, call deposit on pool
@@ -424,6 +417,12 @@ contract PoolsNFT is
         quoteToken.forceApprove(address(pool), quoteTokenAmount);
         deposited = pool.deposit(quoteTokenAmount);
         _increaseTVL(address(quoteToken), quoteTokenAmount);
+        emit Deposit(
+            poolIds[address(pool)],
+            address(pool),
+            address(quoteToken),
+            quoteTokenAmount
+        );
     }
 
     /// @notice withdraw `quoteToken` from poolId to `msg.sender`
@@ -470,9 +469,7 @@ contract PoolsNFT is
         IToken quoteToken = pool.getQuoteToken();
         uint256 tvl = pool.getTVL();
         (quoteTokenAmount, baseTokenAmount) = pool.exit();
-        address poolOwner = ownerOf(poolId);
-        address newPoolOwner = getRoyaltyReceiver(poolId);
-        transferFrom(poolOwner, newPoolOwner, poolId);
+        transferFrom(ownerOf(poolId), getRoyaltyReceiver(poolId), poolId);
         _decreaseTVL(address(quoteToken), tvl);
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
     }
@@ -539,10 +536,8 @@ contract PoolsNFT is
             revert DifferentBaseTokens();
         }
 
-        (uint256 baseTokenAmount0, uint256 price0) = pool0
-            .beforeRebalance();
-        (uint256 baseTokenAmount1, uint256 price1) = pool1
-            .beforeRebalance();
+        (uint256 baseTokenAmount0, uint256 price0) = pool0.beforeRebalance();
+        (uint256 baseTokenAmount1, uint256 price1) = pool1.beforeRebalance();
         // second step: rebalance
         uint256 totalBaseTokenAmount = baseTokenAmount0 +baseTokenAmount1;
         uint256 rebalancedPrice = (baseTokenAmount0 * price0 + baseTokenAmount1 * price1) / totalBaseTokenAmount;
@@ -620,8 +615,8 @@ contract PoolsNFT is
             uint256 poolOwnerShare,
             uint256 treasuryShare,
             uint256 lastGrinderShare,
-            ,
-            /**uint256 oldRoyaltyPrice */ uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + treasuryShare + lastGrinderShare
+            /**uint256 oldRoyaltyPrice */,
+            uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + treasuryShare + lastGrinderShare
         ) = calcRoyaltyPriceShares(poolId);
         if (msg.value < newRoyaltyPrice) {
             revert InsufficientRoyaltyPrice();
@@ -779,6 +774,8 @@ contract PoolsNFT is
     }
 
     /// @notice calculates shares of grETH for actors
+    /// @param poolId pool id of pool in array `pools`
+    /// @param grethReward amount of grETH
     function calcGRETHShares(
         uint256 poolId,
         uint256 grethReward
@@ -810,11 +807,8 @@ contract PoolsNFT is
         uint256 poolId,
         uint256 quoteTokenAmount
     ) public view returns (uint256 initRoyaltyPrice) {
-        uint256 feeTokenAmount = IPoolStrategy(pools[poolId])
-            .calcFeeTokenByQuoteToken(quoteTokenAmount);
-        initRoyaltyPrice =
-            (feeTokenAmount * initRoyaltyPriceNumerator) /
-            DENOMINATOR;
+        uint256 feeTokenAmount = IPoolStrategy(pools[poolId]).calcFeeTokenByQuoteToken(quoteTokenAmount);
+        initRoyaltyPrice = (feeTokenAmount * initRoyaltyPriceNumerator) / DENOMINATOR;
     }
 
     /// @notice returns tokenURI of `tokenId`
