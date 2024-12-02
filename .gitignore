@@ -2,6 +2,8 @@
 cache/
 out/
 
+broadcast
+
 # Ignores development broadcast logs
 !/broadcast
 /broadcast/*/31337/
@@ -9,6 +11,8 @@ out/
 
 # Docs
 docs/
+
+logs/
 
 # Dotenv file
 .env
