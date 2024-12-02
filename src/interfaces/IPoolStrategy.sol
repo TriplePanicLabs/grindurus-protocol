@@ -5,7 +5,7 @@ import {IToken} from "./IToken.sol";
 import {IERC5313} from "lib/openzeppelin-contracts/contracts/interfaces/IERC5313.sol"; // owner interface
 
 /// @notice the interface for Strategy Pool
-interface IGrindURUSPoolStrategy is IERC5313 {
+interface IPoolStrategy is IERC5313 {
     error StrategyInitialized();
     error InvalidConfig();
     error InvalidLongNumberMax();

@@ -2,21 +2,21 @@
 pragma solidity =0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
-import {GrindURUSPoolsNFT} from "src/GrindURUSPoolsNFT.sol";
+import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
-import {GrindURUSPoolStrategy1, IToken, IGrindURUSPoolStrategy} from "src/strategy1/GrindURUSPoolStrategy1.sol";
-import {FactoryGrindURUSPoolStrategy1} from "src/strategy1/FactoryGrindURUSPoolStrategy1.sol";
+import {PoolStrategy1, IToken, IPoolStrategy} from "src/strategy1/PoolStrategy1.sol";
+import {FactoryPoolStrategy1} from "src/strategy1/FactoryPoolStrategy1.sol";
 
 // Test purposes:
-// $ forge script script/manualArbitrum/1_GrindURUSPoolsNFT.s.sol:GrindURUSPoolsNFTScript
+// $ forge script script/manualArbitrum/1_PoolsNFT.s.sol:PoolsNFTScript
 
 // Mainnet deploy command:
-// $ forge script script/manualArbitrum/1_GrindURUSPoolsNFT.s.sol:GrindURUSPoolsNFTScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge script script/manualArbitrum/1_PoolsNFT.s.sol:PoolsNFTScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
-// $ forge verify-contract <GrindURUSPoolsNFT> src/GrindURUSPoolsNFT.sol:GrindURUSPoolsNFT --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge verify-contract <PoolsNFT> src/PoolsNFT.sol:PoolsNFT --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
-contract GrindURUSPoolsNFTScript is Script {
-    GrindURUSPoolsNFT public poolsNFT;
+contract PoolsNFTScript is Script {
+    PoolsNFT public poolsNFT;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -26,7 +26,7 @@ contract GrindURUSPoolsNFTScript is Script {
         vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
 
-        poolsNFT = new GrindURUSPoolsNFT();
+        poolsNFT = new PoolsNFT();
 
         console.log("poolsNFT: ", address(poolsNFT));
 

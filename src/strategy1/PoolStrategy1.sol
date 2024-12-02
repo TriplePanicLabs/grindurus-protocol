@@ -3,28 +3,28 @@ pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
-import {IGrindURUSPoolStrategy, IERC5313} from "src/interfaces/IGrindURUSPoolStrategy.sol";
-import {IGrindURUSPoolsNFT} from "src/interfaces/IGrindURUSPoolsNFT.sol";
+import {IPoolStrategy, IERC5313} from "src/interfaces/IPoolStrategy.sol";
+import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {UniswapV3AdapterArbitrum} from "src/adapters/UniswapV3AdapterArbitrum.sol";
 import {AAVEV3AdapterArbitrum} from "src/adapters/AAVEV3AdapterArbitrum.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @title GrindURUSPoolStrategy1
+/// @title PoolStrategy1
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice strategy pool, that put and take baseToken and quouteToken on AAVEV3 and swaps tokens on UniswapV3
 /// @dev stores the tokens LP and handles tokens swaps
-contract GrindURUSPoolStrategy1 is
-    IGrindURUSPoolStrategy,
+contract PoolStrategy1 is
+    IPoolStrategy,
     AAVEV3AdapterArbitrum,
     UniswapV3AdapterArbitrum
 {
     using SafeERC20 for IToken;
 
     /// @dev address of NFT collection of pools
-    /// @dev if address dont implement interface `IGrindURUSPoolsNFT`, that owner is this address
-    IGrindURUSPoolsNFT public grindurusPoolsNFT;
+    /// @dev if address dont implement interface `IPoolsNFT`, that owner is this address
+    IPoolsNFT public poolsNFT;
 
-    /// @dev index of position in `grindurusPoolsNFT`
+    /// @dev index of position in `poolsNFT`
     uint256 public poolId;
 
     /// @dev timestamp of deployment
@@ -67,12 +67,12 @@ contract GrindURUSPoolStrategy1 is
     constructor() {} // only for verification simplification. As constructor call init
 
     function init(
-        address _grindurusPoolsNFT,
+        address _poolsNFT,
         uint256 _poolId,
         StrategyConstructorArgs memory strategyArgs,
         Config memory conf
     ) public {
-        if (address(grindurusPoolsNFT) != address(0)) {
+        if (address(poolsNFT) != address(0)) {
             revert StrategyInitialized();
         }
         initLending(strategyArgs.lendingArgs);
@@ -82,7 +82,7 @@ contract GrindURUSPoolStrategy1 is
             strategyArgs.dexArgs
         );
 
-        grindurusPoolsNFT = IGrindURUSPoolsNFT(_grindurusPoolsNFT);
+        poolsNFT = IPoolsNFT(_poolsNFT);
         poolId = _poolId;
         poolDeploymentTimestamp = block.timestamp;
 
@@ -190,8 +190,8 @@ contract GrindURUSPoolStrategy1 is
 
     /// @dev checks that msg.sender is poolsNFT
     function _onlyPoolsNFT() internal view {
-        if (msg.sender != address(grindurusPoolsNFT)) {
-            revert NotPositionsNFT(msg.sender, address(grindurusPoolsNFT));
+        if (msg.sender != address(poolsNFT)) {
+            revert NotPositionsNFT(msg.sender, address(poolsNFT));
         }
     }
 
@@ -462,7 +462,7 @@ contract GrindURUSPoolStrategy1 is
         (
             address[] memory receivers,
             uint256[] memory amounts
-        ) = grindurusPoolsNFT.calcRoyaltyShares(poolId, profit);
+        ) = poolsNFT.calcRoyaltyShares(poolId, profit);
         uint256 len = receivers.length;
         if (len != amounts.length) {
             revert InvalidLength();
@@ -480,7 +480,7 @@ contract GrindURUSPoolStrategy1 is
 
     //// GRIND FUNCTIONS ///////////////////////////////////////////////////////////////////////////
 
-    /// @inheritdoc IGrindURUSPoolStrategy
+    /// @inheritdoc IPoolStrategy
     function long_buy()
         public
         override
@@ -540,7 +540,7 @@ contract GrindURUSPoolStrategy1 is
         }
     }
 
-    /// @inheritdoc IGrindURUSPoolStrategy
+    /// @inheritdoc IPoolStrategy
     function long_sell()
         public
         override
@@ -586,7 +586,7 @@ contract GrindURUSPoolStrategy1 is
         });
     }
 
-    /// @inheritdoc IGrindURUSPoolStrategy
+    /// @inheritdoc IPoolStrategy
     function hedge_sell()
         public
         override
@@ -695,7 +695,7 @@ contract GrindURUSPoolStrategy1 is
         }
     }
 
-    /// @inheritdoc IGrindURUSPoolStrategy
+    /// @inheritdoc IPoolStrategy
     function hedge_rebuy()
         public
         override
@@ -754,7 +754,7 @@ contract GrindURUSPoolStrategy1 is
     /// @dev calls long_buy, long_sell, hedge_sell, hedge_rebuy
     /// @return iterated true if successfully operation made, false otherwise
     function iterate() public returns (bool iterated) {
-        IGrindURUSPoolStrategy strategy = IGrindURUSPoolStrategy(address(this));
+        IPoolStrategy strategy = IPoolStrategy(address(this));
         if (long.number == 0) {
             // BUY
             try strategy.long_buy() returns (
@@ -835,7 +835,7 @@ contract GrindURUSPoolStrategy1 is
 
     //// REBALANCE FUNCTIONS ////////////////////////////////////////////////////////////////////////
 
-    /// @notice first step for rebalance the positions via grindurusPoolsNFT
+    /// @notice first step for rebalance the positions via poolsNFT
     /// @dev called before rebalance by poolsNFT
     /// @return baseTokenAmount base token amount that take part in rebalance
     /// @return price base token price scaled by price multuplier
@@ -852,12 +852,12 @@ contract GrindURUSPoolStrategy1 is
         }
 
         (baseTokenAmount) = take(baseToken, long.qty);
-        baseToken.approve(address(grindurusPoolsNFT), baseTokenAmount);
+        baseToken.approve(address(poolsNFT), baseTokenAmount);
         long.qty -= baseTokenAmount;
         price = long.price;
     }
 
-    /// @notice third step for rebalance the positions via grindurusPoolsNFT
+    /// @notice third step for rebalance the positions via poolsNFT
     /// @dev called after rebalance by poolsNFT
     function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public {
         _onlyPoolsNFT();
@@ -1262,7 +1262,7 @@ contract GrindURUSPoolStrategy1 is
         override(
             AAVEV3AdapterArbitrum,
             UniswapV3AdapterArbitrum,
-            IGrindURUSPoolStrategy
+            IPoolStrategy
         )
         returns (IToken)
     {
@@ -1276,7 +1276,7 @@ contract GrindURUSPoolStrategy1 is
         override(
             AAVEV3AdapterArbitrum,
             UniswapV3AdapterArbitrum,
-            IGrindURUSPoolStrategy
+            IPoolStrategy
         )
         returns (IToken)
     {
@@ -1317,10 +1317,10 @@ contract GrindURUSPoolStrategy1 is
         override(AAVEV3AdapterArbitrum, IERC5313)
         returns (address)
     {
-        try grindurusPoolsNFT.ownerOf(poolId) returns (address _owner) {
+        try poolsNFT.ownerOf(poolId) returns (address _owner) {
             return _owner;
         } catch {
-            return address(grindurusPoolsNFT);
+            return address(poolsNFT);
         }
     }
 

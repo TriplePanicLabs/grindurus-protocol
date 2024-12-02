@@ -2,14 +2,14 @@
 pragma solidity =0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
-import {GrindURUSPoolsNFT} from "src/GrindURUSPoolsNFT.sol";
+import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
-import {GrindURUSPoolStrategy1, IToken, IGrindURUSPoolStrategy} from "src/strategy1/GrindURUSPoolStrategy1.sol";
-import {FactoryGrindURUSPoolStrategy1} from "src/strategy1/FactoryGrindURUSPoolStrategy1.sol";
-import {GrindURUSTreasury} from "src/GrindURUSTreasury.sol";
+import {PoolStrategy1, IToken, IPoolStrategy} from "src/strategy1/PoolStrategy1.sol";
+import {FactoryPoolStrategy1} from "src/strategy1/FactoryPoolStrategy1.sol";
+import {Treasury} from "src/Treasury.sol";
 
-// $ forge test --match-path test/GrindURUSPoolsNFT.t.sol
-contract GrindURUSPoolsNFTTest is Test {
+// $ forge test --match-path test/PoolsNFT.t.sol
+contract PoolsNFTTest is Test {
     address oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
 
     address wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
@@ -20,15 +20,15 @@ contract GrindURUSPoolsNFTTest is Test {
     address uniswapV3SwapRouter = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     uint24 fee = 500;
 
-    GrindURUSPoolsNFT public poolsNFT;
+    PoolsNFT public poolsNFT;
 
     GRETH public grindToken;
 
-    GrindURUSTreasury public treasury;
+    Treasury public treasury;
 
-    GrindURUSPoolStrategy1 public pool;
+    PoolStrategy1 public pool;
 
-    FactoryGrindURUSPoolStrategy1 public factory1;
+    FactoryPoolStrategy1 public factory1;
 
     function setUp() public {
         vm.createSelectFork("arbitrum");
@@ -36,13 +36,13 @@ contract GrindURUSPoolsNFTTest is Test {
         deal(wethArbitrum, address(this), 1000e18);
         deal(usdtArbitrum, address(this), 1000e6);
 
-        poolsNFT = new GrindURUSPoolsNFT();
+        poolsNFT = new PoolsNFT();
 
         grindToken = new GRETH(address(poolsNFT));
 
-        treasury = new GrindURUSTreasury(address(poolsNFT));
+        treasury = new Treasury(address(poolsNFT));
 
-        factory1 = new FactoryGrindURUSPoolStrategy1(address(poolsNFT));
+        factory1 = new FactoryPoolStrategy1(address(poolsNFT));
 
         poolsNFT.setGRETH(address(grindToken));
         poolsNFT.setTreasury(address(treasury));
@@ -69,9 +69,9 @@ contract GrindURUSPoolsNFTTest is Test {
             quoteTokenAmount
         );
 
-        pool = GrindURUSPoolStrategy1(payable(poolsNFT.pools(poolId)));
+        pool = PoolStrategy1(payable(poolsNFT.pools(poolId)));
 
-        address grindurusPoolsNFT = address(pool.grindurusPoolsNFT());
+        address grindurusPoolsNFT = address(pool.poolsNFT());
 
         assert(grindurusPoolsNFT == address(poolsNFT));
 
@@ -119,7 +119,7 @@ contract GrindURUSPoolsNFTTest is Test {
 
         poolsNFT.grind(poolId);
 
-        pool = GrindURUSPoolStrategy1(payable(poolsNFT.pools(poolId)));
+        pool = PoolStrategy1(payable(poolsNFT.pools(poolId)));
 
         (
             uint8 number,
@@ -197,7 +197,7 @@ contract GrindURUSPoolsNFTTest is Test {
             uint256 grinderShare,
             uint256 oldRoyaltyPrice,
             uint256 newRoyaltyPrice
-        ) = poolsNFT.royaltyPriceShares(poolId);
+        ) = poolsNFT.calcRoyaltyPriceShares(poolId);
         compensationShare;
         poolOwnerShare;
         primaryReceiverShare;

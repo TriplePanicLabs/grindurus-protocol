@@ -3,11 +3,11 @@ pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
 import {IGRETH} from "src/interfaces/IGRETH.sol";
-import {IGrindURUSTreasury} from "src/interfaces/IGrindURUSTreasury.sol";
-import {IGrindURUSPoolsNFT} from "src/interfaces/IGrindURUSPoolsNFT.sol";
-import {IGrindURUSPoolStrategy} from "src/interfaces/IGrindURUSPoolStrategy.sol";
+import {ITreasury} from "src/interfaces/ITreasury.sol";
+import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
+import {IPoolStrategy} from "src/interfaces/IPoolStrategy.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
-import {IFactoryGrindURUSPoolStrategy} from "src/interfaces/IFactoryGrindURUSPoolStrategy.sol";
+import {IFactoryPoolStrategy} from "src/interfaces/IFactoryPoolStrategy.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
@@ -16,8 +16,8 @@ import {ERC721, ERC721Enumerable, IERC165} from "lib/openzeppelin-contracts/cont
 /// @title GrindURUS Pools NFT
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice NFT that represets ownership of every grindurus strategy pools
-contract GrindURUSPoolsNFT is
-    IGrindURUSPoolsNFT,
+contract PoolsNFT is
+    IPoolsNFT,
     ERC721Enumerable,
     ReentrancyGuard
 {
@@ -91,7 +91,7 @@ contract GrindURUSPoolsNFT is
     address payable public owner;
 
     /// @dev address of treasury. May be smart contract with sofisticated logic
-    IGrindURUSTreasury public treasury;
+    ITreasury public treasury;
 
     /// @notice address,that last called grind()
     /// @dev address of last grinder
@@ -110,7 +110,7 @@ contract GrindURUSPoolsNFT is
     IGRETH public grETH;
 
     /// @dev strategyId => address of grindurus pool strategy implementation
-    mapping(uint16 strategyId => IFactoryGrindURUSPoolStrategy)
+    mapping(uint16 strategyId => IFactoryPoolStrategy)
         public factoryStrategy;
 
     /// @dev poolId => royalty receiver
@@ -139,7 +139,7 @@ contract GrindURUSPoolsNFT is
         totalPools = 0;
         pendingOwner = payable(address(0));
         owner = payable(msg.sender);
-        treasury = IGrindURUSTreasury(msg.sender);
+        treasury = ITreasury(msg.sender);
         lastGrinder = payable(msg.sender);
 
         royaltyPriceCompensationShareNumerator = 101_00; // 101%
@@ -271,7 +271,7 @@ contract GrindURUSPoolsNFT is
     /// @dev callable only by owner
     function setTreasury(address _treasury) external override {
         _onlyOwner();
-        treasury = IGrindURUSTreasury(_treasury);
+        treasury = ITreasury(_treasury);
     }
 
     /// @notice First step - transfering ownership to `newOwner`
@@ -295,9 +295,9 @@ contract GrindURUSPoolsNFT is
     /// @dev callable only by strategiest
     function setFactoryStrategy(address _factoryStrategy) external override {
         _onlyOwner();
-        uint16 strategyId = IFactoryGrindURUSPoolStrategy(_factoryStrategy)
+        uint16 strategyId = IFactoryPoolStrategy(_factoryStrategy)
             .strategyId();
-        factoryStrategy[strategyId] = IFactoryGrindURUSPoolStrategy(
+        factoryStrategy[strategyId] = IFactoryPoolStrategy(
             _factoryStrategy
         );
         emit SetFactoryStrategy(strategyId, _factoryStrategy);
@@ -381,7 +381,7 @@ contract GrindURUSPoolsNFT is
             quoteToken
         );
         _deposit(
-            IGrindURUSPoolStrategy(pool),
+            IPoolStrategy(pool),
             IToken(quoteToken),
             quoteTokenAmount
         );
@@ -398,7 +398,7 @@ contract GrindURUSPoolsNFT is
         uint256 quoteTokenAmount
     ) external override returns (uint256 deposited) {
         _onlyOwnerOf(poolId);
-        IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
+        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
         IToken quoteToken = pool.getQuoteToken();
         deposited = _deposit(pool, quoteToken, quoteTokenAmount);
         emit Deposit(
@@ -411,7 +411,7 @@ contract GrindURUSPoolsNFT is
 
     /// @dev make transfer from msg.sender, approve to pool, call deposit on pool
     function _deposit(
-        IGrindURUSPoolStrategy pool,
+        IPoolStrategy pool,
         IToken quoteToken,
         uint256 quoteTokenAmount
     ) internal returns (uint256 deposited) {
@@ -448,7 +448,7 @@ contract GrindURUSPoolsNFT is
         uint256 quoteTokenAmount
     ) public override returns (uint256 withdrawn) {
         _onlyOwnerOf(poolId);
-        IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
+        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
         IToken quoteToken = pool.getQuoteToken();
         withdrawn = pool.withdraw(to, quoteTokenAmount);
         _decreaseTVL(address(quoteToken), withdrawn);
@@ -466,7 +466,7 @@ contract GrindURUSPoolsNFT is
         returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
     {
         _onlyOwnerOf(poolId);
-        IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
+        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
         IToken quoteToken = pool.getQuoteToken();
         uint256 tvl = pool.getTVL();
         (quoteTokenAmount, baseTokenAmount) = pool.exit();
@@ -519,10 +519,10 @@ contract GrindURUSPoolsNFT is
         if (ownerOf(poolId0) != ownerOf(poolId1)) {
             revert NotAllowedToRebalance();
         }
-        IGrindURUSPoolStrategy pool0 = IGrindURUSPoolStrategy(
+        IPoolStrategy pool0 = IPoolStrategy(
             pools[poolId0]
         );
-        IGrindURUSPoolStrategy pool1 = IGrindURUSPoolStrategy(
+        IPoolStrategy pool1 = IPoolStrategy(
             pools[poolId1]
         );
         if (pool0.strategyId() != pool1.strategyId()) {
@@ -566,7 +566,7 @@ contract GrindURUSPoolsNFT is
     /// @param poolId pool id of pool in array `pools`
     function grind(uint256 poolId) external override {
         uint256 gasStart = gasleft();
-        IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
+        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
         bool successIterate;
         try pool.iterate() returns (bool iterated) {
             successIterate = iterated;
@@ -810,7 +810,7 @@ contract GrindURUSPoolsNFT is
         uint256 poolId,
         uint256 quoteTokenAmount
     ) public view returns (uint256 initRoyaltyPrice) {
-        uint256 feeTokenAmount = IGrindURUSPoolStrategy(pools[poolId])
+        uint256 feeTokenAmount = IPoolStrategy(pools[poolId])
             .calcFeeTokenByQuoteToken(quoteTokenAmount);
         initRoyaltyPrice =
             (feeTokenAmount * initRoyaltyPriceNumerator) /
@@ -825,7 +825,7 @@ contract GrindURUSPoolsNFT is
     )
         public
         view
-        override(ERC721, IGrindURUSPoolsNFT)
+        override(ERC721, IPoolsNFT)
         returns (string memory uri)
     {
         _requireOwned(poolId);
@@ -893,7 +893,7 @@ contract GrindURUSPoolsNFT is
         uint256 poolId = fromPoolId;
         uint256 poolInfoId = 0;
         for (; poolId <= toPoolId; ) {
-            IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
+            IPoolStrategy pool = IPoolStrategy(pools[poolId]);
             IToken quoteToken = pool.getQuoteToken();
             IToken baseToken = pool.getBaseToken();
             (
@@ -930,7 +930,7 @@ contract GrindURUSPoolsNFT is
     /// @notice return TVL of pool with `poolId`
     /// @param poolId id of pool
     function getTVL(uint256 poolId) external view override returns (uint256) {
-        return IGrindURUSPoolStrategy(pools[poolId]).getTVL();
+        return IPoolStrategy(pools[poolId]).getTVL();
     }
 
     /// @notice calculates TVL based on provided tokens
@@ -978,7 +978,7 @@ contract GrindURUSPoolsNFT is
             price,
             feeQty,
             feePrice
-        ) = IGrindURUSPoolStrategy(pools[poolId]).getLong();
+        ) = IPoolStrategy(pools[poolId]).getLong();
     }
 
     /// @notice returns hedge position of poolId
@@ -1009,7 +1009,7 @@ contract GrindURUSPoolsNFT is
             price,
             feeQty,
             feePrice
-        ) = IGrindURUSPoolStrategy(pools[poolId]).getHedge();
+        ) = IPoolStrategy(pools[poolId]).getHedge();
     }
 
     /// @notice returns long position of poolId
@@ -1030,7 +1030,7 @@ contract GrindURUSPoolsNFT is
             uint256 returnPercentHedgeRebuy
         )
     {
-        IGrindURUSPoolStrategy pool = IGrindURUSPoolStrategy(pools[poolId]);
+        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
         (
             longNumberMax,
             hedgeNumberMax,

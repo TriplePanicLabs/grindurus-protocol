@@ -2,11 +2,11 @@
 pragma solidity ^0.8.0;
 
 import {IGRETH} from "src/interfaces/IGRETH.sol";
-import {IGrindURUSTreasury} from "src/interfaces/IGrindURUSTreasury.sol";
+import {ITreasury} from "src/interfaces/ITreasury.sol";
 import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol"; // NFT
 import {IERC2981} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
 
-interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
+interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
     error NotTreasury();
     error NotOwnerOrPending();
@@ -97,7 +97,7 @@ interface IGrindURUSPoolsNFT is IERC721, IERC2981 {
 
     function owner() external view returns (address payable);
 
-    function treasury() external view returns (IGrindURUSTreasury);
+    function treasury() external view returns (ITreasury);
 
     function lastGrinder() external view returns (address payable);
 

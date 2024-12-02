@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {IFactoryGrindURUSPoolStrategy} from "src/interfaces/IFactoryGrindURUSPoolStrategy.sol";
-import {IGrindURUSPoolsNFT} from "src/interfaces/IGrindURUSPoolsNFT.sol";
-import {GrindURUSPoolStrategy1, IGrindURUSPoolStrategy, IToken} from "src/strategy1/GrindURUSPoolStrategy1.sol";
+import {IFactoryPoolStrategy} from "src/interfaces/IFactoryPoolStrategy.sol";
+import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
+import {PoolStrategy1, IPoolStrategy, IToken} from "src/strategy1/PoolStrategy1.sol";
 
-/// @title FactoryGrindURUSPoolStrategy1
+/// @title FactoryPoolStrategy1
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice factory, that is responsible for deployment of strategyV1
-contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
+contract FactoryPoolStrategy1 is IFactoryPoolStrategy {
     /// @dev address of grindurus pools NFT
-    IGrindURUSPoolsNFT public grindurusPoolsNFT;
+    IPoolsNFT public poolsNFT;
 
     /// @dev default config for strategyV1
-    IGrindURUSPoolStrategy.Config public defaultConfig;
+    IPoolStrategy.Config public defaultConfig;
 
     // address public oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
     // address public wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
@@ -26,13 +26,13 @@ contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
         0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     uint24 public uniswapV3PoolFeeArbitrum = 500;
 
-    constructor(address _grindurusPoolsNFT) {
-        if (_grindurusPoolsNFT != address(0)) {
-            grindurusPoolsNFT = IGrindURUSPoolsNFT(_grindurusPoolsNFT);
+    constructor(address _poolsNFT) {
+        if (_poolsNFT != address(0)) {
+            poolsNFT = IPoolsNFT(_poolsNFT);
         } else {
-            grindurusPoolsNFT = IGrindURUSPoolsNFT(msg.sender);
+            poolsNFT = IPoolsNFT(msg.sender);
         }
-        defaultConfig = IGrindURUSPoolStrategy.Config({
+        defaultConfig = IPoolStrategy.Config({
             // maxLiquidity = initLiquidity * (extraCoef + 1) ** (longNumberMax - 1)
             longNumberMax: 4,
             hedgeNumberMax: 4,
@@ -44,9 +44,9 @@ contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
         });
     }
 
-    /// @notice checks that msg.sender is grindurusPoolsNFT
-    function _onlyGrindURUSPoolsNFT() private view {
-        if (msg.sender != address(grindurusPoolsNFT)) {
+    /// @notice checks that msg.sender is poolsNFT
+    function _onlyPoolsNFT() private view {
+        if (msg.sender != address(poolsNFT)) {
             revert NotGrindurusPoolsNFT();
         }
     }
@@ -67,9 +67,9 @@ contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
         address baseToken,
         address quoteToken
     ) public override returns (address pool) {
-        _onlyGrindURUSPoolsNFT();
-        IGrindURUSPoolStrategy.StrategyConstructorArgs
-            memory strategyConstructorArgs = IGrindURUSPoolStrategy
+        _onlyPoolsNFT();
+        IPoolStrategy.StrategyConstructorArgs
+            memory strategyConstructorArgs = IPoolStrategy
                 .StrategyConstructorArgs({
                     oracleQuoteTokenPerFeeToken: oracleQuoteTokenPerFeeToken,
                     oracleQuoteTokenPerBaseToken: oracleQuoteTokenPerBaseToken,
@@ -82,9 +82,9 @@ contract FactoryGrindURUSPoolStrategy1 is IFactoryGrindURUSPoolStrategy {
                         uniswapV3PoolFeeArbitrum
                     )
                 });
-        GrindURUSPoolStrategy1 grindURUSPoolStrategy1 = new GrindURUSPoolStrategy1();
+        PoolStrategy1 grindURUSPoolStrategy1 = new PoolStrategy1();
         grindURUSPoolStrategy1.init(
-            address(grindurusPoolsNFT),
+            address(poolsNFT),
             poolId,
             strategyConstructorArgs,
             defaultConfig

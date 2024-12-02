@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import {IGrindURUSPoolStrategy} from "./IGrindURUSPoolStrategy.sol";
+import {IPoolStrategy} from "./IPoolStrategy.sol";
 
-interface IFactoryGrindURUSPoolStrategy {
+interface IFactoryPoolStrategy {
     error NotGrindurusPoolsNFT();
     error InvalidStrategyId(uint256 poolStrategyId, uint256 factoryStrategyId);
 

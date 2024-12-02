@@ -2,7 +2,7 @@
 pragma solidity =0.8.28;
 
 import {IGRETH} from "./interfaces/IGRETH.sol";
-import {IGrindURUSPoolsNFT} from "./interfaces/IGrindURUSPoolsNFT.sol";
+import {IPoolsNFT} from "./interfaces/IPoolsNFT.sol";
 import {ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 /// @title GRETH

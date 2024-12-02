@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {IGrindURUSTreasury} from "src/interfaces/IGrindURUSTreasury.sol";
-import {IGrindURUSPoolsNFT} from "src/interfaces/IGrindURUSPoolsNFT.sol";
+import {ITreasury} from "src/interfaces/ITreasury.sol";
+import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 
-/// @title GrindURUSTreasury
+/// @title Treasury
 /// @author riple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice stands as adapter to liquidity pool grETH/ETH
-contract GrindURUSTreasury is IGrindURUSTreasury {
+contract Treasury is ITreasury {
     /// @notice denominator. Used for calculating fee share
     /// @dev this value of denominator is 100%
     uint16 public constant DENOMINATOR = 100_00;
@@ -45,7 +45,7 @@ contract GrindURUSTreasury is IGrindURUSTreasury {
     /// @notice check that msg.sender is grindURUS owner
     function _onlyOwner() private view {
         address owner;
-        try IGrindURUSPoolsNFT(grindURUSPoolsNFT).owner() returns (
+        try IPoolsNFT(grindURUSPoolsNFT).owner() returns (
             address payable _owner
         ) {
             owner = _owner;
@@ -94,6 +94,6 @@ contract GrindURUSTreasury is IGrindURUSTreasury {
     }
 
     receive() external payable {
-        // GrindURUSTreasury is able to hold ETH
+        // Treasury is able to hold ETH
     }
 }

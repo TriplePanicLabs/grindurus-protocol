@@ -2,10 +2,10 @@
 pragma solidity =0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
-import {GrindURUSPoolsNFT} from "src/GrindURUSPoolsNFT.sol";
+import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
-import {GrindURUSPoolStrategy1, IToken, IGrindURUSPoolStrategy} from "src/strategy1/GrindURUSPoolStrategy1.sol";
-import {FactoryGrindURUSPoolStrategy1} from "src/strategy1/FactoryGrindURUSPoolStrategy1.sol";
+import {PoolStrategy1, IToken, IPoolStrategy} from "src/strategy1/PoolStrategy1.sol";
+import {FactoryPoolStrategy1} from "src/strategy1/FactoryPoolStrategy1.sol";
 
 // Test purposes:
 // $ forge script script/manualArbitrum/3_GrindToken.s.sol:GrindTokenScript
@@ -16,7 +16,7 @@ import {FactoryGrindURUSPoolStrategy1} from "src/strategy1/FactoryGrindURUSPoolS
 // $ forge verify-contract <address of GRETH> src/GRETH.sol:GRETH --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 contract GrindTokenScript is Script {
-    GrindURUSPoolsNFT public poolsNFT = GrindURUSPoolsNFT(payable(address(0x60a8CbB469f97dC205e498eEc4B5328d1fD9B00A)));
+    PoolsNFT public poolsNFT = PoolsNFT(payable(address(0x60a8CbB469f97dC205e498eEc4B5328d1fD9B00A)));
 
     GRETH public grETH;
 
