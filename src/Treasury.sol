@@ -13,7 +13,7 @@ contract Treasury is ITreasury {
     uint16 public constant DENOMINATOR = 100_00;
 
     /// @dev address of grindurus strategy positions NFT
-    address public grindURUSPoolsNFT;
+    address public poolsNFT;
 
     /// @dev address of feeReceiver
     address payable public feeReceiver;
@@ -25,11 +25,11 @@ contract Treasury is ITreasury {
 
     uint256 public onBuyRoyaltyCounter;
 
-    constructor(address _grindurusPoolsNFT) {
-        if (_grindurusPoolsNFT != address(0)) {
-            grindURUSPoolsNFT = _grindurusPoolsNFT;
+    constructor(address _poolsNFT) {
+        if (_poolsNFT != address(0)) {
+            poolsNFT = _poolsNFT;
         } else {
-            grindURUSPoolsNFT == msg.sender;
+            poolsNFT == msg.sender;
         }
         feeNumerator = DENOMINATOR; // fee 100%
         feeReceiver = payable(msg.sender);
@@ -37,20 +37,20 @@ contract Treasury is ITreasury {
 
     /// @notice checks that msg.sender is grindurus pools NFT
     function _onlyPoolsNFT() private view {
-        if (msg.sender != grindURUSPoolsNFT) {
-            revert NotGrindURUSPoolsNFT();
+        if (msg.sender != poolsNFT) {
+            revert NotPoolsNFT();
         }
     }
 
     /// @notice check that msg.sender is grindURUS owner
     function _onlyOwner() private view {
         address owner;
-        try IPoolsNFT(grindURUSPoolsNFT).owner() returns (
+        try IPoolsNFT(poolsNFT).owner() returns (
             address payable _owner
         ) {
             owner = _owner;
         } catch {
-            owner = grindURUSPoolsNFT;
+            owner = poolsNFT;
         }
         if (msg.sender != owner) {
             revert NotOwner();
@@ -67,8 +67,8 @@ contract Treasury is ITreasury {
         feeNumerator = _feeNumerator;
     }
 
-    /// @dev callable only by grindURUSPoolsNFT
-    /// @param poolId id of pool on `grindURUSPoolsNFT`
+    /// @dev callable only by poolsNFT
+    /// @param poolId id of pool on `poolsNFT`
     function onGrind(uint256 poolId) external override {
         _onlyPoolsNFT();
         poolId;

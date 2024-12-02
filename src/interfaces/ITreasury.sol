@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 interface ITreasury {
     error NotOwner();
-    error NotGrindURUSPoolsNFT();
+    error NotPoolsNFT();
     error InvalidFeeNumerator();
     event FailExecute();
 
-    function grindURUSPoolsNFT() external view returns (address);
+    function poolsNFT() external view returns (address);
 
     function feeReceiver() external view returns (address payable);
 

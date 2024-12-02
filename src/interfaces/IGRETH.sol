@@ -8,7 +8,7 @@ interface IGRETH is IToken {
     error NotGrindURUSOwner();
     error InvalidLength();
 
-    function grindURUSPoolsNFT() external view returns (address);
+    function poolsNFT() external view returns (address);
 
     function totalGrinds() external view returns (uint256);
 

@@ -10,31 +10,31 @@ import {ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol"
 /// @notice incentivization token for grinding the strategy
 contract GRETH is IGRETH, ERC20 {
     /// @dev address of grindurus strategy positions NFT
-    address public grindURUSPoolsNFT;
+    address public poolsNFT;
 
     uint256 public totalGrinds;
 
     /// @dev actor address => total rewarded
     mapping(address actor => uint256) public totalMinted;
 
-    constructor(address _grindurusPoolsNFT) ERC20("GrindURUS ETH", "grETH") {
-        if (_grindurusPoolsNFT != address(0)) {
-            grindURUSPoolsNFT = _grindurusPoolsNFT;
+    constructor(address _poolsNFT) ERC20("GrindURUS ETH", "grETH") {
+        if (_poolsNFT != address(0)) {
+            poolsNFT = _poolsNFT;
         } else {
-            grindURUSPoolsNFT == msg.sender;
+            poolsNFT == msg.sender;
         }
         totalGrinds = 0;
     }
 
     /// @notice checks that msg.sender is grindurus pools NFT
     function _onlyPoolsNFT() private view {
-        if (msg.sender != grindURUSPoolsNFT) {
+        if (msg.sender != poolsNFT) {
             revert NotGrindURUSPoolsNFT();
         }
     }
 
     /// @notice mint GRETH to actors.
-    /// @dev callable only by `grindURUSPoolsNFT`
+    /// @dev callable only by `poolsNFT`
     function mint(
         address[] memory actors,
         uint256[] memory shares

@@ -16,14 +16,14 @@ interface IPoolStrategy is IERC5313 {
     error InvalidReturnOfInvestment();
     error InvalidLength();
     error NotQuoteToken();
-    error NotOwner(address sender, address owner);
-    error NotPositionsNFT(address sender, address owner);
+    error NotOwner();
+    error NotPoolsNFT();
     error QuoteTokenInvested();
     error LongNumberMax();
-    error BuyUpperPriceMin(uint256 swap_price, uint256 priceMin);
+    error BuyUpperPriceMin(uint256 swapPrice, uint256 priceMin);
     error NoBuy();
     error NotProfitableLongSell();
-    error HedgeSellOutOfBound(uint256 swap_price, uint256 thresholdHigh, uint256 thresholdLow);
+    error HedgeSellOutOfBound(uint256 swapPrice, uint256 thresholdHigh, uint256 thresholdLow);
     error NotLongNumberMax();
     error DivestExceedsMaxLiquidity();
     error QuoteTokenAmountExceededMaxLiquidity();

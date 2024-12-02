@@ -184,14 +184,14 @@ contract PoolStrategy1 is
     {
         address _owner = owner();
         if (msg.sender != _owner) {
-            revert NotOwner(msg.sender, _owner);
+            revert NotOwner();
         }
     }
 
     /// @dev checks that msg.sender is poolsNFT
     function _onlyPoolsNFT() internal view {
         if (msg.sender != address(poolsNFT)) {
-            revert NotPositionsNFT(msg.sender, address(poolsNFT));
+            revert NotPoolsNFT();
         }
     }
 
