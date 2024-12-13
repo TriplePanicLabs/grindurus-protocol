@@ -9,7 +9,7 @@ import {UniswapV3AdapterArbitrum} from "src/adapters/UniswapV3AdapterArbitrum.so
 import {AAVEV3AdapterArbitrum} from "src/adapters/AAVEV3AdapterArbitrum.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @title PoolStrategy1
+/// @title GrindURUS Pool Strategy 1
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice strategy pool, that put and take baseToken and quouteToken on AAVEV3 and swaps tokens on UniswapV3
 /// @dev stores the tokens LP and handles tokens swaps
@@ -43,11 +43,11 @@ contract PoolStrategy1 is
     /// @dev address of fee token
     IToken public feeToken;
 
-    /// @dev address of base token
-    IToken public baseToken;
-
     /// @dev address of quote token
     IToken public quoteToken;
+
+    /// @dev address of base token
+    IToken public baseToken;
 
     /// @dev fee coeficients
     FeeConfig public feeConfig;
@@ -64,22 +64,28 @@ contract PoolStrategy1 is
     /// @dev total profits of pool
     TotalProfits public totalProfits;
 
-    constructor() {} // only for verification simplification. As constructor call init
+    constructor() {} // only for verification simplification. As constructor call init()
 
     function init(
         address _poolsNFT,
         uint256 _poolId,
-        StrategyConstructorArgs memory strategyArgs,
+        address _oracleQuoteTokenPerFeeToken,
+        address _oracleQuoteTokenPerBaseToken,
+        address _feeToken,
+        address _quoteToken,
+        address _baseToken,
+        bytes calldata _lendingArgs,
+        bytes calldata _dexArgs,
         Config memory conf
     ) public {
         if (address(poolsNFT) != address(0)) {
             revert StrategyInitialized();
         }
-        initLending(strategyArgs.lendingArgs);
+        initLending(_lendingArgs);
         initDex(
-            strategyArgs.baseToken,
-            strategyArgs.quoteToken,
-            strategyArgs.dexArgs
+            _baseToken,
+            _quoteToken,
+            _dexArgs
         );
 
         poolsNFT = IPoolsNFT(_poolsNFT);
@@ -87,15 +93,15 @@ contract PoolStrategy1 is
         poolDeploymentTimestamp = block.timestamp;
 
         oracleQuoteTokenPerFeeToken = AggregatorV3Interface(
-            strategyArgs.oracleQuoteTokenPerFeeToken
+            _oracleQuoteTokenPerFeeToken
         );
         oracleQuoteTokenPerBaseToken = AggregatorV3Interface(
-            strategyArgs.oracleQuoteTokenPerBaseToken
+            _oracleQuoteTokenPerBaseToken
         );
 
-        feeToken = IToken(strategyArgs.feeToken);
-        baseToken = IToken(strategyArgs.baseToken);
-        quoteToken = IToken(strategyArgs.quoteToken);
+        feeToken = IToken(_feeToken);
+        quoteToken = IToken(_quoteToken);
+        baseToken = IToken(_baseToken);
 
         feeConfig = FeeConfig({
             longSellFeeCoef: 1_00, // x1.00
@@ -103,14 +109,7 @@ contract PoolStrategy1 is
             hedgeRebuyFeeCoef: 1_00 // x1.00
         });
 
-        if (
-            conf.longNumberMax == 0 ||
-            conf.hedgeNumberMax == 0 ||
-            conf.averagePriceVolatility == 0 ||
-            conf.extraCoef == 0
-        ) {
-            revert InvalidConfig();
-        }
+        _checkConfig(conf);
         config = conf;
 
         _initHelperTokensDecimalsParams();
@@ -195,18 +194,24 @@ contract PoolStrategy1 is
         }
     }
 
+    /// @dev checks config
+    function _checkConfig(Config memory conf) private view {
+        if (
+            conf.longNumberMax == 0 ||
+            conf.hedgeNumberMax == 0 ||
+            conf.averagePriceVolatility == 0 ||
+            conf.extraCoef == 0
+        ) {
+            revert InvalidConfig();
+        }
+    }
+
     //// ONLY POOL OWNER //////////////////////////////////////////////////////////////////////////
 
     /// @notice sets config of strategy pool
     function setConfig(Config memory conf) public {
         _onlyOwner();
-        if (
-            conf.longNumberMax == 0 ||
-            conf.hedgeNumberMax == 0 ||
-            conf.extraCoef == 0
-        ) {
-            revert InvalidConfig();
-        }
+        _checkConfig(conf);
         config = conf;
         _setHelperInitLiquidityAndInvestCoef();
     }
@@ -243,20 +248,14 @@ contract PoolStrategy1 is
         _setHelperInitLiquidityAndInvestCoef();
     }
 
-    /// @notice set fee coeficient for StrategyOp
-    /// @dev if realFeeCoef = 1.61, than feeConfig = realFeeCoef * helper.feeCoeficientMultiplier
-    /// @param _feeCoef fee coeficient scaled by helper.feeCoeficientMultiplier
-    function setOpFeeCoef(StrategyOp op, uint256 _feeCoef) public {
+    /// @notice sets average price volatility
+    /// @param priceVolatility price volatility. [priceVolatility]=quoteToken/baseToken
+    function setAveragePriceVolatility(uint256 priceVolatility) public {
         _onlyOwner();
-        if (op == StrategyOp.LONG_SELL) {
-            feeConfig.longSellFeeCoef = _feeCoef;
-        } else if (op == StrategyOp.HEDGE_SELL) {
-            feeConfig.hedgeSellFeeCoef = _feeCoef;
-        } else if (op == StrategyOp.HEDGE_REBUY) {
-            feeConfig.hedgeRebuyFeeCoef = _feeCoef;
-        } else {
-            revert InvalidStrategyOpForFeeCoef();
+        if (priceVolatility == 0) {
+            revert InvalidPriceVolatility();
         }
+        config.averagePriceVolatility = priceVolatility;
     }
 
     /// @notice set retunr for StrategyOp
@@ -278,16 +277,32 @@ contract PoolStrategy1 is
         }
     }
 
+    /// @notice set fee coeficient for StrategyOp
+    /// @dev if realFeeCoef = 1.61, than feeConfig = realFeeCoef * helper.feeCoeficientMultiplier
+    /// @param _feeCoef fee coeficient scaled by helper.feeCoeficientMultiplier
+    function setOpFeeCoef(StrategyOp op, uint256 _feeCoef) public {
+        _onlyOwner();
+        if (op == StrategyOp.LONG_SELL) {
+            feeConfig.longSellFeeCoef = _feeCoef;
+        } else if (op == StrategyOp.HEDGE_SELL) {
+            feeConfig.hedgeSellFeeCoef = _feeCoef;
+        } else if (op == StrategyOp.HEDGE_REBUY) {
+            feeConfig.hedgeRebuyFeeCoef = _feeCoef;
+        } else {
+            revert InvalidStrategyOpForFeeCoef();
+        }
+    }
+
     //// ONLY POOLS NFT //////////////////////////////////////////////////////////////////////////
 
     /// @notice deposit the quote token to strategy
-    /// @dev callable only by pools NFT
+    /// @dev callable only by pools NFT. This made for accounting the amount of input tokens
     /// @param quoteTokenAmount raw amount of `quoteToken`
-    /// @return deposited quoteToken amount
+    /// @return depositedAmount quoteToken amount
     function deposit(
         uint256 quoteTokenAmount
-    ) public returns (uint256 deposited) {
-        _onlyPoolsNFT();
+    ) public returns (uint256 depositedAmount) {
+        _onlyPoolsNFT(); 
         quoteToken.safeTransferFrom(
             msg.sender,
             address(this),
@@ -295,7 +310,7 @@ contract PoolStrategy1 is
         );
         _invest(quoteTokenAmount);
         uint256 putAmount = put(quoteToken, quoteTokenAmount);
-        deposited = putAmount;
+        depositedAmount = putAmount;
     }
 
     /// @notice take `quoteTokenAmount` from lending, deinvest `quoteTokenAmount` and transfer it to `to`
@@ -472,9 +487,7 @@ contract PoolStrategy1 is
             if (amounts[i] > 0) {
                 token.safeTransfer(receivers[i], amounts[i]);
             }
-            unchecked {
-                ++i;
-            }
+            unchecked { ++i; }
         }
     }
 
@@ -1447,7 +1460,7 @@ contract PoolStrategy1 is
         } else {
             _balance = IToken(token).balanceOf(address(this));
             if (_balance == 0) {
-                revert FailTokenTransfer(token);
+                revert FailTokenTransfer();
             }
             IToken(token).safeTransfer(to, _balance);
         }

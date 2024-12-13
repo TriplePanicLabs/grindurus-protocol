@@ -5,7 +5,7 @@ import {IFactoryPoolStrategy} from "src/interfaces/IFactoryPoolStrategy.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {PoolStrategy1, IPoolStrategy, IToken} from "src/strategy1/PoolStrategy1.sol";
 
-/// @title FactoryPoolStrategy1
+/// @title GrindURUS Factory Pool Strategy 1
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice factory, that is responsible for deployment of strategyV1
 contract FactoryPoolStrategy1 is IFactoryPoolStrategy {
@@ -64,33 +64,28 @@ contract FactoryPoolStrategy1 is IFactoryPoolStrategy {
         address oracleQuoteTokenPerFeeToken,
         address oracleQuoteTokenPerBaseToken,
         address feeToken,
-        address baseToken,
-        address quoteToken
+        address quoteToken,
+        address baseToken
     ) public override returns (address pool) {
         _onlyPoolsNFT();
-        IPoolStrategy.StrategyConstructorArgs
-            memory strategyConstructorArgs = IPoolStrategy
-                .StrategyConstructorArgs({
-                    oracleQuoteTokenPerFeeToken: oracleQuoteTokenPerFeeToken,
-                    oracleQuoteTokenPerBaseToken: oracleQuoteTokenPerBaseToken,
-                    feeToken: feeToken,
-                    baseToken: baseToken,
-                    quoteToken: quoteToken,
-                    lendingArgs: abi.encode(aaveV3PoolArbitrum),
-                    dexArgs: abi.encode(
-                        uniswapV3SwapRouterArbitrum,
-                        uniswapV3PoolFeeArbitrum
-                    )
-                });
-        PoolStrategy1 grindURUSPoolStrategy1 = new PoolStrategy1();
-        grindURUSPoolStrategy1.init(
+        PoolStrategy1 poolStrategy1 = new PoolStrategy1();
+        poolStrategy1.init(
             address(poolsNFT),
             poolId,
-            strategyConstructorArgs,
+            oracleQuoteTokenPerFeeToken,
+            oracleQuoteTokenPerBaseToken,
+            feeToken,
+            quoteToken,
+            baseToken,
+            abi.encode(aaveV3PoolArbitrum),
+            abi.encode(
+                uniswapV3SwapRouterArbitrum,
+                uniswapV3PoolFeeArbitrum
+            ),
             defaultConfig
         );
-        pool = address(grindURUSPoolStrategy1);
-        uint256 poolStrategyId = grindURUSPoolStrategy1.strategyId();
+        pool = address(poolStrategy1);
+        uint256 poolStrategyId = poolStrategy1.strategyId();
         uint256 factoryStrategyId = strategyId();
         if (poolStrategyId != factoryStrategyId) {
             revert InvalidStrategyId(poolStrategyId, factoryStrategyId);
