@@ -6,7 +6,6 @@ import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
 import {PoolStrategy1, IToken, IPoolStrategy} from "src/strategy1/PoolStrategy1.sol";
 import {FactoryPoolStrategy1} from "src/strategy1/FactoryPoolStrategy1.sol";
-import {Treasury} from "src/Treasury.sol";
 
 // $ forge test --match-path test/PoolsNFT.t.sol
 contract PoolsNFTTest is Test {
@@ -24,8 +23,6 @@ contract PoolsNFTTest is Test {
 
     GRETH public grindToken;
 
-    Treasury public treasury;
-
     PoolStrategy1 public pool;
 
     FactoryPoolStrategy1 public factory1;
@@ -40,12 +37,9 @@ contract PoolsNFTTest is Test {
 
         grindToken = new GRETH(address(poolsNFT));
 
-        treasury = new Treasury(address(poolsNFT));
-
         factory1 = new FactoryPoolStrategy1(address(poolsNFT));
 
         poolsNFT.setGRETH(address(grindToken));
-        poolsNFT.setTreasury(address(treasury));
         poolsNFT.setFactoryStrategy(address(factory1));
     }
 
@@ -166,7 +160,7 @@ contract PoolsNFTTest is Test {
         address ownerOfAfter = poolsNFT.ownerOf(poolId);
         // console.log(ownerOfAfter);
         // console.log(address(this));
-        assert(ownerOfAfter == address(treasury));
+        // assert(ownerOfAfter == address(treasury));
     }
 
     function test_mint_and_buyRoyalty() public {

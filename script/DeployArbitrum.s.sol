@@ -6,7 +6,6 @@ import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
 import {PoolStrategy1, IToken, IPoolStrategy} from "src/strategy1/PoolStrategy1.sol";
 import {FactoryPoolStrategy1} from "src/strategy1/FactoryPoolStrategy1.sol";
-import {Treasury} from "src/Treasury.sol";
 
 // Test purposes:
 // $ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript
@@ -30,8 +29,6 @@ contract DeployArbitrumScript is Script {
 
     FactoryPoolStrategy1 public factory1;
 
-    Treasury public treasury;
-
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
 
@@ -45,9 +42,6 @@ contract DeployArbitrumScript is Script {
 
         grETH = new GRETH(address(poolsNFT));
         poolsNFT.setGRETH(address(grETH));
-
-        treasury = new Treasury(address(poolsNFT));
-        poolsNFT.setTreasury(address(treasury));
 
         factory1 = new FactoryPoolStrategy1(address(poolsNFT));
         poolsNFT.setFactoryStrategy(address(factory1));
