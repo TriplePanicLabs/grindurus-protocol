@@ -15,6 +15,7 @@ interface IPoolStrategy is IERC5313 {
     error InvalidStrategyOpForReturn();
     error InvalidReturnOfInvestment();
     error InvalidLength();
+    error InvalidPriceVolatility();
     error NotQuoteToken();
     error NotOwner();
     error NotPoolsNFT();
@@ -34,7 +35,7 @@ interface IPoolStrategy is IERC5313 {
     error CantSweepYieldToken();
     error ZeroETH();
     error FailETHTransfer();
-    error FailTokenTransfer(address token);
+    error FailTokenTransfer();
 
     event LongBuy(
         uint256 poolId,
@@ -76,16 +77,6 @@ interface IPoolStrategy is IERC5313 {
 
     }
 
-    struct StrategyConstructorArgs {
-        address oracleQuoteTokenPerFeeToken;
-        address oracleQuoteTokenPerBaseToken;
-        address feeToken;
-        address baseToken;
-        address quoteToken;
-        bytes lendingArgs; // abi.encode(aaveV3Pool) <--- example
-        bytes dexArgs; // abi.encode(uniswapV3SwapRouter, uniswapV3PoolFee) <--- example
-    }
-
     struct FeeConfig {
         uint256 longSellFeeCoef; // [longSellFeeCoef] = (no dimension)
         uint256 hedgeSellFeeCoef; // [hedgeSellFeeCoef] = (no dimension)
@@ -95,8 +86,8 @@ interface IPoolStrategy is IERC5313 {
     struct Config {
         uint8 longNumberMax; // [longNumberMax] = (no dimension)
         uint8 hedgeNumberMax; // [hedgeNumberMax] = (no dimension)
-        uint256 averagePriceVolatility; // [averagePriceVolatility] = quoteToken / baseToken
         uint256 extraCoef; // [extraCoef] = (no dimension)
+        uint256 averagePriceVolatility; // [averagePriceVolatility] = quoteToken / baseToken
         uint256 returnPercentLongSell; // [returnPercentLongSell] = %
         uint256 returnPercentHedgeSell; // [returnPercentHedgeSell] = %
         uint256 returnPercentHedgeRebuy; // [returnPercentHedgeRebuy] = %

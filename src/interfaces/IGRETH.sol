@@ -7,13 +7,19 @@ interface IGRETH is IToken {
     error NotGrindURUSPoolsNFT();
     error NotGrindURUSOwner();
     error InvalidLength();
+    error NotOwner();
+    error InvalidAmount();
+    error AmountExceededSupply();
 
     function poolsNFT() external view returns (address);
 
-    function totalGrinds() external view returns (uint256);
-
     function mint(
         address[] memory actors,
-        uint256[] memory rewards
-    ) external returns (uint256 totalReward);
+        uint256[] memory shares
+    ) external returns (uint256 totalShares);
+
+    function burn(uint256 amount, address token) external payable;
+
+    function share(uint256 amount, address token) external view returns (uint256);
+
 }

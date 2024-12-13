@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {IGRETH} from "src/interfaces/IGRETH.sol";
-import {ITreasury} from "src/interfaces/ITreasury.sol";
 import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol"; // NFT
 import {IERC2981} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
 
@@ -10,7 +9,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
     error NotTreasury();
     error NotOwnerOrPending();
-    error ExceededTVLCap();
+    error ExceededDepositCap();
     error NotOwnerOfPool(uint256 poolId, address ownerOf);
     error NotPendingOwner();
     error NotPrimaryReceiverRoyaltyOrPending();
@@ -18,6 +17,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error NotPendingPrimaryReceiverRoyalty();
     error StartRoyaltyPriceNumeratorZero();
     error InvalidRoyaltyNumerator();
+    error InvalidGRETHShares();
     error InvalidRoyaltyShares();
     error InvalidRoyaltyPriceShare();
     error InvalidPoolNFTInfos();
@@ -97,8 +97,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function owner() external view returns (address payable);
 
-    function treasury() external view returns (ITreasury);
-
     function lastGrinder() external view returns (address payable);
 
     function baseURI() external view returns (string memory);
@@ -115,13 +113,15 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function poolIds(address pool) external view returns (uint256);
 
-    function TVL(address token) external view returns (uint256);
+    function deposited(uint256 poolId, address token) external view returns (uint256);
 
-    function capTVL(address token) external view returns (uint256);
+    function totalDeposited(address token) external view returns (uint256);
+
+    function tokenCap(address token) external view returns (uint256);
 
     /////// ONLY OWNER FUNCTIONS
 
-    function setCapTVL(address token, uint256 _capTVL) external;
+    function setTokenCap(address token, uint256 _tokenCap) external;
 
     function setBaseURI(string memory _baseURI) external;
 
@@ -136,6 +136,13 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint16 _grinderRoyaltyShareNumerator
     ) external;
 
+    function setGRETHShares(
+        uint16 _grethGrinderShareNumerator,
+        uint16 _grethReserveShareNumerator,
+        uint16 _grethPoolOwnerShareNumerator,
+        uint16 _grethRoyaltyReceiverShareNumerator
+    ) external;
+
     function setRoyaltyPriceShares(
         uint16 _royaltyPriceCompensationShareNumerator,
         uint16 _royaltyPricePrimaryReceiverShareNumerator,
@@ -144,8 +151,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     ) external;
 
     function setGRETH(address _grETH) external;
-
-    function setTreasury(address _treasury) external;
 
     function transferOwnership(address payable _owner) external;
 
@@ -234,7 +239,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function calcGRETHShares(
         uint256 poolId,
-        uint256 grethReward
+        uint256 grethReward,
+        address grinder
     ) external view returns (address[] memory actors, uint256[] memory shares);
 
     function calcInitialRoyaltyPrice(
@@ -264,10 +270,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     ) external view returns (PoolNFTInfo[] memory poolsInfo);
 
     function getTVL(uint256 poolId) external view returns (uint256);
-
-    function getTotalTVL(
-        address[] memory tokens
-    ) external view returns (uint256[] memory tvls);
 
     function getLong(
         uint256 poolId

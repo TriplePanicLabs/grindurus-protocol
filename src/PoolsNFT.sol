@@ -3,13 +3,13 @@ pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
 import {IGRETH} from "src/interfaces/IGRETH.sol";
-import {ITreasury} from "src/interfaces/ITreasury.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {IPoolStrategy} from "src/interfaces/IPoolStrategy.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
 import {IFactoryPoolStrategy} from "src/interfaces/IFactoryPoolStrategy.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
+import {Base64} from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
 import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import {ERC721, ERC721Enumerable, IERC165} from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
@@ -22,34 +22,32 @@ contract PoolsNFT is
     ReentrancyGuard
 {
     using SafeERC20 for IToken;
+    using Base64 for bytes;
     using Strings for uint256;
+
+    //// CONTSTANTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice denominator. Used for calculating royalties
     /// @dev this value of denominator is 100%
     uint16 public constant DENOMINATOR = 100_00;
-
-    /// @notice maximum numerator of init royalty price.
-    /// @dev this value is 20%.
-    /// Anybody should be able to buy royalty!
-    uint16 public constant MAX_INIT_ROYALTY_PRICE_NUMERATOR = 20_00;
 
     /// @notice maximum royalty numerator.
     /// @dev this value of max royalty is 30%
     /// Dont panic, the actural royalty numerator stores in `royaltyNumerator`
     uint16 public constant MAX_ROYALTY_NUMERATOR = 30_00;
 
-    //// BUY ROYALTY PRICE SHARES
+    //// ROYALTY PRICE SHARES //////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice the init royalty price numerator
     /// @dev converts initial `quoteToken` to `feeToken` and multiply to numerator and divide by DENOMINATOR
-    uint16 public initRoyaltyPriceNumerator;
+    uint16 public royaltyInitPriceNumerator;
 
     /// require CompensationShareNumerator + TreasuryShareNumerator + PoolOwnerShareNumerator + LastGrinderShareNumerator > 100%
     /// @dev numerator of royalty price compensation to previous owner share
     uint16 public royaltyPriceCompensationShareNumerator;
 
     /// @dev numerator of royalty price primary receiver share
-    uint16 public royaltyPriceTreasuryShareNumerator;
+    uint16 public royaltyPriceReserveShareNumerator;
 
     /// @dev numerator of royalty price pool owner share
     uint16 public royaltyPricePoolOwnerShareNumerator;
@@ -57,7 +55,25 @@ contract PoolsNFT is
     /// @dev numerator of royalty price last grinder share
     uint16 public royaltyPriceGrinderShareNumerator;
 
-    //// ROYALTY DISTRIBUTION
+    //// GRETH SHARES //////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /// @dev numerator of grinder share 
+    /// @dev grETHGrinderShareNumerator == 80_00 == 80%
+    uint16 public grethGrinderShareNumerator;
+
+    /// @dev numerator of grETH reserve share
+    /// @dev grETHReserveShareNumerator == 10_00 == 10%
+    uint16 public grethReserveShareNumerator;
+
+    /// @dev numerator of pool owner share
+    /// @dev example: grETHPoolOwnerShareNumerator == 5_00 = 5%
+    uint16 public grethPoolOwnerShareNumerator;
+
+    /// @dev numerator of royalty receiver share
+    /// @dev example: grETHRoyaltyReceiverShareNumerator == 5_00 = 5%
+    uint16 public grethRoyaltyReceiverShareNumerator;
+
+    //// ROYALTY SHARES ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice the numerator of royalty
     /// @dev royaltyNumerator = DENIMINATOR - poolOwnerShareNumerator
@@ -69,36 +85,32 @@ contract PoolsNFT is
     /// @dev example: poolOwnerShareNumerator == 80_00 == 80%
     uint16 public poolOwnerShareNumerator;
 
-    /// @notice royalty share of treasure
-    /// @dev example: poolOwnerShareNumerator == 3_50 == 3.5%
-    uint16 public treasuryRoyaltyShareNumerator;
-
     /// @notice royalty share of royalty receiver. You can buy it
-    /// @dev example: receiverRoyaltyShareNumerator == 16_00 == 16%
-    uint16 public receiverRoyaltyShareNumerator;
+    /// @dev example: royaltyReceiverShareNumerator == 16_00 == 16%
+    uint16 public royaltyReceiverShareNumerator;
+
+    /// @notice royalty share of reserve. Reserve on grETH
+    /// @dev example: poolOwnerShareNumerator == 3_50 == 3.5%
+    uint16 public royaltyReserveShareNumerator;
 
     /// @notice royalty share of last grinder
-    /// @dev example: grinderRoyaltyShareNumerator == 50 == 0.5%
-    uint16 public grinderRoyaltyShareNumerator;
+    /// @dev example: royaltyGrinderShareNumerator == 50 == 0.5%
+    uint16 public royaltyGrinderShareNumerator;
 
-    //// NFT OWNERSHIP DATA
+    //// PoolsNFT OWNERSHIP DATA ///////////////////////////////////////////////////////////////////////////////////////////////
 
     /// @dev address of pending owner
-    /// It may be you accepting the ownership, but you dont have 100_000 ETH
     address payable public pendingOwner;
 
-    /// @dev address of grindurus protocol owner
+    /// @dev address of grindurus protocol owner. For future DAO
     address payable public owner;
-
-    /// @dev address of treasury. May be smart contract with sofisticated logic
-    ITreasury public treasury;
 
     /// @notice address,that last called grind()
     /// @dev address of last grinder
     /// The last of magician blyat
     address payable public lastGrinder;
 
-    //// POOLS DATA
+    //// POOLSNFT DATA /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice base URI for this collection
     string public baseURI;
@@ -110,8 +122,7 @@ contract PoolsNFT is
     IGRETH public grETH;
 
     /// @dev strategyId => address of grindurus pool strategy implementation
-    mapping(uint16 strategyId => IFactoryPoolStrategy)
-        public factoryStrategy;
+    mapping(uint16 strategyId => IFactoryPoolStrategy) public factoryStrategy;
 
     /// @dev poolId => royalty receiver
     mapping(uint256 poolId => address) public royaltyReceiver;
@@ -119,55 +130,63 @@ contract PoolsNFT is
     /// @dev poolId => royalty price
     mapping(uint256 poolId => uint256) public royaltyPrice;
 
+    /// @notice store minter of pool for airdrop points
+    /// @dev poolId => address of creator of NFT
+    mapping(uint256 poolId => address) public minter;
+
     /// @dev poolId => pool strategy address
     mapping(uint256 poolId => address) public pools;
 
     /// @dev pool strategy address => poolId
     mapping(address pool => uint256) public poolIds;
 
-    /// @dev token => total value locked
-    mapping(address token => uint256) public TVL;
+    /// @dev poolId => token address => deposit amount
+    mapping (uint256 poolId => mapping (address token => uint256)) public deposited;
 
-    /// @dev token => TVL cap
-    /// @dev if capTVL == 0, than cap is unlimited
-    mapping(address token => uint256) public capTVL;
+    /// @dev quoteToken => amount of deposit in pool
+    mapping(address token => uint256) public totalDeposited;
+
+    /// @dev token address => token cap
+    /// @dev if cap == 0, than cap is unlimited
+    mapping(address token => uint256) public tokenCap;
 
     constructor()
-        ERC721("GRINDURUS Strategy Pools Collection", "GRINDURUS_POOLS")
+        ERC721("GRINDURUS Pools Collection", "GRINDURUS_POOLS")
     {
         baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/";
         totalPools = 0;
         pendingOwner = payable(address(0));
         owner = payable(msg.sender);
-        treasury = ITreasury(msg.sender);
         lastGrinder = payable(msg.sender);
 
         royaltyPriceCompensationShareNumerator = 101_00; // 101%
-        royaltyPriceTreasuryShareNumerator = 1_00; // 1%
+        royaltyPriceReserveShareNumerator = 1_00; // 1%
         royaltyPricePoolOwnerShareNumerator = 5_00; // 5%
         royaltyPriceGrinderShareNumerator = 1_00; // 1%
+        require(royaltyPriceCompensationShareNumerator + royaltyPriceReserveShareNumerator + royaltyPricePoolOwnerShareNumerator + royaltyPriceGrinderShareNumerator > DENOMINATOR);
+
+        grethGrinderShareNumerator = 80_00; // 80%
+        grethReserveShareNumerator = 5_00; // 5%
+        grethPoolOwnerShareNumerator = 4_00; // 4%
+        grethRoyaltyReceiverShareNumerator = 11_00; // 11%;
+        require(grethGrinderShareNumerator + grethReserveShareNumerator + grethPoolOwnerShareNumerator + grethRoyaltyReceiverShareNumerator == DENOMINATOR);
+
         // total share in buy royalty = 101% + 1% + 5% + 1% = 108%
-        initRoyaltyPriceNumerator = 10_00; // 10%
-        // poolOwnerShareNumerator + treasuryRoyaltyShareNumerator + receiverRoyaltyShareNumerator + grinderRoyaltyShareNumerator == DENOMINATOR
+        royaltyInitPriceNumerator = 10_00; // 10%
+        // poolOwnerShareNumerator + royaltyReserveShareNumerator + royaltyReceiverShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR
         royaltyNumerator = 20_00; // 20%
         poolOwnerShareNumerator = 80_00; // 80%
-        treasuryRoyaltyShareNumerator = 3_50; // 3.5%
-        receiverRoyaltyShareNumerator = 16_00; // 16%
-        grinderRoyaltyShareNumerator = 50; // 0.5%
+        royaltyReceiverShareNumerator = 15_00; // 15%
+        royaltyReserveShareNumerator = 4_00; // 4%
+        royaltyGrinderShareNumerator = 1_00; // 1%
         require(royaltyNumerator + poolOwnerShareNumerator == DENOMINATOR);
-        require(
-            poolOwnerShareNumerator +
-                treasuryRoyaltyShareNumerator +
-                receiverRoyaltyShareNumerator +
-                grinderRoyaltyShareNumerator ==
-                DENOMINATOR
-        );
+        require(poolOwnerShareNumerator + royaltyReceiverShareNumerator + royaltyReserveShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR);
         //  profit = 1 USDT
-        //  profit to pool owner = 1 * (100% - 20%) = 0.8 USDT
+        //  profit to pool owner = 1 * (80%) = 0.8 USDT
         //  royalty = 1 * 20% = 0.2 USDT
-        //      royalty to treasury  = 0.2 * 3.5% = 0.007 USDT
-        //      royalty receiver = 0.2 * 16% = 0.032 USDT
-        //      royalty grinder = 0.2 * 0.5% = 0.001 USDT
+        //      royalty to reserve  = 0.2 * 4% = 0.008 USDT
+        //      royalty to royaly receiver = 0.2 * 15% = 0.03 USDT
+        //      royalty grinder = 0.2 * 1% = 0.002 USDT
     }
 
     /// @notice checks that msg.sender is owner
@@ -195,58 +214,28 @@ contract PoolsNFT is
     }
 
     /// @notice sets cap tvl
+    /// @dev if _capTVL==0, than no cap for asset
     /// @param token address of token
-    /// @param _capTVL amount of token
-    function setCapTVL(address token, uint256 _capTVL) external override {
+    /// @param _tokenCap maximum amount of token
+    function setTokenCap(address token, uint256 _tokenCap) external override {
         _onlyOwner();
-        capTVL[token] = _capTVL;
+        tokenCap[token] = _tokenCap;
     }
 
     /// @notice sets start royalty price
     /// @dev callable only by owner
     function setInitRoyaltyPriceNumerator(
-        uint16 _initRoyaltyPriceNumerator
+        uint16 _royaltyInitPriceNumerator
     ) external override {
         _onlyOwner();
-        if (
-            _initRoyaltyPriceNumerator == 0 ||
-            _initRoyaltyPriceNumerator > MAX_INIT_ROYALTY_PRICE_NUMERATOR
-        ) {
-            revert InvalidInitRoyaltyPriceNumerator();
-        }
-        initRoyaltyPriceNumerator = _initRoyaltyPriceNumerator;
-    }
-
-    /// @notice sets primary receiver royalty share
-    /// @dev callable only by owner
-    function setRoyaltyShares(
-        uint16 _poolOwnerRoyaltyShareNumerator,
-        uint16 _treasuryRoyaltyShareNumerator,
-        uint16 _receiverRoyaltyShareNumerator,
-        uint16 _grinderRoyaltyShareNumerator
-    ) external override {
-        _onlyOwner();
-        if (
-            _poolOwnerRoyaltyShareNumerator +
-                _treasuryRoyaltyShareNumerator +
-                _receiverRoyaltyShareNumerator +
-                _grinderRoyaltyShareNumerator !=
-            DENOMINATOR
-        ) {
-            revert InvalidRoyaltyShares();
-        }
-        royaltyNumerator = DENOMINATOR - _poolOwnerRoyaltyShareNumerator;
-        poolOwnerShareNumerator = _poolOwnerRoyaltyShareNumerator;
-        treasuryRoyaltyShareNumerator = _treasuryRoyaltyShareNumerator;
-        receiverRoyaltyShareNumerator = _receiverRoyaltyShareNumerator;
-        grinderRoyaltyShareNumerator = _grinderRoyaltyShareNumerator;
+        royaltyInitPriceNumerator = _royaltyInitPriceNumerator;
     }
 
     /// @notice sets royalty price share to actors
     /// @dev callable only by owner
     function setRoyaltyPriceShares(
         uint16 _royaltyPriceCompensationShareNumerator,
-        uint16 _royaltyPriceTreasuryShareNumerator,
+        uint16 _royaltyPriceReserveShareNumerator,
         uint16 _royaltyPricePoolOwnerShareNumerator,
         uint16 _royaltyPriceGrinderShareNumerator
     ) external override {
@@ -255,9 +244,49 @@ contract PoolsNFT is
             revert InvalidRoyaltyPriceShare();
         }
         royaltyPriceCompensationShareNumerator = _royaltyPriceCompensationShareNumerator;
-        royaltyPriceTreasuryShareNumerator = _royaltyPriceTreasuryShareNumerator;
+        royaltyPriceReserveShareNumerator = _royaltyPriceReserveShareNumerator;
         royaltyPricePoolOwnerShareNumerator = _royaltyPricePoolOwnerShareNumerator;
         royaltyPriceGrinderShareNumerator = _royaltyPriceGrinderShareNumerator;
+    }
+
+    /// @notice sets greth shares
+    /// @dev callable only by owner
+    function setGRETHShares(
+        uint16 _grethGrinderShareNumerator,
+        uint16 _grethReserveShareNumerator,
+        uint16 _grethPoolOwnerShareNumerator,
+        uint16 _grethRoyaltyReceiverShareNumerator
+    ) external override {
+        _onlyOwner();
+        if (_grethGrinderShareNumerator + _grethReserveShareNumerator + _grethPoolOwnerShareNumerator + _grethRoyaltyReceiverShareNumerator != DENOMINATOR) {
+            revert InvalidGRETHShares();
+        }
+        grethGrinderShareNumerator = _grethGrinderShareNumerator; // 80%
+        grethReserveShareNumerator = _grethReserveShareNumerator; // 10%
+        grethPoolOwnerShareNumerator = _grethPoolOwnerShareNumerator; // 5%
+        grethRoyaltyReceiverShareNumerator = _grethRoyaltyReceiverShareNumerator; // 5%
+    }
+
+    /// @notice sets primary receiver royalty share
+    /// @dev callable only by owner
+    function setRoyaltyShares(
+        uint16 _poolOwnerRoyaltyShareNumerator,
+        uint16 _royaltyReceiverShareNumerator,
+        uint16 _royaltyReserveShareNumerator,
+        uint16 _royaltyGrinderShareNumerator
+    ) external override {
+        _onlyOwner();
+        if (_poolOwnerRoyaltyShareNumerator + _royaltyReceiverShareNumerator + _royaltyReserveShareNumerator + _royaltyGrinderShareNumerator != DENOMINATOR) {
+            revert InvalidRoyaltyShares();
+        }
+        royaltyNumerator = DENOMINATOR - _poolOwnerRoyaltyShareNumerator;
+        if (royaltyNumerator > MAX_ROYALTY_NUMERATOR) {
+            revert InvalidRoyaltyNumerator();
+        }
+        poolOwnerShareNumerator = _poolOwnerRoyaltyShareNumerator;
+        royaltyReceiverShareNumerator = _royaltyReceiverShareNumerator;
+        royaltyReserveShareNumerator = _royaltyReserveShareNumerator;
+        royaltyGrinderShareNumerator = _royaltyGrinderShareNumerator;
     }
 
     /// @notice sets grETH token
@@ -267,20 +296,11 @@ contract PoolsNFT is
         grETH = IGRETH(_grETH);
     }
 
-    /// @notice sets treasury
-    /// @dev callable only by owner
-    function setTreasury(address _treasury) external override {
-        _onlyOwner();
-        treasury = ITreasury(_treasury);
-    }
-
     /// @notice First step - transfering ownership to `newOwner`
     ///         Second step - accept ownership
     /// @dev for future DAO
     function transferOwnership(address payable _owner) external override {
-        if (
-            payable(msg.sender) != owner && payable(msg.sender) != pendingOwner
-        ) {
+        if (payable(msg.sender) != owner && payable(msg.sender) != pendingOwner) {
             revert NotOwnerOrPending();
         }
         if (payable(msg.sender) == owner) {
@@ -295,11 +315,8 @@ contract PoolsNFT is
     /// @dev callable only by strategiest
     function setFactoryStrategy(address _factoryStrategy) external override {
         _onlyOwner();
-        uint16 strategyId = IFactoryPoolStrategy(_factoryStrategy)
-            .strategyId();
-        factoryStrategy[strategyId] = IFactoryPoolStrategy(
-            _factoryStrategy
-        );
+        uint16 strategyId = IFactoryPoolStrategy(_factoryStrategy).strategyId();
+        factoryStrategy[strategyId] = IFactoryPoolStrategy(_factoryStrategy);
         emit SetFactoryStrategy(strategyId, _factoryStrategy);
     }
 
@@ -360,9 +377,10 @@ contract PoolsNFT is
             oracleQuoteTokenPerFeeToken,
             oracleQuoteTokenPerBaseToken,
             feeToken,
-            baseToken,
-            quoteToken
+            quoteToken,
+            baseToken
         );
+        minter[poolId] = msg.sender;
         pools[poolId] = pool;
         poolIds[pool] = poolId;
         _mint(to, poolId);
@@ -381,8 +399,7 @@ contract PoolsNFT is
             quoteToken
         );
         _deposit(
-            IPoolStrategy(pool),
-            IToken(quoteToken),
+            poolId,
             quoteTokenAmount
         );
     }
@@ -391,37 +408,37 @@ contract PoolsNFT is
     /// @dev callable only by owner of poolId
     /// @param poolId id of pool in array `pools`
     /// @param quoteTokenAmount amount of `quoteToken`
-    /// @return deposited amount of deposited `quoteToken`
+    /// @return depositedAmount amount of deposited `quoteToken`
     function deposit(
         uint256 poolId,
         uint256 quoteTokenAmount
-    ) external override returns (uint256 deposited) {
+    ) external override returns (uint256 depositedAmount) {
         _onlyOwnerOf(poolId);
-        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
-        IToken quoteToken = pool.getQuoteToken();
-        deposited = _deposit(pool, quoteToken, quoteTokenAmount);
+        depositedAmount = _deposit(poolId, quoteTokenAmount);
     }
 
     /// @dev make transfer from msg.sender, approve to pool, call deposit on pool
     function _deposit(
-        IPoolStrategy pool,
-        IToken quoteToken,
+        uint256 poolId,
         uint256 quoteTokenAmount
-    ) internal returns (uint256 deposited) {
-        _checkTVL(address(quoteToken), quoteTokenAmount);
+    ) internal returns (uint256 depositedAmount) {
+        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
+        IToken quoteToken = pool.getQuoteToken();
+        _checkCap(address(quoteToken), quoteTokenAmount);
         quoteToken.safeTransferFrom(
             msg.sender,
             address(this),
             quoteTokenAmount
         );
         quoteToken.forceApprove(address(pool), quoteTokenAmount);
-        deposited = pool.deposit(quoteTokenAmount);
-        _increaseTVL(address(quoteToken), quoteTokenAmount);
+        depositedAmount = pool.deposit(quoteTokenAmount);
+        deposited[poolId][address(quoteToken)] += depositedAmount;
+        _increaseTotalDeposited(address(quoteToken), depositedAmount);
         emit Deposit(
             poolIds[address(pool)],
             address(pool),
             address(quoteToken),
-            quoteTokenAmount
+            depositedAmount
         );
     }
 
@@ -450,16 +467,15 @@ contract PoolsNFT is
         IPoolStrategy pool = IPoolStrategy(pools[poolId]);
         IToken quoteToken = pool.getQuoteToken();
         withdrawn = pool.withdraw(to, quoteTokenAmount);
-        _decreaseTVL(address(quoteToken), withdrawn);
+        deposited[poolId][address(quoteToken)] -= withdrawn;
+        _decreaseTotalDeposited(address(quoteToken), withdrawn);
         emit Withdraw(poolId, to, address(quoteToken), quoteTokenAmount);
     }
 
     /// @notice exit from strategy and transfer ownership to royalty receiver
     /// @dev callable only by owner of poolId
     /// @param poolId pool id of pool in array `pools`
-    function exit(
-        uint256 poolId
-    )
+    function exit(uint256 poolId)
         external
         override
         returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
@@ -467,40 +483,37 @@ contract PoolsNFT is
         _onlyOwnerOf(poolId);
         IPoolStrategy pool = IPoolStrategy(pools[poolId]);
         IToken quoteToken = pool.getQuoteToken();
-        uint256 tvl = pool.getTVL();
         (quoteTokenAmount, baseTokenAmount) = pool.exit();
         transferFrom(ownerOf(poolId), getRoyaltyReceiver(poolId), poolId);
-        _decreaseTVL(address(quoteToken), tvl);
+        _decreaseTotalDeposited(address(quoteToken), deposited[poolId][address(quoteToken)]);
+        deposited[poolId][address(quoteToken)] = 0;
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
     }
 
     /// @notice checks TVL of quoteToken
     /// @param quoteToken address of quoteToken
     /// @param quoteTokenAmount amount of quote token
-    function _checkTVL(address quoteToken, uint256 quoteTokenAmount) private view {
-        if (
-            (capTVL[address(quoteToken)] > 0) &&
-            (TVL[address(quoteToken)] + quoteTokenAmount > capTVL[address(quoteToken)])
-        ) {
-            revert ExceededTVLCap();
+    function _checkCap(address quoteToken, uint256 quoteTokenAmount) private view {
+        if ((tokenCap[address(quoteToken)] > 0) && (tokenCap[address(quoteToken)] + quoteTokenAmount > tokenCap[address(quoteToken)])) {
+            revert ExceededDepositCap();
         }
     }
 
     /// @notice increase Total Value Locked
     /// @param quoteToken address of quote token
     /// @param increaseAmount amount of quote token to increase TVL
-    function _increaseTVL(address quoteToken, uint256 increaseAmount) private {
-        TVL[quoteToken] += increaseAmount;
+    function _increaseTotalDeposited(address quoteToken, uint256 increaseAmount) private {
+        totalDeposited[quoteToken] += increaseAmount;
     }
 
     /// @notice decrease Total Value Locked
     /// @param quoteToken address of quote token
     /// @param decreaseAmount amount of quote token to decrease TVL
-    function _decreaseTVL(address quoteToken, uint256 decreaseAmount) private {
-        if (TVL[quoteToken] > decreaseAmount) {
-            TVL[quoteToken] -= decreaseAmount;
+    function _decreaseTotalDeposited(address quoteToken, uint256 decreaseAmount) private {
+        if (totalDeposited[quoteToken] > decreaseAmount) {
+            totalDeposited[quoteToken] -= decreaseAmount;
         } else {
-            TVL[quoteToken] = 0;
+            totalDeposited[quoteToken] = 0;
         }
     }
 
@@ -568,15 +581,15 @@ contract PoolsNFT is
         } catch {
             successIterate = false;
         }
-        uint256 grethAmount = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
-        (address[] memory actors, uint256[] memory shares) = calcGRETHShares(
+        uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
+        (address[] memory actors, uint256[] memory grethShares) = calcGRETHShares(
             poolId,
-            grethAmount
+            grethReward,
+            msg.sender
         );
         if (successIterate) {
-            try grETH.mint(actors, shares) {} catch {}
+            try grETH.mint(actors, grethShares) {} catch {}
         }
-        try treasury.onGrind(poolId) {} catch {}
         lastGrinder = payable(msg.sender);
         emit Grind(poolId, msg.sender);
     }
@@ -613,17 +626,15 @@ contract PoolsNFT is
         (
             uint256 compensationShare, // oldRoyaltyPrice + compensation
             uint256 poolOwnerShare,
-            uint256 treasuryShare,
+            uint256 reserveShare,
             uint256 lastGrinderShare,
             /**uint256 oldRoyaltyPrice */,
-            uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + treasuryShare + lastGrinderShare
+            uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + reserveShare + lastGrinderShare
         ) = calcRoyaltyPriceShares(poolId);
         if (msg.value < newRoyaltyPrice) {
             revert InsufficientRoyaltyPrice();
         }
-        address payable oldRoyaltyReceiver = payable(
-            getRoyaltyReceiver(poolId)
-        );
+        address payable oldRoyaltyReceiver = payable(getRoyaltyReceiver(poolId));
         // instantiate new royalty receiver
         royaltyReceiver[poolId] = to;
         royaltyPrice[poolId] = newRoyaltyPrice; // newRoyaltyPrice always increase!
@@ -632,7 +643,7 @@ contract PoolsNFT is
         if (compensationShare > 0) {
             (success, ) = oldRoyaltyReceiver.call{value: compensationShare}("");
             if (!success) {
-                (success, ) = address(treasury).call{value: compensationShare}(
+                (success, ) = address(grETH).call{value: compensationShare}(
                     ""
                 );
                 if (!success) {
@@ -642,33 +653,29 @@ contract PoolsNFT is
             royaltyPricePaid += compensationShare;
         }
         if (poolOwnerShare > 0) {
-            (success, ) = payable(ownerOf(poolId)).call{value: poolOwnerShare}(
-                ""
-            );
+            (success, ) = payable(ownerOf(poolId)).call{value: poolOwnerShare}("");
             if (!success) {
-                (success, ) = address(treasury).call{value: poolOwnerShare}("");
+                (success, ) = address(grETH).call{value: poolOwnerShare}("");
                 if (!success) {
                     revert FailPoolOwnerShare();
                 }
             }
             royaltyPricePaid += poolOwnerShare;
         }
-        if (treasuryShare > 0) {
-            (success, ) = address(treasury).call{value: treasuryShare}("");
+        if (reserveShare > 0) {
+            (success, ) = address(grETH).call{value: reserveShare}("");
             if (!success) {
-                (success, ) = owner.call{value: treasuryShare}("");
+                (success, ) = owner.call{value: reserveShare}("");
                 if (!success) {
                     revert FailPrimaryReceiverShare();
                 }
             }
-            royaltyPricePaid += treasuryShare;
+            royaltyPricePaid += reserveShare;
         }
         if (lastGrinderShare > 0) {
             (success, ) = lastGrinder.call{value: lastGrinderShare}("");
             if (!success) {
-                (success, ) = address(treasury).call{value: lastGrinderShare}(
-                    ""
-                );
+                (success, ) = address(grETH).call{value: lastGrinderShare}("");
                 if (!success) {
                     revert FailLastGrinderShare();
                 }
@@ -679,13 +686,12 @@ contract PoolsNFT is
         if (refund > 0) {
             (success, ) = payable(msg.sender).call{value: refund}("");
             if (!success) {
-                (success, ) = address(treasury).call{value: refund}("");
+                (success, ) = address(grETH).call{value: refund}("");
                 if (!success) {
                     revert FailRefund();
                 }
             }
         }
-        try treasury.onBuyRoyalty(poolId) {} catch {}
         emit BuyRoyalty(poolId, to, royaltyPricePaid);
     }
 
@@ -719,21 +725,21 @@ contract PoolsNFT is
         receivers = new address[](4);
         amounts = new uint256[](4);
         receivers[0] = ownerOf(poolId); // pool owner
-        receivers[1] = address(treasury); // treasury
-        receivers[2] = getRoyaltyReceiver(poolId); // royalty receiver
+        receivers[1] = getRoyaltyReceiver(poolId); // royalty receiver
+        receivers[2] = address(grETH);
         receivers[3] = lastGrinder; // last grinder
         uint256 denominator = DENOMINATOR;
-        amounts[1] = (profit * treasuryRoyaltyShareNumerator) / denominator;
-        amounts[2] = (profit * receiverRoyaltyShareNumerator) / denominator;
-        amounts[3] = (profit * grinderRoyaltyShareNumerator) / denominator;
-        amounts[0] = profit - (amounts[1] + amounts[2] + amounts[3]);
+        amounts[0] = (profit * poolOwnerShareNumerator) / denominator;
+        amounts[1] = (profit * royaltyReceiverShareNumerator) / denominator;
+        amounts[2] = (profit * royaltyReserveShareNumerator) / denominator;
+        amounts[3] = profit - (amounts[0] + amounts[1] + amounts[2]);
     }
 
     /// @notice calc royalty prices
     /// @param poolId pool id of pool in array `pools`
     /// @return compensationShare feeToken amount to be received to old owner as compensation
     /// @return poolOwnerShare feeToken amount to be received by pool owner
-    /// @return treasuryShare feeToken amount to be received by primary royalty receiver
+    /// @return reserveShare feeToken amount to be received by primary royalty receiver
     /// @return lastGrinderShare feeToken amount to be received to last grinder
     /// @return oldRoyaltyPrice feeToken amount of old royalty price
     /// @return newRoyaltyPrice feeToken amount of new royalty price
@@ -745,7 +751,7 @@ contract PoolsNFT is
         returns (
             uint256 compensationShare,
             uint256 poolOwnerShare,
-            uint256 treasuryShare,
+            uint256 reserveShare,
             uint256 lastGrinderShare,
             uint256 oldRoyaltyPrice,
             uint256 newRoyaltyPrice
@@ -759,8 +765,8 @@ contract PoolsNFT is
         poolOwnerShare =
             (_royaltyPrice * royaltyPricePoolOwnerShareNumerator) /
             _denominator;
-        treasuryShare =
-            (_royaltyPrice * royaltyPriceTreasuryShareNumerator) /
+        reserveShare =
+            (_royaltyPrice * royaltyPriceReserveShareNumerator) /
             _denominator;
         lastGrinderShare =
             (_royaltyPrice * royaltyPriceGrinderShareNumerator) /
@@ -769,7 +775,7 @@ contract PoolsNFT is
         newRoyaltyPrice =
             compensationShare +
             poolOwnerShare +
-            treasuryShare +
+            reserveShare +
             lastGrinderShare;
     }
 
@@ -778,25 +784,26 @@ contract PoolsNFT is
     /// @param grethReward amount of grETH
     function calcGRETHShares(
         uint256 poolId,
-        uint256 grethReward
+        uint256 grethReward,
+        address grinder
     )
         public
         view
         override
-        returns (address[] memory actors, uint256[] memory shares)
+        returns (address[] memory actors, uint256[] memory grethShares)
     {
         actors = new address[](4);
-        shares = new uint256[](4);
+        grethShares = new uint256[](4);
         uint16 denominator = DENOMINATOR;
         actors[0] = ownerOf(poolId); // poolOwner
-        actors[1] = address(treasury); // treasury
+        actors[1] = address(grETH); // grETH
         actors[2] = getRoyaltyReceiver(poolId); // royalty receiver
-        actors[3] = msg.sender; // grinder
+        actors[3] = grinder; // grinder
 
-        shares[0] = (grethReward * (denominator - poolOwnerShareNumerator)) / denominator;
-        shares[1] = grethReward * treasuryRoyaltyShareNumerator / denominator;
-        shares[2] = (grethReward * (royaltyNumerator - receiverRoyaltyShareNumerator)) / denominator;
-        shares[3] = grethReward - (shares[0] + shares[1] + shares[2]);
+        grethShares[0] = (grethReward * grethPoolOwnerShareNumerator) / denominator; // (grethReward * (denominator - poolOwnerShareNumerator)) / denominator;
+        grethShares[1] = (grethReward * grethReserveShareNumerator) / denominator;
+        grethShares[2] = (grethReward * grethRoyaltyReceiverShareNumerator) / denominator;
+        grethShares[3] = grethReward - (grethShares[0] + grethShares[1] + grethShares[2]);
     }
 
     /// @notice calc initial royalty price
@@ -808,7 +815,7 @@ contract PoolsNFT is
         uint256 quoteTokenAmount
     ) public view returns (uint256 initRoyaltyPrice) {
         uint256 feeTokenAmount = IPoolStrategy(pools[poolId]).calcFeeTokenByQuoteToken(quoteTokenAmount);
-        initRoyaltyPrice = (feeTokenAmount * initRoyaltyPriceNumerator) / DENOMINATOR;
+        initRoyaltyPrice = (feeTokenAmount * royaltyInitPriceNumerator) / DENOMINATOR;
     }
 
     /// @notice returns tokenURI of `tokenId`
@@ -843,7 +850,7 @@ contract PoolsNFT is
     ) public view returns (address receiver) {
         receiver = royaltyReceiver[poolId];
         if (receiver == address(0)) {
-            receiver = address(treasury);
+            receiver = ownerOf(poolId);
         }
     }
 
@@ -925,23 +932,6 @@ contract PoolsNFT is
     /// @param poolId id of pool
     function getTVL(uint256 poolId) external view override returns (uint256) {
         return IPoolStrategy(pools[poolId]).getTVL();
-    }
-
-    /// @notice calculates TVL based on provided tokens
-    /// @param tokens array of tokens to calculate tvl
-    /// @return tvls tvl of every token
-    function getTotalTVL(
-        address[] memory tokens
-    ) external view returns (uint256[] memory tvls) {
-        uint256 len = tokens.length;
-        tvls = new uint256[](len);
-        uint256 i = 0;
-        for (; i < len; ) {
-            tvls[i] += TVL[tokens[i]];
-            unchecked {
-                i++;
-            }
-        }
     }
 
     /// @notice returns long position of poolId
