@@ -336,8 +336,8 @@ contract PoolsNFT is
         address oracleQuoteTokenPerFeeToken,
         address oracleQuoteTokenPerBaseToken,
         address feeToken,
-        address baseToken,
         address quoteToken,
+        address baseToken,
         uint256 quoteTokenAmount
     ) external override returns (uint256 poolId) {
         poolId = mintTo(
@@ -346,8 +346,8 @@ contract PoolsNFT is
             oracleQuoteTokenPerFeeToken,
             oracleQuoteTokenPerBaseToken,
             feeToken,
-            baseToken,
             quoteToken,
+            baseToken,
             quoteTokenAmount
         );
     }
@@ -367,8 +367,8 @@ contract PoolsNFT is
         address oracleQuoteTokenPerFeeToken,
         address oracleQuoteTokenPerBaseToken,
         address feeToken,
-        address baseToken,
         address quoteToken,
+        address baseToken,
         uint256 quoteTokenAmount
     ) public override returns (uint256 poolId) {
         poolId = totalPools;

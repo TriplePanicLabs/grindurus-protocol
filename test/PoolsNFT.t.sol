@@ -58,8 +58,8 @@ contract PoolsNFTTest is Test {
             oracleQuoteTokenPerFeeToken,
             oracleQuoteTokenPerBaseToken,
             feeToken,
-            baseToken,
             quoteToken,
+            baseToken,
             quoteTokenAmount
         );
 
@@ -106,8 +106,8 @@ contract PoolsNFTTest is Test {
             oracleQuoteTokenPerFeeToken,
             oracleQuoteTokenPerBaseToken,
             feeToken,
-            baseToken,
             quoteToken,
+            baseToken,
             quoteTokenAmount
         );
 
@@ -150,8 +150,8 @@ contract PoolsNFTTest is Test {
             oracleQuoteTokenPerFeeToken,
             oracleQuoteTokenPerBaseToken,
             feeToken,
-            baseToken,
             quoteToken,
+            baseToken,
             quoteTokenAmount
         );
 
@@ -178,8 +178,8 @@ contract PoolsNFTTest is Test {
             oracleQuoteTokenPerFeeToken,
             oracleQuoteTokenPerBaseToken,
             feeToken,
-            baseToken,
             quoteToken,
+            baseToken,
             quoteTokenAmount
         );
 

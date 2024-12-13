@@ -20,8 +20,8 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
     constructor() {}
 
     function initDex(
-        address baseToken,
         address quoteToken,
+        address baseToken,
         bytes memory args
     ) public {
         if (address(swapRouter) != address(0)) {
@@ -30,8 +30,8 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         (address _swapRouter, uint24 _fee) = decodeDexConstructorArgs(args);
 
         // infinite approve for transferFrom Uniswap
-        IToken(baseToken).forceApprove(_swapRouter, type(uint256).max);
         IToken(quoteToken).forceApprove(_swapRouter, type(uint256).max);
+        IToken(baseToken).forceApprove(_swapRouter, type(uint256).max);
 
         swapRouter = ISwapRouterArbitrum(_swapRouter);
         fee = _fee;
