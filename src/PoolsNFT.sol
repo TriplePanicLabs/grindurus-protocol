@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
@@ -66,11 +66,11 @@ contract PoolsNFT is
     uint16 public grethReserveShareNumerator;
 
     /// @dev numerator of pool owner share
-    /// @dev example: grETHPoolOwnerShareNumerator == 5_00 = 5%
+    /// @dev example: grETHPoolOwnerShareNumerator == 2_00 == 2%
     uint16 public grethPoolOwnerShareNumerator;
 
     /// @dev numerator of royalty receiver share
-    /// @dev example: grETHRoyaltyReceiverShareNumerator == 5_00 = 5%
+    /// @dev example: grETHRoyaltyReceiverShareNumerator == 8_00 == 8%
     uint16 public grethRoyaltyReceiverShareNumerator;
 
     //// ROYALTY SHARES ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,15 +86,15 @@ contract PoolsNFT is
     uint16 public poolOwnerShareNumerator;
 
     /// @notice royalty share of royalty receiver. You can buy it
-    /// @dev example: royaltyReceiverShareNumerator == 16_00 == 16%
+    /// @dev example: royaltyReceiverShareNumerator == 14_00 == 14%
     uint16 public royaltyReceiverShareNumerator;
 
     /// @notice royalty share of reserve. Reserve on grETH
-    /// @dev example: poolOwnerShareNumerator == 3_50 == 3.5%
+    /// @dev example: poolOwnerShareNumerator == 5_00 == 5%
     uint16 public royaltyReserveShareNumerator;
 
     /// @notice royalty share of last grinder
-    /// @dev example: royaltyGrinderShareNumerator == 50 == 0.5%
+    /// @dev example: royaltyGrinderShareNumerator == 1_00 == 1%
     uint16 public royaltyGrinderShareNumerator;
 
     //// PoolsNFT OWNERSHIP DATA ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +102,7 @@ contract PoolsNFT is
     /// @dev address of pending owner
     address payable public pendingOwner;
 
-    /// @dev address of grindurus protocol owner. For future DAO
+    /// @dev address of grindurus protocol owner. For DAO
     address payable public owner;
 
     /// @notice address,that last called grind()
@@ -150,9 +150,7 @@ contract PoolsNFT is
     /// @dev if cap == 0, than cap is unlimited
     mapping(address token => uint256) public tokenCap;
 
-    constructor()
-        ERC721("GRINDURUS Pools Collection", "GRINDURUS_POOLS")
-    {
+    constructor() ERC721("GRINDURUS Pools Collection", "GRINDURUS_POOLS") {
         baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/";
         totalPools = 0;
         pendingOwner = payable(address(0));
@@ -163,22 +161,25 @@ contract PoolsNFT is
         royaltyPriceReserveShareNumerator = 1_00; // 1%
         royaltyPricePoolOwnerShareNumerator = 5_00; // 5%
         royaltyPriceGrinderShareNumerator = 1_00; // 1%
+        // total royalty price = 101% + 1% + 5% + 1% = 108% > 100%
         require(royaltyPriceCompensationShareNumerator + royaltyPriceReserveShareNumerator + royaltyPricePoolOwnerShareNumerator + royaltyPriceGrinderShareNumerator > DENOMINATOR);
 
         grethGrinderShareNumerator = 80_00; // 80%
         grethReserveShareNumerator = 5_00; // 5%
         grethPoolOwnerShareNumerator = 4_00; // 4%
         grethRoyaltyReceiverShareNumerator = 11_00; // 11%;
+        // total greth share = 80% + 5% + 4% + 11% = 100%
         require(grethGrinderShareNumerator + grethReserveShareNumerator + grethPoolOwnerShareNumerator + grethRoyaltyReceiverShareNumerator == DENOMINATOR);
-
-        // total share in buy royalty = 101% + 1% + 5% + 1% = 108%
+        
         royaltyInitPriceNumerator = 10_00; // 10%
         // poolOwnerShareNumerator + royaltyReserveShareNumerator + royaltyReceiverShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR
         royaltyNumerator = 20_00; // 20%
         poolOwnerShareNumerator = 80_00; // 80%
-        royaltyReceiverShareNumerator = 15_00; // 15%
-        royaltyReserveShareNumerator = 4_00; // 4%
+        royaltyReceiverShareNumerator = 14_00; // 14%
+        royaltyReserveShareNumerator = 5_00; // 5%
         royaltyGrinderShareNumerator = 1_00; // 1%
+        // total royalty + owner share = 20% + 80% = 100%
+        // total royalty share = 80% + 14% + 5% + 1% = 100%
         require(royaltyNumerator + poolOwnerShareNumerator == DENOMINATOR);
         require(poolOwnerShareNumerator + royaltyReceiverShareNumerator + royaltyReserveShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR);
         //  profit = 1 USDT
@@ -299,15 +300,14 @@ contract PoolsNFT is
     /// @notice First step - transfering ownership to `newOwner`
     ///         Second step - accept ownership
     /// @dev for future DAO
-    function transferOwnership(address payable _owner) external override {
-        if (payable(msg.sender) != owner && payable(msg.sender) != pendingOwner) {
-            revert NotOwnerOrPending();
-        }
+    function transferOwnership(address payable newOwner) external override {
         if (payable(msg.sender) == owner) {
-            pendingOwner = _owner;
-        } else {
+            pendingOwner = newOwner;
+        } else if (payable(msg.sender) == pendingOwner) {
             owner = pendingOwner;
             pendingOwner = payable(address(0));
+        } else {
+            revert NotOwnerOrPending();
         }
     }
 
@@ -435,7 +435,7 @@ contract PoolsNFT is
         deposited[poolId][address(quoteToken)] += depositedAmount;
         _increaseTotalDeposited(address(quoteToken), depositedAmount);
         emit Deposit(
-            poolIds[address(pool)],
+            poolId,
             address(pool),
             address(quoteToken),
             depositedAmount
@@ -482,9 +482,9 @@ contract PoolsNFT is
     {
         _onlyOwnerOf(poolId);
         IPoolStrategy pool = IPoolStrategy(pools[poolId]);
-        IToken quoteToken = pool.getQuoteToken();
         (quoteTokenAmount, baseTokenAmount) = pool.exit();
         transferFrom(ownerOf(poolId), getRoyaltyReceiver(poolId), poolId);
+        IToken quoteToken = pool.getQuoteToken();
         _decreaseTotalDeposited(address(quoteToken), deposited[poolId][address(quoteToken)]);
         deposited[poolId][address(quoteToken)] = 0;
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
@@ -1052,7 +1052,7 @@ contract PoolsNFT is
 
     receive() external payable {
         if (msg.value > 0) {
-            (bool success, ) = owner.call{value: msg.value}("");
+            (bool success, ) = address(grETH).call{value: msg.value}("");
             if (!success) {
                 emit ReceiveETH(msg.value);
             }

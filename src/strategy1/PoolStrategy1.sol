@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
@@ -28,7 +28,7 @@ contract PoolStrategy1 is
     uint256 public poolId;
 
     /// @dev timestamp of deployment
-    uint256 public poolDeploymentTimestamp;
+    uint256 public deploymentTimestamp;
 
     /// @dev price feed of fee token. [oracle] = quoteToken/feeToken
     ///      for Ethereum mainnet = ETH, for BSC = BNB, Optimism = ETH, etc
@@ -83,14 +83,14 @@ contract PoolStrategy1 is
         }
         initLending(_lendingArgs);
         initDex(
-            _baseToken,
             _quoteToken,
+            _baseToken,
             _dexArgs
         );
 
         poolsNFT = IPoolsNFT(_poolsNFT);
         poolId = _poolId;
-        poolDeploymentTimestamp = block.timestamp;
+        deploymentTimestamp = block.timestamp;
 
         oracleQuoteTokenPerFeeToken = AggregatorV3Interface(
             _oracleQuoteTokenPerFeeToken
@@ -112,9 +112,9 @@ contract PoolStrategy1 is
         _checkConfig(conf);
         config = conf;
 
-        _initHelperTokensDecimalsParams();
-        _initHelperOracleParams();
-        _initHelperCoefParams();
+        _initHelperTokensDecimals();
+        _initHelperOracle();
+        _initHelperCoef();
         _setHelperInitLiquidityAndInvestCoef();
 
         long = Position({
@@ -139,13 +139,13 @@ contract PoolStrategy1 is
         });
     }
 
-    function _initHelperTokensDecimalsParams() private {
+    function _initHelperTokensDecimals() private {
         helper.baseTokenDecimals = baseToken.decimals();
         helper.quoteTokenDecimals = quoteToken.decimals();
         helper.feeTokenDecimals = feeToken.decimals();
     }
 
-    function _initHelperOracleParams() private {
+    function _initHelperOracle() private {
         helper.oracleQuoteTokenPerFeeTokenDecimals = oracleQuoteTokenPerFeeToken
             .decimals();
         helper
@@ -157,7 +157,7 @@ contract PoolStrategy1 is
             10 ** helper.oracleQuoteTokenPerBaseTokenDecimals;
     }
 
-    function _initHelperCoefParams() private {
+    function _initHelperCoef() private {
         uint8 coefDecimals = 2;
         uint8 percentDecimals = 4;
 
@@ -175,14 +175,13 @@ contract PoolStrategy1 is
             helper.investCoef;
     }
 
-    /// @dev makes request of ownership to NFT
-    function _onlyOwner()
+    /// @dev checks that pool owner
+    function _onlyPoolOwner()
         internal
         view
         override(AAVEV3AdapterArbitrum, UniswapV3AdapterArbitrum)
     {
-        address _owner = owner();
-        if (msg.sender != _owner) {
+        if (msg.sender != owner()) {
             revert NotOwner();
         }
     }
@@ -210,7 +209,7 @@ contract PoolStrategy1 is
 
     /// @notice sets config of strategy pool
     function setConfig(Config memory conf) public {
-        _onlyOwner();
+        _onlyPoolOwner();
         _checkConfig(conf);
         config = conf;
         _setHelperInitLiquidityAndInvestCoef();
@@ -219,7 +218,7 @@ contract PoolStrategy1 is
     /// @notice sets long number max
     /// @param longNumberMax new long number max
     function setLongNumberMax(uint8 longNumberMax) public {
-        _onlyOwner();
+        _onlyPoolOwner();
         if (longNumberMax == 0) {
             revert InvalidLongNumberMax();
         }
@@ -230,7 +229,7 @@ contract PoolStrategy1 is
     /// @notice sets hedge number max
     /// @param hedgeNumberMax new hedge number max
     function setHedgeNumberMax(uint8 hedgeNumberMax) public {
-        _onlyOwner();
+        _onlyPoolOwner();
         if (hedgeNumberMax == 0) {
             revert InvalidHedgeNumberMax();
         }
@@ -240,7 +239,7 @@ contract PoolStrategy1 is
     /// @notice sets extra coef
     /// @param extraCoef new extra coef
     function setExtraCoef(uint256 extraCoef) public {
-        _onlyOwner();
+        _onlyPoolOwner();
         if (extraCoef == 0) {
             revert InvalidExtraCoef();
         }
@@ -249,13 +248,13 @@ contract PoolStrategy1 is
     }
 
     /// @notice sets average price volatility
-    /// @param priceVolatility price volatility. [priceVolatility]=quoteToken/baseToken
-    function setAveragePriceVolatility(uint256 priceVolatility) public {
-        _onlyOwner();
-        if (priceVolatility == 0) {
+    /// @param averagePriceVolatility price volatility. [averagePriceVolatility]=quoteToken/baseToken
+    function setAveragePriceVolatility(uint256 averagePriceVolatility) public {
+        _onlyPoolOwner();
+        if (averagePriceVolatility == 0) {
             revert InvalidPriceVolatility();
         }
-        config.averagePriceVolatility = priceVolatility;
+        config.averagePriceVolatility = averagePriceVolatility;
     }
 
     /// @notice set retunr for StrategyOp
@@ -263,7 +262,7 @@ contract PoolStrategy1 is
     /// @param op operation to apply return
     /// @param returnPercent return scaled by helper.returnPercentMultiplier
     function setOpReturnPercent(StrategyOp op, uint256 returnPercent) public {
-        _onlyOwner();
+        _onlyPoolOwner();
         if (returnPercent < 100 * helper.returnPercentMultiplier)
             revert InvalidReturnOfInvestment();
         if (op == StrategyOp.LONG_SELL) {
@@ -281,7 +280,7 @@ contract PoolStrategy1 is
     /// @dev if realFeeCoef = 1.61, than feeConfig = realFeeCoef * helper.feeCoeficientMultiplier
     /// @param _feeCoef fee coeficient scaled by helper.feeCoeficientMultiplier
     function setOpFeeCoef(StrategyOp op, uint256 _feeCoef) public {
-        _onlyOwner();
+        _onlyPoolOwner();
         if (op == StrategyOp.LONG_SELL) {
             feeConfig.longSellFeeCoef = _feeCoef;
         } else if (op == StrategyOp.HEDGE_SELL) {
@@ -380,30 +379,6 @@ contract PoolStrategy1 is
             helper.investCoef;
     }
 
-    /// @notice calculate max liquidity that can be used for buying
-    function calcMaxLiquidity() public view returns (uint256) {
-        return
-            (helper.initLiquidity * helper.investCoef) /
-            helper.investCoefMultiplier;
-    }
-
-    /// @notice calculates invest coeficient
-    /// @dev q_n = (e+1) ^ (n-1) * q_1 => investCoef = (e+1)^(n-1)
-    function calcInvestCoef() public view returns (uint256 investCoef) {
-        uint8 exponent = config.longNumberMax - 1;
-        uint256 multiplier = helper.extraCoefMultiplier;
-        if (exponent >= 2) {
-            investCoef =
-                (config.extraCoef + multiplier) ** exponent /
-                (multiplier ** (exponent - 1));
-        } else if (exponent == 1) {
-            investCoef = config.extraCoef + multiplier;
-        } else {
-            // exponent == 0
-            investCoef = multiplier;
-        }
-    }
-
     /// @notice grab all assets from strategy and send it to owner
     /// @return quoteTokenAmount amount of quoteToken in exit
     /// @return baseTokenAmount amount of baseToken in exit
@@ -491,9 +466,10 @@ contract PoolStrategy1 is
         }
     }
 
-    //// GRIND FUNCTIONS ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //// ITERATE SUBFUNCTIONS
 
-    /// @inheritdoc IPoolStrategy
+    /// @notice makes long_buy
     function long_buy()
         public
         override
@@ -553,7 +529,7 @@ contract PoolStrategy1 is
         }
     }
 
-    /// @inheritdoc IPoolStrategy
+    /// @notice makes long_sell
     function long_sell()
         public
         override
@@ -599,7 +575,7 @@ contract PoolStrategy1 is
         });
     }
 
-    /// @inheritdoc IPoolStrategy
+    /// @notice makes hedge_sell
     function hedge_sell()
         public
         override
@@ -708,7 +684,7 @@ contract PoolStrategy1 is
         }
     }
 
-    /// @inheritdoc IPoolStrategy
+    /// @notice makes hedge_rebuy
     function hedge_rebuy()
         public
         override
@@ -846,7 +822,8 @@ contract PoolStrategy1 is
         }
     }
 
-    //// REBALANCE FUNCTIONS ////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //// REBALANCE FUNCTIONS
 
     /// @notice first step for rebalance the positions via poolsNFT
     /// @dev called before rebalance by poolsNFT
@@ -883,7 +860,8 @@ contract PoolStrategy1 is
         long.price = newPrice;
     }
 
-    //// PRICES /////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //// PRICES
 
     /// @notice returns `baseToken` price in terms of `quoteToken`
     /// @dev dimention [price]=quoteToken/baseToken
@@ -920,7 +898,31 @@ contract PoolStrategy1 is
             quoteTokenPerBaseTokenPrice;
     }
 
-    //// CALCULATE FUNCTIONS ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //// CALCULATE FUNCTIONS
+
+    /// @notice calculate max liquidity that can be used for buying
+    /// @dev q_n = q_1 * investCoef / investCoefMultiplier
+    function calcMaxLiquidity() public view returns (uint256) {
+        return (helper.initLiquidity * helper.investCoef) / helper.investCoefMultiplier;
+    }
+
+    /// @notice calculates invest coeficient
+    /// @dev q_n = (e+1) ^ (n-1) * q_1 => investCoef = (e+1)^(n-1)
+    function calcInvestCoef() public view returns (uint256 investCoef) {
+        uint8 exponent = config.longNumberMax - 1;
+        uint256 multiplier = helper.extraCoefMultiplier;
+        if (exponent >= 2) {
+            investCoef =
+                (config.extraCoef + multiplier) ** exponent /
+                (multiplier ** (exponent - 1));
+        } else if (exponent == 1) {
+            investCoef = config.extraCoef + multiplier;
+        } else {
+            // exponent == 0
+            investCoef = multiplier;
+        }
+    }
 
     /// @notice calculates the price of `baseToken` in terms of `quoteToken` based on `quoteTokenAmount` and `baseTokenAmount`
     /// @param quoteTokenAmount amount of `quoteToken`
@@ -1101,8 +1103,7 @@ contract PoolStrategy1 is
          *      hedgeRebuyFee = estimation for 1 execution of rebuy as sum of all hedge sell fees divided to hedge.number + sum of all hedge sell fees =
          *                    = hedgeSellFees / hedge.number + hedgeSellFees
          */
-        uint256 feeQty = (hedge.feeQty * feeConfig.hedgeRebuyFeeCoef) /
-            helper.feeCoefMultiplier;
+        uint256 feeQty = (hedge.feeQty * feeConfig.hedgeRebuyFeeCoef) / helper.feeCoefMultiplier;
         uint256 hedgeSellFees; // [hedgeSellFees] = baseToken
         if (feeToken == baseToken) {
             hedgeSellFees = feeQty;
@@ -1110,11 +1111,10 @@ contract PoolStrategy1 is
             hedgeSellFees = calcBaseTokenByFeeToken(feeQty, hedge.feePrice);
         }
         uint256 hedgeRebuyFee = hedgeSellFees / hedge.number;
-
         baseTokenAmountThreshold =
-            ((hedge.qty + hedgeSellFees + hedgeRebuyFee) *
+            ((hedge.qty + hedgeSellFees + hedgeRebuyFee) * 
                 config.returnPercentHedgeRebuy) /
-            helper.returnPercentMultiplier;
+                    helper.returnPercentMultiplier;
         swapPriceThreshold = calcSwapPrice(
             quoteTokenAmount,
             baseTokenAmountThreshold
@@ -1247,7 +1247,7 @@ contract PoolStrategy1 is
             getPendingYield(baseToken);
         ROINumerator = profits;
         ROIDenominator = investment;
-        ROIPeriod = block.timestamp - poolDeploymentTimestamp;
+        ROIPeriod = block.timestamp - deploymentTimestamp;
     }
 
     /// @notice calculates annual percentage rate (APR) of strategy pool
@@ -1440,7 +1440,7 @@ contract PoolStrategy1 is
     /// @notice sweep tokens from smart contract
     /// @param token address of token to sweep
     function sweep(address token, address to) public payable {
-        _onlyOwner();
+        _onlyPoolOwner();
         if (
             token == address(getAToken(baseToken)) ||
             token == address(getAToken(quoteToken))

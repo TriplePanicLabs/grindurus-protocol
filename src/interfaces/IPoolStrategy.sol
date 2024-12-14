@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IToken} from "./IToken.sol";
+import {IPoolsNFT} from "./IPoolsNFT.sol";
 import {IERC5313} from "lib/openzeppelin-contracts/contracts/interfaces/IERC5313.sol"; // owner interface
 
 /// @notice the interface for Strategy Pool
@@ -129,56 +130,45 @@ interface IPoolStrategy is IERC5313 {
         uint256 baseTokenTradeProfit; // [baseTokenTradeProfit] = baseToken
     }
 
-    /// @notice deposits token to strategy
+    function poolsNFT() external view returns (IPoolsNFT);
+
+    function poolId() external view returns (uint256);
+
     function deposit(uint256 quoteTokenAmount) external returns (uint256 deposited);
 
-    /// @notice withdraw quoteTokem from strategy
     function withdraw(address to, uint256 quoteTokenAmount) external returns (uint256 withdrawn);
 
-    /// @notice exit from strategy
     function exit() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    /// @notice take quoteToken from lending protocol, swaps quoteToken to baseToken, put baseToken to lending protocol
     function long_buy() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    /// @notice
     function long_sell() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    /// @notice hedge sell of the positions
     function hedge_sell() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    /// @notice hedge rebuy of the position
     function hedge_rebuy() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    /// @notice iteration of URUS algorithm
     /// @dev calls long_buy, long_sell, hedge_sell, hedge_rebuy
     function iterate() external returns (bool iterated);
 
-    /// @notice transfer funds from pool to poolsNFT;
     function beforeRebalance() external returns (uint256 baseTokenAmount, uint256 price);
 
-    /// @notice transfer rebalanced funds from poolsNFT to poolLeft and pool right
     function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) external;
 
-    /// @notice
     function getPriceQuoteTokenPerBaseToken() external view returns (uint256 price);
 
-    /// @notice
     function getPriceQuoteTokensPerFeeToken() external view returns (uint256 price);
 
-    /// @notice
     function getPriceBaseTokensPerFeeToken(uint256 quoteTokenPerBaseTokenPrice)
         external
         view
         returns (uint256 baseTokensPerFeeTokenPrice);
 
-    /// @notice
     function calcQuoteTokenByBaseToken(uint256 baseTokenAmount, uint256 quoteTokenPerBaseTokenPrice)
         external
         view
         returns (uint256 quoteTokenAmount);
 
-    /// @notice
     function calcQuoteTokenByFeeToken(uint256 feeTokenAmount, uint256 quoteTokenPerFeeTokenPrice)
         external
         view
@@ -189,31 +179,22 @@ interface IPoolStrategy is IERC5313 {
         view
         returns (uint256 baseTokenAmount);
 
-    /// @notice
     function calcFeeTokenByQuoteToken(uint256 quoteTokenAmount) external view returns (uint256 feeTokenAmount);
 
-    /// @notice return strategy id
     function strategyId() external pure returns (uint16);
 
-    /// @notice returns `quoteToken`
     function getQuoteToken() external view returns (IToken);
 
-    /// @notice returns `baseToken`
     function getBaseToken() external view returns (IToken);
 
-    /// @notice return quote token amount
     function getQuoteTokenAmount() external view returns (uint256 quoteTokenAmount);
 
-    /// @notice return base token amount
     function getBaseTokenAmount() external view returns (uint256 baseTokenAmount);
 
-    /// @notice return Return of Investment
     function ROI() external view returns (uint256 ROINumerator, uint256 ROIDenominator, uint256 ROIPeriod);
 
-    /// @notice return Annual Percentage Rate
     function APR() external view returns (uint256 APRNumerator, uint256 APRDenominator);
 
-    /// @notice return total profits data
     function getTotalProfits()
         external
         view
@@ -224,13 +205,10 @@ interface IPoolStrategy is IERC5313 {
             uint256 baseTokenTradeProfit
         );
 
-    /// @notice return positions and config
     function getPositions() external view returns (Position memory, Position memory);
 
-    /// @notice returns TVL of pool
     function getTVL() external view returns (uint256);
 
-    /// @notice return long position
     function getLong()
         external
         view
@@ -245,7 +223,6 @@ interface IPoolStrategy is IERC5313 {
             uint256 feePrice
         );
 
-    /// @notice return hedge position
     function getHedge()
         external
         view
@@ -260,7 +237,6 @@ interface IPoolStrategy is IERC5313 {
             uint256 feePrice
         );
 
-    /// @notice return config
     function getConfig()
         external
         view

@@ -40,12 +40,12 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         (_aaveV3Pool) = abi.decode(args, (address));
     }
 
-    function _onlyOwner() internal view virtual {}
+    function _onlyPoolOwner() internal view virtual {}
 
     /// @notice sets pool
     /// @param _aaveV3Pool address of AAVEv3 pool
     function setPool(IAAVEV3PoolArbitrum _aaveV3Pool) public {
-        _onlyOwner();
+        _onlyPoolOwner();
         aaveV3Pool = _aaveV3Pool;
     }
 

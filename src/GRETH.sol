@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
 import {IGRETH, IToken} from "./interfaces/IGRETH.sol";
@@ -64,15 +64,16 @@ contract GRETH is IGRETH, ERC20 {
             }
             unchecked { ++i; }
         }
+        emit Mint(actors, shares, totalShares);
     }
 
     /// @notice burns grETH and get token
     /// @param amount amount of grETH
-    function burn(uint256 amount, address token) external payable {
+    function burn(uint256 amount, address token) external payable returns (uint256 tokenAmount) {
         address payable burner = payable(msg.sender);
         uint256 balance;
-        uint256 tokenAmount;
         if (burner == owner()) {
+            /// owner dont hold grETH, so it is internal mechanism
             balance = balanceOf(address(this));
         } else {
             balance = balanceOf(burner);
@@ -81,10 +82,16 @@ contract GRETH is IGRETH, ERC20 {
             revert InvalidAmount();
         }
         tokenAmount = share(amount, token);
-        _burn(msg.sender, amount);
-        if (tokenAmount > 0) {
+        if (tokenAmount == 0) {
+            revert ZeroTokenAmount();
+        } else {
+            _burn(msg.sender, amount);
+            emit Burn(msg.sender, amount, token, tokenAmount);
             if (token == address(0)) {
                 (bool success,) = burner.call{value: tokenAmount}("");
+                if (!success) {
+                    revert FailTransferETH();
+                }
             } else {
                 IToken(token).safeTransfer(burner, tokenAmount);
             }
@@ -92,8 +99,8 @@ contract GRETH is IGRETH, ERC20 {
     }
 
     /// @notice calculates the share of token
-    /// @param token address of token to calculate the share
     /// @param amount grETH amount
+    /// @param token address of token to calculate the share
     function share(uint256 amount, address token) public view returns (uint256) {
         uint256 totalLiquidity;
         if (token == address(0)) {
@@ -114,8 +121,8 @@ contract GRETH is IGRETH, ERC20 {
 
     /// @notice returns address of owner
     function owner() public view returns (address) {
-        try IPoolsNFT(poolsNFT).owner() returns (address payable owner) {
-            return owner;
+        try IPoolsNFT(poolsNFT).owner() returns (address payable _owner) {
+            return _owner;
         } catch {
             return poolsNFT;
         }

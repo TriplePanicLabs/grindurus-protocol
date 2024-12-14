@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
 import {IFactoryPoolStrategy} from "src/interfaces/IFactoryPoolStrategy.sol";
@@ -16,15 +16,17 @@ contract FactoryPoolStrategy1 is IFactoryPoolStrategy {
     IPoolStrategy.Config public defaultConfig;
 
     // address public oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
-    // address public wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-    // address public usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+    address private wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+    address private usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
 
-    address public aaveV3PoolArbitrum =
-        0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    address private aaveV3PoolArbitrum = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    address private uniswapV3SwapRouterArbitrum = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
-    address public uniswapV3SwapRouterArbitrum =
-        0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
-    uint24 public uniswapV3PoolFeeArbitrum = 500;
+    /// @dev quoteToken => baseToken => averagePriceVolatility
+    mapping (address quoteToken => mapping(address baseToken => uint256)) public averagePriceVolatility;
+
+    /// @dev quoteToken => baseToken => uniswapV3PoolFee
+    mapping (address quoteToken => mapping(address baseToken => uint24)) public uniswapV3PoolFee;
 
     constructor(address _poolsNFT) {
         if (_poolsNFT != address(0)) {
@@ -42,6 +44,8 @@ contract FactoryPoolStrategy1 is IFactoryPoolStrategy {
             returnPercentHedgeSell: 100_50, // 100.50%
             returnPercentHedgeRebuy: 100_50 // 100.50%
         });
+        averagePriceVolatility[usdtArbitrum][wethArbitrum] = 30 * (10 ** 8);
+        uniswapV3PoolFee[usdtArbitrum][wethArbitrum] = 500;
     }
 
     /// @notice checks that msg.sender is poolsNFT
@@ -51,13 +55,62 @@ contract FactoryPoolStrategy1 is IFactoryPoolStrategy {
         }
     }
 
+    /// @notice checks that msg.sender is owner
+    function _onlyOwner() private view {
+        if (msg.sender != owner()) {
+            revert NotOwner();
+        }
+    }
+
+    /// @notice sets average price volatility
+    /// @param quoteToken address of quoteToken
+    /// @param baseToken address of baseToken
+    /// @param _averagePriceVolatility price scaled by 10**8
+    /// @param _uniswapV3PoolFee  uniswap pool fee
+    function setDefaultStrategyParams(
+        address quoteToken,
+        address baseToken,
+        uint256 _averagePriceVolatility,
+        uint24 _uniswapV3PoolFee
+    ) public {
+        _onlyOwner();
+        averagePriceVolatility[quoteToken][baseToken] = _averagePriceVolatility;
+        uniswapV3PoolFee[quoteToken][baseToken] = _uniswapV3PoolFee;
+    }
+
+    /// @notice sets average price volatility
+    /// @param quoteToken address of quoteToken
+    /// @param baseToken address of baseToken
+    /// @param _averagePriceVolatility price scaled by 10**8
+    function setAveragePriceVolatility(
+        address quoteToken,
+        address baseToken,
+        uint256 _averagePriceVolatility
+    ) public {
+        _onlyOwner();
+        averagePriceVolatility[quoteToken][baseToken] = _averagePriceVolatility;
+    }
+
+    /// @notice sets uniswapV3 fee
+    /// @param quoteToken address of quoteToken
+    /// @param baseToken address of baseToken
+    /// @param _uniswapV3PoolFee price scaled by 10**8
+    function setUniswapV3PoolFee(
+        address quoteToken,
+        address baseToken,
+        uint24 _uniswapV3PoolFee
+    ) public {
+        _onlyOwner();
+        uniswapV3PoolFee[quoteToken][baseToken] = _uniswapV3PoolFee;
+    }
+
     /// @notice deploy strategy pool
     /// @param poolId id of pool
     /// @param oracleQuoteTokenPerFeeToken oracle address
     /// @param oracleQuoteTokenPerBaseToken oracle address
     /// @param feeToken address of fee token (ETH)
-    /// @param baseToken address of base token
     /// @param quoteToken address of quote token
+    /// @param baseToken address of base token
     /// @return pool address of pool
     function deploy(
         uint256 poolId,
@@ -66,10 +119,11 @@ contract FactoryPoolStrategy1 is IFactoryPoolStrategy {
         address feeToken,
         address quoteToken,
         address baseToken
-    ) public override returns (address pool) {
+    ) public override returns (address) {
         _onlyPoolsNFT();
-        PoolStrategy1 poolStrategy1 = new PoolStrategy1();
-        poolStrategy1.init(
+        PoolStrategy1 pool = new PoolStrategy1();
+        uint24 uniswapV3Fee = uniswapV3PoolFee[quoteToken][baseToken];
+        pool.init(
             address(poolsNFT),
             poolId,
             oracleQuoteTokenPerFeeToken,
@@ -80,15 +134,19 @@ contract FactoryPoolStrategy1 is IFactoryPoolStrategy {
             abi.encode(aaveV3PoolArbitrum),
             abi.encode(
                 uniswapV3SwapRouterArbitrum,
-                uniswapV3PoolFeeArbitrum
+                uniswapV3Fee
             ),
             defaultConfig
         );
-        pool = address(poolStrategy1);
-        uint256 poolStrategyId = poolStrategy1.strategyId();
-        uint256 factoryStrategyId = strategyId();
-        if (poolStrategyId != factoryStrategyId) {
-            revert InvalidStrategyId(poolStrategyId, factoryStrategyId);
+        return address(pool);
+    }
+
+    /// @notice returns address of owner
+    function owner() public view returns (address) {
+        try IPoolsNFT(poolsNFT).owner() returns (address payable _owner) {
+            return _owner;
+        } catch {
+            return address(poolsNFT);
         }
     }
 
