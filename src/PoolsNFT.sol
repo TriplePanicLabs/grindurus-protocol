@@ -4,9 +4,10 @@ pragma solidity =0.8.28;
 import {IToken} from "src/interfaces/IToken.sol";
 import {IGRETH} from "src/interfaces/IGRETH.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {IPoolStrategy} from "src/interfaces/IPoolStrategy.sol";
+import {IStrategy} from "src/interfaces/IStrategy.sol";
+import {IPoolsNFTImage} from "src/interfaces/IPoolsNFTImage.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
-import {IFactoryPoolStrategy} from "src/interfaces/IFactoryPoolStrategy.sol";
+import {IStrategyFactory} from "src/interfaces/IStrategyFactory.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {Base64} from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
@@ -118,11 +119,14 @@ contract PoolsNFT is
     /// @notice total amount of pools
     uint256 public totalPools;
 
+    /// @notice address of poolsNFTImage
+    IPoolsNFTImage public poolsNFTImage;
+
     /// @dev grETH token address
     IGRETH public grETH;
 
     /// @dev strategyId => address of grindurus pool strategy implementation
-    mapping(uint16 strategyId => IFactoryPoolStrategy) public factoryStrategy;
+    mapping(uint16 strategyId => IStrategyFactory) public strategyFactory;
 
     /// @dev poolId => royalty receiver
     mapping(uint256 poolId => address) public royaltyReceiver;
@@ -212,6 +216,13 @@ contract PoolsNFT is
     function setBaseURI(string memory _baseURI) external override {
         _onlyOwner();
         baseURI = _baseURI;
+    }
+
+    /// @notice sets pools NFT Image
+    /// @param _poolsNFTImage address of poolsNFTImage
+    function setPoolsNFTImage(address _poolsNFTImage) external override {
+        _onlyOwner();
+        poolsNFTImage = IPoolsNFTImage(_poolsNFTImage);
     }
 
     /// @notice sets cap tvl
@@ -313,11 +324,11 @@ contract PoolsNFT is
 
     /// @notice set factrory strategy
     /// @dev callable only by strategiest
-    function setFactoryStrategy(address _factoryStrategy) external override {
+    function setStrategyFactory(address _strategyFactory) external override {
         _onlyOwner();
-        uint16 strategyId = IFactoryPoolStrategy(_factoryStrategy).strategyId();
-        factoryStrategy[strategyId] = IFactoryPoolStrategy(_factoryStrategy);
-        emit SetFactoryStrategy(strategyId, _factoryStrategy);
+        uint16 strategyId = IStrategyFactory(_strategyFactory).strategyId();
+        strategyFactory[strategyId] = IStrategyFactory(_strategyFactory);
+        emit SetFactoryStrategy(strategyId, _strategyFactory);
     }
 
     /////// PUBLIC FUNCTIONS
@@ -325,17 +336,11 @@ contract PoolsNFT is
     /// @notice mints NFT with deployment of strategy
     /// @dev mints to `msg.sender`
     /// @param strategyId id of strategy implementation
-    /// @param oracleQuoteTokenPerFeeToken address of oracle `quoteToken` per `feeToken` that should implement `AggregatorV3Interface`
-    /// @param oracleQuoteTokenPerBaseToken address of oracle `quoteToken` per `baseToken` that should implement `AggregatorV3Interface`
-    /// @param feeToken address of feeToken
     /// @param baseToken address of baseToken
     /// @param quoteToken address of quoteToken
     /// @param quoteTokenAmount amount of quoteToken to be deposited after mint
     function mint(
         uint16 strategyId,
-        address oracleQuoteTokenPerFeeToken,
-        address oracleQuoteTokenPerBaseToken,
-        address feeToken,
         address quoteToken,
         address baseToken,
         uint256 quoteTokenAmount
@@ -343,9 +348,6 @@ contract PoolsNFT is
         poolId = mintTo(
             msg.sender,
             strategyId,
-            oracleQuoteTokenPerFeeToken,
-            oracleQuoteTokenPerBaseToken,
-            feeToken,
             quoteToken,
             baseToken,
             quoteTokenAmount
@@ -355,28 +357,19 @@ contract PoolsNFT is
     /// @notice mints NFT with deployment of strategy
     /// @dev mints to `to`
     /// @param strategyId id of strategy implementation
-    /// @param oracleQuoteTokenPerFeeToken address of oracle `quoteToken` per `feeToken` that should implement `AggregatorV3Interface`
-    /// @param oracleQuoteTokenPerBaseToken address of oracle `quoteToken` per `baseToken` that should implement `AggregatorV3Interface`
-    /// @param feeToken address of feeToken
     /// @param baseToken address of baseToken
     /// @param quoteToken address of quoteToken
     /// @param quoteTokenAmount amount of quoteToken to be deposited after mint
     function mintTo(
         address to,
         uint16 strategyId,
-        address oracleQuoteTokenPerFeeToken,
-        address oracleQuoteTokenPerBaseToken,
-        address feeToken,
         address quoteToken,
         address baseToken,
         uint256 quoteTokenAmount
     ) public override returns (uint256 poolId) {
         poolId = totalPools;
-        address pool = factoryStrategy[strategyId].deploy(
+        address pool = strategyFactory[strategyId].deploy(
             poolId,
-            oracleQuoteTokenPerFeeToken,
-            oracleQuoteTokenPerBaseToken,
-            feeToken,
             quoteToken,
             baseToken
         );
@@ -392,9 +385,6 @@ contract PoolsNFT is
 
         emit Mint(
             poolId,
-            oracleQuoteTokenPerFeeToken,
-            oracleQuoteTokenPerBaseToken,
-            feeToken,
             baseToken,
             quoteToken
         );
@@ -422,8 +412,8 @@ contract PoolsNFT is
         uint256 poolId,
         uint256 quoteTokenAmount
     ) internal returns (uint256 depositedAmount) {
-        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
-        IToken quoteToken = pool.getQuoteToken();
+        IStrategy pool = IStrategy(pools[poolId]);
+        IToken quoteToken = pool.quoteToken();
         _checkCap(address(quoteToken), quoteTokenAmount);
         quoteToken.safeTransferFrom(
             msg.sender,
@@ -464,8 +454,8 @@ contract PoolsNFT is
         uint256 quoteTokenAmount
     ) public override returns (uint256 withdrawn) {
         _onlyOwnerOf(poolId);
-        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
-        IToken quoteToken = pool.getQuoteToken();
+        IStrategy pool = IStrategy(pools[poolId]);
+        IToken quoteToken = pool.quoteToken();
         withdrawn = pool.withdraw(to, quoteTokenAmount);
         deposited[poolId][address(quoteToken)] -= withdrawn;
         _decreaseTotalDeposited(address(quoteToken), withdrawn);
@@ -481,10 +471,14 @@ contract PoolsNFT is
         returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
     {
         _onlyOwnerOf(poolId);
-        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
+        IStrategy pool = IStrategy(pools[poolId]);
         (quoteTokenAmount, baseTokenAmount) = pool.exit();
-        transferFrom(ownerOf(poolId), getRoyaltyReceiver(poolId), poolId);
-        IToken quoteToken = pool.getQuoteToken();
+        address poolNFTRecipient = getRoyaltyReceiver(poolId);
+        if (poolNFTRecipient == ownerOf(poolId)) {
+            poolNFTRecipient = owner; // tranfer to protocol owner
+        }
+        transferFrom(ownerOf(poolId), poolNFTRecipient, poolId);
+        IToken quoteToken = pool.quoteToken();
         _decreaseTotalDeposited(address(quoteToken), deposited[poolId][address(quoteToken)]);
         deposited[poolId][address(quoteToken)] = 0;
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
@@ -529,19 +523,19 @@ contract PoolsNFT is
         if (ownerOf(poolId0) != ownerOf(poolId1)) {
             revert NotAllowedToRebalance();
         }
-        IPoolStrategy pool0 = IPoolStrategy(
+        IStrategy pool0 = IStrategy(
             pools[poolId0]
         );
-        IPoolStrategy pool1 = IPoolStrategy(
+        IStrategy pool1 = IStrategy(
             pools[poolId1]
         );
         if (pool0.strategyId() != pool1.strategyId()) {
             revert DifferentStrategyId();
         }
-        IToken pool0BaseToken = pool0.getBaseToken();
-        IToken pool1BaseToken = pool1.getBaseToken();
-        IToken pool0QuoteToken = pool0.getQuoteToken();
-        IToken pool1QuoteToken = pool1.getQuoteToken();
+        IToken pool0BaseToken = pool0.baseToken();
+        IToken pool1BaseToken = pool1.baseToken();
+        IToken pool0QuoteToken = pool0.quoteToken();
+        IToken pool1QuoteToken = pool1.quoteToken();
         if (address(pool0QuoteToken) != address(pool1QuoteToken)) {
             revert DifferentQuoteTokens();
         }
@@ -550,7 +544,10 @@ contract PoolsNFT is
         }
 
         (uint256 baseTokenAmount0, uint256 price0) = pool0.beforeRebalance();
+        pool0BaseToken.safeTransferFrom(address(pool0), address(this), baseTokenAmount0);
         (uint256 baseTokenAmount1, uint256 price1) = pool1.beforeRebalance();
+        pool1BaseToken.safeTransferFrom(address(pool1), address(this), baseTokenAmount1);
+        
         // second step: rebalance
         uint256 totalBaseTokenAmount = baseTokenAmount0 +baseTokenAmount1;
         uint256 rebalancedPrice = (baseTokenAmount0 * price0 + baseTokenAmount1 * price1) / totalBaseTokenAmount;
@@ -574,7 +571,7 @@ contract PoolsNFT is
     /// @param poolId pool id of pool in array `pools`
     function grind(uint256 poolId) external override {
         uint256 gasStart = gasleft();
-        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
+        IStrategy pool = IStrategy(pools[poolId]);
         bool successIterate;
         try pool.iterate() returns (bool iterated) {
             successIterate = iterated;
@@ -814,7 +811,7 @@ contract PoolsNFT is
         uint256 poolId,
         uint256 quoteTokenAmount
     ) public view returns (uint256 initRoyaltyPrice) {
-        uint256 feeTokenAmount = IPoolStrategy(pools[poolId]).calcFeeTokenByQuoteToken(quoteTokenAmount);
+        uint256 feeTokenAmount = IStrategy(pools[poolId]).calcFeeTokenByQuoteToken(quoteTokenAmount);
         initRoyaltyPrice = (feeTokenAmount * royaltyInitPriceNumerator) / DENOMINATOR;
     }
 
@@ -830,9 +827,13 @@ contract PoolsNFT is
         returns (string memory uri)
     {
         _requireOwned(poolId);
-        // https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/{poolId}.json
-        string memory path = string.concat(baseURI, poolId.toString());
-        uri = string.concat(path, ".json");
+        if (address(poolsNFTImage) == address(0)) {
+            // https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/{poolId}.json
+            string memory path = string.concat(baseURI, poolId.toString());
+            uri = string.concat(path, ".json");
+        } else {
+            uri = poolsNFTImage.URI(poolId);
+        }
     }
 
     /// @inheritdoc ERC721
@@ -894,7 +895,7 @@ contract PoolsNFT is
         uint256 poolId = fromPoolId;
         uint256 poolInfoId = 0;
         for (; poolId <= toPoolId; ) {
-            IPoolStrategy pool = IPoolStrategy(pools[poolId]);
+            IStrategy pool = IStrategy(pools[poolId]);
             IToken quoteToken = pool.getQuoteToken();
             IToken baseToken = pool.getBaseToken();
             (
@@ -931,7 +932,7 @@ contract PoolsNFT is
     /// @notice return TVL of pool with `poolId`
     /// @param poolId id of pool
     function getTVL(uint256 poolId) external view override returns (uint256) {
-        return IPoolStrategy(pools[poolId]).getTVL();
+        return IStrategy(pools[poolId]).getTVL();
     }
 
     /// @notice returns long position of poolId
@@ -962,7 +963,7 @@ contract PoolsNFT is
             price,
             feeQty,
             feePrice
-        ) = IPoolStrategy(pools[poolId]).getLong();
+        ) = IStrategy(pools[poolId]).getLong();
     }
 
     /// @notice returns hedge position of poolId
@@ -993,7 +994,7 @@ contract PoolsNFT is
             price,
             feeQty,
             feePrice
-        ) = IPoolStrategy(pools[poolId]).getHedge();
+        ) = IStrategy(pools[poolId]).getHedge();
     }
 
     /// @notice returns long position of poolId
@@ -1014,7 +1015,7 @@ contract PoolsNFT is
             uint256 returnPercentHedgeRebuy
         )
     {
-        IPoolStrategy pool = IPoolStrategy(pools[poolId]);
+        IStrategy pool = IStrategy(pools[poolId]);
         (
             longNumberMax,
             hedgeNumberMax,

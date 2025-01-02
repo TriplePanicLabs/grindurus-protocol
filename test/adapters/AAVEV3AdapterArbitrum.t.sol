@@ -7,7 +7,7 @@ import {
     IAAVEV3AToken,
     IAAVEV3PoolArbitrum,
     IToken
-} from "../../src/adapters/AAVEV3AdapterArbitrum.sol";
+} from "../../src/adapters/lendings/AAVEV3AdapterArbitrum.sol";
 
 // $ forge test --match-path test/adapters/AAVEV3AdapterArbitrum.t.sol
 contract AAVEV3AdapterArbitrumTest is Test {

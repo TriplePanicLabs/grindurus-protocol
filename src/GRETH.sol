@@ -13,7 +13,7 @@ contract GRETH is IGRETH, ERC20 {
     using SafeERC20 for IToken;
 
     /// @dev address of grindurus strategy positions NFT
-    address public poolsNFT;
+    IPoolsNFT public poolsNFT;
 
     /// @dev total grinded
     uint256 public totalGrinded;
@@ -23,15 +23,15 @@ contract GRETH is IGRETH, ERC20 {
 
     constructor(address _poolsNFT) ERC20("GrindURUS ETH", "grETH") {
         if (_poolsNFT != address(0)) {
-            poolsNFT = _poolsNFT;
+            poolsNFT = IPoolsNFT(_poolsNFT);
         } else {
-            poolsNFT == msg.sender;
+            poolsNFT == IPoolsNFT(msg.sender);
         }
     }
 
     /// @notice checks that msg.sender is grindurus pools NFT
     function _onlyPoolsNFT() private view {
-        if (msg.sender != poolsNFT) {
+        if (msg.sender != address(poolsNFT)) {
             revert NotGrindURUSPoolsNFT();
         }
     }
@@ -121,10 +121,10 @@ contract GRETH is IGRETH, ERC20 {
 
     /// @notice returns address of owner
     function owner() public view returns (address) {
-        try IPoolsNFT(poolsNFT).owner() returns (address payable _owner) {
+        try poolsNFT.owner() returns (address payable _owner) {
             return _owner;
         } catch {
-            return poolsNFT;
+            return address(poolsNFT);
         }
     }
 

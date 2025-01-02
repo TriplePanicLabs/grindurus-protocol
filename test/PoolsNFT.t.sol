@@ -4,8 +4,8 @@ pragma solidity =0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
-import {PoolStrategy1, IToken, IPoolStrategy} from "src/strategy1/PoolStrategy1.sol";
-import {FactoryPoolStrategy1} from "src/strategy1/FactoryPoolStrategy1.sol";
+import {Strategy1Arbitrum, IToken, IStrategy} from "src/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import {Strategy1FactoryArbitrum} from "src/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 
 // $ forge test --match-path test/PoolsNFT.t.sol
 contract PoolsNFTTest is Test {
@@ -23,9 +23,9 @@ contract PoolsNFTTest is Test {
 
     GRETH public grindToken;
 
-    PoolStrategy1 public pool;
+    Strategy1Arbitrum public pool;
 
-    FactoryPoolStrategy1 public factory1;
+    Strategy1FactoryArbitrum public factory1;
 
     function setUp() public {
         vm.createSelectFork("arbitrum");
@@ -37,17 +37,14 @@ contract PoolsNFTTest is Test {
 
         grindToken = new GRETH(address(poolsNFT));
 
-        factory1 = new FactoryPoolStrategy1(address(poolsNFT));
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT));
 
         poolsNFT.setGRETH(address(grindToken));
-        poolsNFT.setFactoryStrategy(address(factory1));
+        poolsNFT.setStrategyFactory(address(factory1));
     }
 
     function test_mint_and_check() public {
         uint16 strategyId = 1;
-        address oracleQuoteTokenPerFeeToken = oracleWethUsdArbitrum;
-        address oracleQuoteTokenPerBaseToken = oracleWethUsdArbitrum;
-        address feeToken = wethArbitrum;
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 1e6;
@@ -55,15 +52,12 @@ contract PoolsNFTTest is Test {
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
-            oracleQuoteTokenPerFeeToken,
-            oracleQuoteTokenPerBaseToken,
-            feeToken,
             quoteToken,
             baseToken,
             quoteTokenAmount
         );
 
-        pool = PoolStrategy1(payable(poolsNFT.pools(poolId)));
+        pool = Strategy1Arbitrum(payable(poolsNFT.pools(poolId)));
 
         address grindurusPoolsNFT = address(pool.poolsNFT());
 
@@ -93,9 +87,6 @@ contract PoolsNFTTest is Test {
 
     function test_mint_and_grind() public {
         uint16 strategyId = 1;
-        address oracleQuoteTokenPerFeeToken = oracleWethUsdArbitrum;
-        address oracleQuoteTokenPerBaseToken = oracleWethUsdArbitrum;
-        address feeToken = wethArbitrum;
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 270e6;
@@ -103,9 +94,6 @@ contract PoolsNFTTest is Test {
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
-            oracleQuoteTokenPerFeeToken,
-            oracleQuoteTokenPerBaseToken,
-            feeToken,
             quoteToken,
             baseToken,
             quoteTokenAmount
@@ -113,7 +101,7 @@ contract PoolsNFTTest is Test {
 
         poolsNFT.grind(poolId);
 
-        pool = PoolStrategy1(payable(poolsNFT.pools(poolId)));
+        pool = Strategy1Arbitrum(payable(poolsNFT.pools(poolId)));
 
         (
             uint8 number,
@@ -137,9 +125,6 @@ contract PoolsNFTTest is Test {
 
     function test_mint_and_exit() public {
         uint16 strategyId = 1;
-        address oracleQuoteTokenPerFeeToken = oracleWethUsdArbitrum;
-        address oracleQuoteTokenPerBaseToken = oracleWethUsdArbitrum;
-        address feeToken = wethArbitrum;
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 270e6;
@@ -147,9 +132,6 @@ contract PoolsNFTTest is Test {
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
-            oracleQuoteTokenPerFeeToken,
-            oracleQuoteTokenPerBaseToken,
-            feeToken,
             quoteToken,
             baseToken,
             quoteTokenAmount
@@ -158,16 +140,13 @@ contract PoolsNFTTest is Test {
         poolsNFT.exit(poolId);
 
         address ownerOfAfter = poolsNFT.ownerOf(poolId);
-        // console.log(ownerOfAfter);
-        // console.log(address(this));
-        // assert(ownerOfAfter == address(treasury));
+        address owner = poolsNFT.owner();
+        assert(ownerOfAfter == owner);
+
     }
 
     function test_mint_and_buyRoyalty() public {
         uint16 strategyId = 1;
-        address oracleQuoteTokenPerFeeToken = oracleWethUsdArbitrum;
-        address oracleQuoteTokenPerBaseToken = oracleWethUsdArbitrum;
-        address feeToken = wethArbitrum;
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 270e6;
@@ -175,9 +154,6 @@ contract PoolsNFTTest is Test {
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
-            oracleQuoteTokenPerFeeToken,
-            oracleQuoteTokenPerBaseToken,
-            feeToken,
             quoteToken,
             baseToken,
             quoteTokenAmount

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IToken} from "src/interfaces/IToken.sol";
+import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 
 interface IGRETH is IToken {
     error NotGrindURUSPoolsNFT();
@@ -16,7 +17,7 @@ interface IGRETH is IToken {
     event Mint(address[] actors, uint256[] shares, uint256 minted);
     event Burn(address burner, uint256 amount, address token, uint256 tokenAmount);
 
-    function poolsNFT() external view returns (address);
+    function poolsNFT() external view returns (IPoolsNFT);
 
     function mint(
         address[] memory actors,

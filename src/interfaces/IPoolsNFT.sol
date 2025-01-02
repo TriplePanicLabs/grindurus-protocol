@@ -42,9 +42,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     event SetFactoryStrategy(uint256 strategyId, address factoryStrategy);
     event Mint(
         uint256 poolId,
-        address oracleQuoteTokenPerFeeToken,
-        address oracleQuoteTokenPerBaseToken,
-        address feeToken,
         address baseToken,
         address quoteToken
     );
@@ -125,9 +122,9 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function setBaseURI(string memory _baseURI) external;
 
-    function setInitRoyaltyPriceNumerator(
-        uint16 _initRoyaltyPriceNumerator
-    ) external;
+    function setPoolsNFTImage(address _poolsNFTImage) external;
+
+    function setInitRoyaltyPriceNumerator(uint16 _initRoyaltyPriceNumerator) external;
 
     function setRoyaltyShares(
         uint16 _poolOwnerRoyaltyShareNumerator,
@@ -154,13 +151,10 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function transferOwnership(address payable _owner) external;
 
-    function setFactoryStrategy(address _factoryStrategy) external;
+    function setStrategyFactory(address _strategyFactory) external;
 
     function mint(
         uint16 strategyId,
-        address oracleQuoteTokenPerFeeToken,
-        address oracleQuoteTokenPerBaseToken,
-        address feeToken,
         address baseToken,
         address quoteToken,
         uint256 quoteTokenAmount
@@ -169,9 +163,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function mintTo(
         address to,
         uint16 strategyId,
-        address oracleQuoteTokenPerFeeToken,
-        address oracleQuoteTokenPerBaseToken,
-        address feeToken,
         address baseToken,
         address quoteToken,
         uint256 quoteTokenAmount

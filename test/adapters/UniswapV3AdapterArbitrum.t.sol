@@ -2,7 +2,7 @@
 pragma solidity =0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
-import {UniswapV3AdapterArbitrum, IToken} from "../../src/adapters/UniswapV3AdapterArbitrum.sol";
+import {UniswapV3AdapterArbitrum, IToken} from "../../src/adapters/dexes/UniswapV3AdapterArbitrum.sol";
 
 // $ forge test --match-path test/adapters/UniswapV3AdapterArbitrum.t.sol
 contract UniswapV3AdapterArbitrumTest is Test {
@@ -22,12 +22,12 @@ contract UniswapV3AdapterArbitrumTest is Test {
     function setUp() public {
         vm.createSelectFork("arbitrum");
 
-        baseToken = IToken(weth);
-        quoteToken = IToken(usdt);
-        bytes memory args = abi.encode(uniswapV3SwapRouter, 500);
+        // baseToken = IToken(weth);
+        // quoteToken = IToken(usdt);
+        bytes memory args = abi.encode(uniswapV3SwapRouter, 500, usdt, weth);
 
         adapter = new UniswapV3AdapterArbitrum();
-        adapter.initDex(address(baseToken), address(quoteToken), args);
+        adapter.initDex(args);
     }
 
     function test_swap_baseToken_to_quoteToken() public {

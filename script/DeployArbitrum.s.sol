@@ -4,8 +4,8 @@ pragma solidity =0.8.28;
 import {Script, console} from "forge-std/Script.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
-import {PoolStrategy1, IToken, IPoolStrategy} from "src/strategy1/PoolStrategy1.sol";
-import {FactoryPoolStrategy1} from "src/strategy1/FactoryPoolStrategy1.sol";
+import {Strategy1Arbitrum, IToken, IStrategy} from "src/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import {Strategy1FactoryArbitrum} from "src/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 
 // Test purposes:
 // $ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript
@@ -27,7 +27,7 @@ contract DeployArbitrumScript is Script {
 
     GRETH public grETH;
 
-    FactoryPoolStrategy1 public factory1;
+    Strategy1FactoryArbitrum public factory1;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -43,8 +43,8 @@ contract DeployArbitrumScript is Script {
         grETH = new GRETH(address(poolsNFT));
         poolsNFT.setGRETH(address(grETH));
 
-        factory1 = new FactoryPoolStrategy1(address(poolsNFT));
-        poolsNFT.setFactoryStrategy(address(factory1));
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT));
+        poolsNFT.setStrategyFactory(address(factory1));
 
         vm.stopBroadcast();
     }
