@@ -56,7 +56,9 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
             returnPercentHedgeRebuy: 100_50 // 100.50%
         });
         averagePriceVolatility[usdtArbitrum][wethArbitrum] = 30 * (10 ** 8);
+        averagePriceVolatility[usdcArbitrum][wethArbitrum] = 30 * (10 ** 8);
         uniswapV3PoolFee[usdtArbitrum][wethArbitrum] = 500;
+        uniswapV3PoolFee[usdcArbitrum][wethArbitrum] = 500;
 
         feeToken = wethArbitrum;
         oracleQuoteTokenPerFeeToken[usdtArbitrum] = oracleWethUsdArbitrum;

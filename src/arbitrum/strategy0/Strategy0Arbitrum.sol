@@ -4,7 +4,7 @@ pragma solidity =0.8.28;
 import {IToken} from "src/interfaces/IToken.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
-import {URUSCore} from "src/URUSCore.sol";
+import {URUSCore, IERC5313} from "src/URUSCore.sol";
 import {IStrategy} from "src/interfaces/IStrategy.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IDexAdapter} from "src/interfaces/IDexAdapter.sol";
@@ -14,7 +14,7 @@ import {UniswapV3AdapterArbitrum} from "src/adapters/dexes/UniswapV3AdapterArbit
 /// @title Strategy 0
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice strategy pool, that implements pure URUS algorithm
-/// @dev stores tokens on PoolStrategy0 and hadles tokens swaps
+/// @dev stores tokens on strategy0 and hadles tokens swaps
 contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3AdapterArbitrum {
     using SafeERC20 for IToken;
 
@@ -94,7 +94,7 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
         IToken token,
         uint256 profit
     ) internal override (URUSCore) {
-        URUSCore._distributeProfit(token, profit);
+        URUSCore._distributeTradeProfit(token, profit);
     }
 
     function _distributeProfit(IToken token, uint256 profit) internal override (URUSCore) {
@@ -181,6 +181,15 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
     /// @notice returns strategy id
     function strategyId() public pure override returns (uint16) {
         return 0;
+    }
+
+    /// @notice returns the owner of strategy
+    function owner() public view override(URUSCore, IERC5313) returns (address) {
+        try poolsNFT.ownerOf(poolId) returns (address _owner) {
+            return _owner;
+        } catch {
+            return address(poolsNFT);
+        }
     }
 
     /// @notice returns quote token

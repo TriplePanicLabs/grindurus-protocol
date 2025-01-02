@@ -57,6 +57,7 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         return IAAVEV3AToken(reserveData.aTokenAddress);
     }
 
+    /// @dev no direct function call. Will revert
     function put(
         IToken token,
         uint256 amount
@@ -65,6 +66,7 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         revert();
     }
 
+    /// @dev no direct function call. Will revert
     function take(
         IToken token,
         uint256 amount
