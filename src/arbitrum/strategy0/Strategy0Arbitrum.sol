@@ -36,8 +36,8 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
         address _feeToken,
         address _quoteToken,
         address _baseToken,
-        bytes memory dexArgs,
-        Config memory conf
+        bytes memory _dexArgs,
+        Config memory _config
     ) public {
         if (address(poolsNFT) != address(0)) {
             revert StrategyInitialized(strategyId());
@@ -48,9 +48,9 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
             _feeToken,
             _quoteToken,
             _baseToken,
-            conf
+            _config
         );
-        initDex(dexArgs);
+        initDex(_dexArgs);
 
         poolsNFT = IPoolsNFT(_poolsNFT);
         poolId = _poolId;

@@ -12,10 +12,11 @@ contract NoDexAdapter is IDexAdapter {
 
     constructor() {}
 
-    /// @notice initialize dex
+    /// @notice constructor of initDex
+    /// @param args no dex args
     function initDex(
         bytes memory args
-    ) public {
+    ) public pure {
         args;
     }
 

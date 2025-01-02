@@ -20,6 +20,7 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
 
     constructor() {}
 
+    /// @dev constructor of AAVEV3AdapterArbitrum
     function initLending(bytes memory args) public {
         if (address(aaveV3Pool) != address(0)) {
             revert LendingInitialized();
@@ -28,18 +29,24 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         aaveV3Pool = IAAVEV3PoolArbitrum(_aaveV3Pool);
     }
 
+    /// @notice encodes constrcutor params
+    /// @param _aaveV3Pool address of AAVEV3Pool
     function encodeLendingConstructorArgs(
         address _aaveV3Pool
     ) public pure returns (bytes memory) {
         return abi.encode(_aaveV3Pool);
     }
-
+    
+    /// @notice decodes constrcutor params
+    /// @param args encoded argument of contructor params
     function decodeLendingConstructorArgs(
         bytes memory args
     ) public pure returns (address _aaveV3Pool) {
         (_aaveV3Pool) = abi.decode(args, (address));
     }
 
+    /// @notice checking ownership
+    /// @dev should be reimplemented in inherritant contract
     function _onlyOwner() internal view virtual {}
 
     /// @notice sets pool
