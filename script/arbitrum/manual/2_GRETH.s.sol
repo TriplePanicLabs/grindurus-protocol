@@ -4,8 +4,8 @@ pragma solidity =0.8.28;
 import {Script, console} from "forge-std/Script.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
-import {Strategy1Arbitrum, IToken, IStrategy} from "src/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import {Strategy1FactoryArbitrum} from "src/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
+import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 
 // Test purposes:
 // $ forge script script/arbitrum/manual/2_GRETH.s.sol:GRETHScript

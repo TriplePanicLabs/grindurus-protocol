@@ -4,14 +4,16 @@ pragma solidity =0.8.28;
 import {Script, console} from "forge-std/Script.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
-import {Strategy1Arbitrum, IToken, IStrategy} from "src/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import {Strategy1FactoryArbitrum} from "src/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
+import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
+import {PriceOracleRegistryArbitrum} from "src/oracle/PriceOracleRegistryArbitrum.sol";
+
 
 // Test purposes:
-// $ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript
+// $ forge script script/arbitrum/DeployArbitrum.s.sol:DeployArbitrumScript
 
 // Mainnet deploy command:
-// $ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge script script/arbitrum/DeployArbitrum.s.sol:DeployArbitrumScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 // Verify:
 // $ forge verify-contract 0x6e0ba6683Ce4f1b575977DaF7a484341C183ec02 src/PoolsNFT.sol:PoolsNFT --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
@@ -22,10 +24,15 @@ import {Strategy1FactoryArbitrum} from "src/arbitrum/strategy1/Strategy1FactoryA
 
 // $ curl "https://api.arbiscan.io/api?module=contract&action=checkverifystatus&guid=r8grwfdgt7dnwdp4ir3fhn17w6lbeqij3gzcyk3y1jagu99bat&apikey=$ARBITRUMSCAN_API_KEY"
 
+// $ forge verify-contract 0x0CCD1B1a42dbc5baBb53dF800BE8821f4d3411aA src/arbitrum/strategy1/Strategy1Arbitrum.sol:Strategy1Arbitrum --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+
+
 contract DeployArbitrumScript is Script {
     PoolsNFT public poolsNFT;
 
     GRETH public grETH;
+
+    PriceOracleRegistryArbitrum public oracleRegistry;
 
     Strategy1FactoryArbitrum public factory1;
 
@@ -43,7 +50,9 @@ contract DeployArbitrumScript is Script {
         grETH = new GRETH(address(poolsNFT));
         poolsNFT.setGRETH(address(grETH));
 
-        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT));
+        oracleRegistry = new PriceOracleRegistryArbitrum(address(poolsNFT));
+
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
         poolsNFT.setStrategyFactory(address(factory1));
 
         vm.stopBroadcast();
