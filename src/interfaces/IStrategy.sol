@@ -17,7 +17,7 @@ interface IStrategy is IURUSCore {
 
     function APR() external view returns (uint256 APRNumerator, uint256 APRDenominator);
 
-    function getTVL() external view returns (uint256);
+    function getActiveCapital() external view returns (uint256);
 
     function strategyId() external view returns (uint16);
 

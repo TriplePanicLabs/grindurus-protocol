@@ -43,6 +43,7 @@ contract NoDexAdapter is IDexAdapter {
         uint256 amountIn
     ) public override returns (uint256 amountOut) {
         tokenIn; tokenOut; amountIn; amountOut;
+        tokenIn.safeTransferFrom(msg.sender, address(this), amountIn);
         revert();
     }
 

@@ -125,19 +125,17 @@ contract URUSCore is IURUSCore {
     }
 
     function _initHelperCoef() private {
-        uint8 coefDecimals = 2;
-        uint8 percentDecimals = 4;
+        // uint8 coefDecimals = 2;
+        // uint8 percentDecimals = 4;
 
-        helper.extraCoefMultiplier = 10 ** coefDecimals;
-        helper.feeCoefMultiplier = 10 ** coefDecimals;
-        helper.investCoefMultiplier = 10 ** coefDecimals;
-        helper.returnPercentMultiplier = 10 ** percentDecimals;
+        helper.coefMultiplier = 10 ** 2; // x1.00 = 100
+        helper.percentMultiplier = 10 ** 4; // 100% = 100_00
     }
 
     function _setHelperInitLiquidityAndInvestCoef() private {
         uint256 maxLiquidity = calcMaxLiquidity();
         helper.investCoef = calcInvestCoef();
-        helper.initLiquidity = (maxLiquidity * helper.investCoefMultiplier) / helper.investCoef;
+        helper.initLiquidity = (maxLiquidity * helper.coefMultiplier) / helper.investCoef;
     }
 
     /// @notice checks that msg.sender is owner
@@ -157,7 +155,7 @@ contract URUSCore is IURUSCore {
         if (
             conf.longNumberMax == 0 ||
             conf.hedgeNumberMax == 0 ||
-            conf.averagePriceVolatility == 0 ||
+            conf.priceVolatility == 0 ||
             conf.extraCoef == 0
         ) {
             revert InvalidConfig();
@@ -216,23 +214,35 @@ contract URUSCore is IURUSCore {
         _setHelperInitLiquidityAndInvestCoef();
     }
 
-    /// @notice sets average price volatility
-    /// @param averagePriceVolatility price volatility. [averagePriceVolatility]=quoteToken/baseToken
-    function setAveragePriceVolatility(uint256 averagePriceVolatility) public override {
+    /// @notice sets price volatility
+    /// @dev example: priceVolatility = 1%, that means that priceVolatility = 1_00
+    /// @param priceVolatility price volatility. [priceVolatility]=%
+    function setPriceVolatility(uint256 priceVolatility) public override {
         _onlyOwner();
-        if (averagePriceVolatility == 0) {
+        if (priceVolatility == 0 && priceVolatility > helper.percentMultiplier) {
             revert InvalidPriceVolatility();
         }
-        config.averagePriceVolatility = averagePriceVolatility;
+        config.priceVolatility = priceVolatility;
+    }
+
+    /// @notice sets init hedge sell percent
+    /// @dev this parameter uses in calculating thresholds of initialization of hedge position.
+    /// @param initHedgeSellPercent percent for initialization of hedge sell. [initHedgeSellPercent]=%.
+    function setInitHedgeSellPercent(uint256 initHedgeSellPercent) public override {
+        _onlyOwner();
+        if (initHedgeSellPercent > helper.percentMultiplier) {
+            revert InvalidInitHedgeSellPercent();
+        }
+        config.initHedgeSellPercent = initHedgeSellPercent;
     }
 
     /// @notice set retunr for StrategyOp
-    /// @dev if realRoi == 100.5%=1.005, than returnPercent == realRoi * helper.returnPercentMultiplier
+    /// @dev if realRoi == 100.5%=1.005, than returnPercent == realRoi * helper.percentMultiplier
     /// @param op operation to apply return
-    /// @param returnPercent return scaled by helper.returnPercentMultiplier
+    /// @param returnPercent return scaled by helper.percentMultiplier
     function setOpReturnPercent(StrategyOp op, uint256 returnPercent) public override {
         _onlyOwner();
-        if (returnPercent < 100 * helper.returnPercentMultiplier)
+        if (returnPercent < 100 * helper.percentMultiplier)
             revert InvalidReturnOfInvestment();
         if (op == StrategyOp.LONG_SELL) {
             config.returnPercentLongSell = returnPercent;
@@ -327,7 +337,7 @@ contract URUSCore is IURUSCore {
          *         newInitLiqudity = 275 * 1_00 / 27_00 = 10.185185
          */
         newMaxLiquidity = calcMaxLiquidity() + investAmount;
-        helper.initLiquidity = (newMaxLiquidity * helper.investCoefMultiplier) / helper.investCoef;
+        helper.initLiquidity = (newMaxLiquidity * helper.coefMultiplier) / helper.investCoef;
     }
 
     /// @notice divest amount of quoteToken
@@ -341,9 +351,7 @@ contract URUSCore is IURUSCore {
             revert DivestExceedsMaxLiquidity();
         }
         newMaxLiquidity = maxLiqudity - divestAmount;
-        helper.initLiquidity =
-            (newMaxLiquidity * helper.investCoefMultiplier) /
-            helper.investCoef;
+        helper.initLiquidity = (newMaxLiquidity * helper.coefMultiplier) / helper.investCoef;
     }
 
     /// @notice grab all assets from strategy and send it to owner
@@ -443,7 +451,7 @@ contract URUSCore is IURUSCore {
         if (longNumber == 0) {
             quoteTokenAmount = helper.initLiquidity;
         } else {
-            quoteTokenAmount = (long.liquidity * config.extraCoef) / helper.extraCoefMultiplier;
+            quoteTokenAmount = (long.liquidity * config.extraCoef) / helper.coefMultiplier;
         }
         // 1.2. Take the quoteToken from lending protocol
         (quoteTokenAmount) = _take(quoteToken, quoteTokenAmount);
@@ -465,7 +473,7 @@ contract URUSCore is IURUSCore {
         long.price = (long.qty * long.price + baseTokenAmount * baseTokenPrice) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
         long.liquidity += quoteTokenAmount;
-        long.priceMin = long.price - config.averagePriceVolatility;
+        long.priceMin = long.price - long.price * config.priceVolatility / helper.percentMultiplier;
 
         // 4.1. Put baseToken to lending protocol
         (baseTokenAmount) = _put(baseToken, baseTokenAmount);
@@ -561,13 +569,12 @@ contract URUSCore is IURUSCore {
 
         if (hedgeNumber == 0) {
             // INITIALIZE HEDGE SELL
-            uint256 thresholdHigh = long.priceMin;
-            uint256 thresholdLow = long.priceMin - 2 * config.averagePriceVolatility;
-            if (swapPrice > thresholdHigh || thresholdLow > swapPrice) {
+            (uint256 hedgeSellInitThresholdHigh, uint256 hedgeSellInitThresholdLow) = calcHedgeSellInitBounds();
+            if (swapPrice > hedgeSellInitThresholdHigh || hedgeSellInitThresholdLow > swapPrice) {
                 revert HedgeSellOutOfBound(
                     swapPrice,
-                    thresholdHigh,
-                    thresholdLow
+                    hedgeSellInitThresholdHigh,
+                    hedgeSellInitThresholdLow
                 );
             }
             hedge.priceMin = swapPrice;
@@ -829,16 +836,16 @@ contract URUSCore is IURUSCore {
     //// CALCULATE FUNCTIONS
 
     /// @notice calculate max liquidity that can be used for buying
-    /// @dev q_n = q_1 * investCoef / investCoefMultiplier
-    function calcMaxLiquidity() public view returns (uint256) {
-        return (helper.initLiquidity * helper.investCoef) / helper.investCoefMultiplier;
+    /// @dev q_n = q_1 * investCoef / coefMultiplier
+    function calcMaxLiquidity() public view override returns (uint256) {
+        return (helper.initLiquidity * helper.investCoef) / helper.coefMultiplier;
     }
 
     /// @notice calculates invest coeficient
     /// @dev q_n = (e+1) ^ (n-1) * q_1 => investCoef = (e+1)^(n-1)
-    function calcInvestCoef() public view returns (uint256 investCoef) {
+    function calcInvestCoef() public view override returns (uint256 investCoef) {
         uint8 exponent = config.longNumberMax - 1;
-        uint256 multiplier = helper.extraCoefMultiplier;
+        uint256 multiplier = helper.coefMultiplier;
         if (exponent >= 2) {
             investCoef = (config.extraCoef + multiplier) ** exponent / (multiplier ** (exponent - 1));
         } else if (exponent == 1) {
@@ -856,7 +863,7 @@ contract URUSCore is IURUSCore {
     function calcSwapPrice(
         uint256 quoteTokenAmount,
         uint256 baseTokenAmount
-    ) public view returns (uint256 price) {
+    ) public view override returns (uint256 price) {
         uint8 bd = helper.baseTokenDecimals;
         uint8 qd = helper.quoteTokenDecimals;
         uint8 pd = helper.oracleQuoteTokenPerBaseTokenDecimals;
@@ -870,13 +877,13 @@ contract URUSCore is IURUSCore {
     /// @notice calculates long sell thresholds
     /// @return quoteTokenAmountThreshold threshold amount of `quoteToken`
     /// @return swapPriceThreshold threshold price to execute swap
-    function calcLongSellThreshold() public view
+    function calcLongSellThreshold() public view override
         returns (
             uint256 quoteTokenAmountThreshold,
             uint256 swapPriceThreshold
         )
     {
-        uint256 feeQty = (long.feeQty * feeConfig.longSellFeeCoef) / helper.feeCoefMultiplier;
+        uint256 feeQty = (long.feeQty * feeConfig.longSellFeeCoef) / helper.coefMultiplier;
         uint256 buyFee;
         if (feeToken == quoteToken) {
             buyFee = feeQty; // [buyFee] = quoteToken
@@ -908,7 +915,7 @@ contract URUSCore is IURUSCore {
          *                                              ||
          *                                   quoteTokenAmountThreshold
          */
-        quoteTokenAmountThreshold = ((long.liquidity + fees) * config.returnPercentLongSell) / helper.returnPercentMultiplier;
+        quoteTokenAmountThreshold = ((long.liquidity + fees) * config.returnPercentLongSell) / helper.percentMultiplier;
         swapPriceThreshold = calcSwapPrice(quoteTokenAmountThreshold, long.qty);
     }
 
@@ -920,7 +927,7 @@ contract URUSCore is IURUSCore {
         uint8 hedgeNumber,
         uint256 priceMin,
         uint256 priceMax
-    ) public view returns (uint256 targetPrice) {
+    ) public view override returns (uint256 targetPrice) {
         uint8 hedgeNumberMax = hedge.numberMax;
         if (hedgeNumberMax == 1) {
             targetPrice = priceMax;
@@ -929,9 +936,15 @@ contract URUSCore is IURUSCore {
         }
     }
 
+    /// @notice calculates hedge sell thresholds bounds for initialization of hedge position
+    function calcHedgeSellInitBounds() public view override returns (uint256 thresholdHigh, uint256 thresholdLow) {
+        thresholdHigh = long.priceMin;
+        thresholdLow = thresholdHigh - thresholdHigh * hedge.numberMax * config.initHedgeSellPercent / helper.percentMultiplier;
+    }
+
     /// @notice calculates hedge sell threshold
     /// @param baseTokenAmount base token amount
-    function calcHedgeSellThreshold(uint256 baseTokenAmount) public view
+    function calcHedgeSellThreshold(uint256 baseTokenAmount) public view override
         returns (
             uint256 liquidity,
             uint256 quoteTokenAmountThreshold,
@@ -973,7 +986,7 @@ contract URUSCore is IURUSCore {
          *                               = long.feeQty + long.feeQty = 2 * long.feeQty
          *       So, hedgeSellFee for 1 execution = 2 * long.feeQty / (hedgeNumberMax - 1)
          */
-        uint256 feeQty = (long.feeQty * feeConfig.hedgeSellFeeCoef) / helper.feeCoefMultiplier;
+        uint256 feeQty = (long.feeQty * feeConfig.hedgeSellFeeCoef) / helper.coefMultiplier;
         uint256 fees = (2 * calcQuoteTokenByFeeToken(feeQty, long.feePrice)) / (hedge.numberMax - 1); // [fees] = quoteToken
         uint256 hedgeQty = hedge.qty;
 
@@ -988,7 +1001,7 @@ contract URUSCore is IURUSCore {
             calcQuoteTokenByBaseToken(hedgeQty, hedge.price);
         quoteTokenAmountThreshold =
             ((liquidity + fees) * config.returnPercentHedgeSell) /
-            helper.returnPercentMultiplier;
+            helper.percentMultiplier;
         swapPriceThreshold = calcSwapPrice(
             quoteTokenAmountThreshold,
             baseTokenAmount
@@ -997,7 +1010,7 @@ contract URUSCore is IURUSCore {
 
     /// @notice calculates hedge rebuy threshold
     /// @param quoteTokenAmount quote token amount
-    function calcHedgeRebuyThreshold(uint256 quoteTokenAmount) public view
+    function calcHedgeRebuyThreshold(uint256 quoteTokenAmount) public view override
         returns (
             uint256 baseTokenAmountThreshold,
             uint256 swapPriceThreshold
@@ -1012,7 +1025,7 @@ contract URUSCore is IURUSCore {
          *      hedgeRebuyFee = estimation for 1 execution of rebuy as sum of all hedge sell fees divided to hedge.number + sum of all hedge sell fees =
          *                    = hedgeSellFees / hedge.number + hedgeSellFees
          */
-        uint256 feeQty = (hedge.feeQty * feeConfig.hedgeRebuyFeeCoef) / helper.feeCoefMultiplier;
+        uint256 feeQty = (hedge.feeQty * feeConfig.hedgeRebuyFeeCoef) / helper.coefMultiplier;
         uint256 hedgeSellFees; // [hedgeSellFees] = baseToken
         if (feeToken == baseToken) {
             hedgeSellFees = feeQty;
@@ -1020,7 +1033,7 @@ contract URUSCore is IURUSCore {
             hedgeSellFees = calcBaseTokenByFeeToken(feeQty, hedge.feePrice);
         }
         uint256 hedgeRebuyFee = hedgeSellFees / hedge.number;
-        baseTokenAmountThreshold = ((hedge.qty + hedgeSellFees + hedgeRebuyFee) * config.returnPercentHedgeRebuy) / helper.returnPercentMultiplier;
+        baseTokenAmountThreshold = ((hedge.qty + hedgeSellFees + hedgeRebuyFee) * config.returnPercentHedgeRebuy) / helper.percentMultiplier;
         swapPriceThreshold = calcSwapPrice(
             quoteTokenAmount,
             baseTokenAmountThreshold
@@ -1030,7 +1043,7 @@ contract URUSCore is IURUSCore {
     //// VIEW FUNCTION FOR METRICS /////////////////////////////////////////////////////////////////////
 
     /// @notice calculates hedge sell threshold
-    function calcHedgeSellThreshold() public view 
+    function calcHedgeSellThreshold() public view override
         returns (
             uint256 liquidity,
             uint256 quoteTokenAmountThreshold,
@@ -1058,12 +1071,12 @@ contract URUSCore is IURUSCore {
     }
 
     /// @notice calculates target price for frontend
-    function calcTargetHedgePrice() public view returns (uint256 targetPrice) {
+    function calcTargetHedgePrice() public view override returns (uint256 targetPrice) {
         targetPrice = calcTargetHedgePrice(hedge.number, hedge.priceMin, long.price);
     }
 
     /// @notice calculates rebuy threshold
-    function calcHedgeRebuyThreshold() public view
+    function calcHedgeRebuyThreshold() public view override
         returns (
             uint256 baseTokenAmountThreshold,
             uint256 swapPriceThreshold
@@ -1211,13 +1224,14 @@ contract URUSCore is IURUSCore {
 
     /// @notice return config of strategy
     function getConfig()
-        external
+        public
         view
         override
         returns (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
-            uint256 averagePriceVolatility,
+            uint256 priceVolatility,
+            uint256 initHedgeSellPercent,
             uint256 extraCoef,
             uint256 returnPercentLongSell,
             uint256 returnPercentHedgeSell,
@@ -1226,7 +1240,8 @@ contract URUSCore is IURUSCore {
     {
         longNumberMax = config.longNumberMax;
         hedgeNumberMax = config.hedgeNumberMax;
-        averagePriceVolatility = config.averagePriceVolatility;
+        priceVolatility = config.priceVolatility;
+        initHedgeSellPercent = config.initHedgeSellPercent;
         extraCoef = config.extraCoef;
         returnPercentLongSell = config.returnPercentLongSell;
         returnPercentHedgeSell = config.returnPercentHedgeSell;

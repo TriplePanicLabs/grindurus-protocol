@@ -12,6 +12,7 @@ interface IURUSCore is IERC5313 {
     error InvalidHedgeNumberMax();
     error InvalidExtraCoef();
     error InvalidStrategyOpForFeeCoef();
+    error InvalidInitHedgeSellPercent();
     error InvalidStrategyOpForReturn();
     error InvalidReturnOfInvestment();
     error InvalidLength();
@@ -82,11 +83,23 @@ interface IURUSCore is IERC5313 {
         uint256 hedgeRebuyFeeCoef; // [hedgeRebuyFeeCoef] = (no dimension)
     }
 
+    /**
+    Possible values:
+        longNumberMax = 4
+        hedgeNumberMax = 4
+        extraCoef = 2_00 // x2.00
+        priceVolatility = 1_00 // 1%
+        initHedgeSellPercent = 50 // 0.5%
+        returnPercentLongSell = 100_50 // 100.5%
+        returnPercentHedgeSell = 100_50 // 100.5%
+        returnPercentHedgeRebuy = 100_50 // 100.5%
+     */
     struct Config {
         uint8 longNumberMax; // [longNumberMax] = (no dimension)
         uint8 hedgeNumberMax; // [hedgeNumberMax] = (no dimension)
         uint256 extraCoef; // [extraCoef] = (no dimension)
-        uint256 averagePriceVolatility; // [averagePriceVolatility] = quoteToken / baseToken
+        uint256 priceVolatility; // [priceVolatility] = %
+        uint256 initHedgeSellPercent; // [initHedgePercent] = %
         uint256 returnPercentLongSell; // [returnPercentLongSell] = %
         uint256 returnPercentHedgeSell; // [returnPercentHedgeSell] = %
         uint256 returnPercentHedgeRebuy; // [returnPercentHedgeRebuy] = %
@@ -99,12 +112,10 @@ interface IURUSCore is IERC5313 {
         uint8 feeTokenDecimals;
         uint8 oracleQuoteTokenPerBaseTokenDecimals;
         uint8 oracleQuoteTokenPerFeeTokenDecimals;
-        uint256 extraCoefMultiplier;
         uint256 oracleQuoteTokenPerBaseTokenMultiplier;
         uint256 oracleQuoteTokenPerFeeTokenMultiplier;
-        uint256 feeCoefMultiplier;
-        uint256 investCoefMultiplier;
-        uint256 returnPercentMultiplier;
+        uint256 coefMultiplier;
+        uint256 percentMultiplier;
         /// mutable data
         uint256 initLiquidity;
         uint256 investCoef;
@@ -136,7 +147,9 @@ interface IURUSCore is IERC5313 {
 
     function setExtraCoef(uint256 extraCoef) external;
 
-    function setAveragePriceVolatility(uint256 averagePriceVolatility) external;
+    function setPriceVolatility(uint256 priceVolatility) external;
+
+    function setInitHedgeSellPercent(uint256 initHedgeSellPercent) external;
 
     function setOpReturnPercent(StrategyOp op, uint256 returnPercent) external;
 
@@ -161,12 +174,14 @@ interface IURUSCore is IERC5313 {
 
     function hedge_rebuy() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    /// @dev calls long_buy, long_sell, hedge_sell, hedge_rebuy
     function iterate() external returns (bool iterated);
 
     function beforeRebalance() external returns (uint256 baseTokenAmount, uint256 price);
 
     function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) external;
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //// PRICES
 
     function getPriceQuoteTokenPerBaseToken() external view returns (uint256 price);
 
@@ -176,6 +191,62 @@ interface IURUSCore is IERC5313 {
         external
         view
         returns (uint256 baseTokensPerFeeTokenPrice);
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //// CALCULATE FUNCTIONS
+
+    function calcMaxLiquidity() external view returns (uint256);
+
+    function calcInvestCoef() external view returns (uint256 investCoef);
+
+    function calcSwapPrice(
+        uint256 quoteTokenAmount,
+        uint256 baseTokenAmount
+    ) external view returns (uint256 price);
+
+    function calcLongSellThreshold() external view
+        returns (
+            uint256 quoteTokenAmountThreshold,
+            uint256 swapPriceThreshold
+        );
+
+    function calcTargetHedgePrice(
+        uint8 hedgeNumber,
+        uint256 priceMin,
+        uint256 priceMax
+    ) external view returns (uint256 targetPrice);
+
+    function calcHedgeSellInitBounds() external view returns (uint256 thresholdHigh, uint256 thresholdLow);
+
+    function calcHedgeSellThreshold(uint256 baseTokenAmount) external view
+        returns (
+            uint256 liquidity,
+            uint256 quoteTokenAmountThreshold,
+            uint256 targetPrice,
+            uint256 swapPriceThreshold
+        );
+
+    function calcHedgeRebuyThreshold(uint256 quoteTokenAmount) external view
+        returns (
+            uint256 baseTokenAmountThreshold,
+            uint256 swapPriceThreshold
+        );
+
+    function calcHedgeSellThreshold() external view 
+        returns (
+            uint256 liquidity,
+            uint256 quoteTokenAmountThreshold,
+            uint256 targetPrice,
+            uint256 swapPriceThreshold
+        );
+
+    function calcTargetHedgePrice() external view returns (uint256 targetPrice);
+
+    function calcHedgeRebuyThreshold() external view
+        returns (
+            uint256 baseTokenAmountThreshold,
+            uint256 swapPriceThreshold
+        );
 
     function calcQuoteTokenByBaseToken(uint256 baseTokenAmount, uint256 quoteTokenPerBaseTokenPrice)
         external
@@ -244,11 +315,13 @@ interface IURUSCore is IERC5313 {
         returns (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
-            uint256 averagePriceVolatility,
+            uint256 priceVolatility,
+            uint256 initHedgeSellPercent,
             uint256 extraCoef,
             uint256 returnPercentLongSell,
             uint256 returnPercentHedgeSell,
             uint256 returnPercentHedgeRebuy
         );
 
+    
 }

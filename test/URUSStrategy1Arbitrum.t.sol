@@ -4,10 +4,11 @@ pragma solidity =0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
-import {Strategy1Arbitrum, IToken, IStrategy} from "src/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import {Strategy1FactoryArbitrum} from "src/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
+import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 import {MockToken} from "test/mock/MockToken.sol";
 import {MockSwapRouterArbitrum} from "test/mock/MockSwapRouterArbitrum.sol";
+import {PriceOracleRegistryArbitrum} from "src/oracle/PriceOracleRegistryArbitrum.sol";
 
 // $ forge test --match-path test/URUSStrategy1Arbitrum.t.sol -vvv
 contract URUSStrategy1ArbitrumTest is Test {
@@ -30,6 +31,8 @@ contract URUSStrategy1ArbitrumTest is Test {
 
     Strategy1Arbitrum public pool0;
 
+    PriceOracleRegistryArbitrum public oracleRegistry;
+
     Strategy1FactoryArbitrum public factory1;
 
     MockSwapRouterArbitrum public mockSwapRouter;
@@ -46,7 +49,9 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         grETH = new GRETH(address(poolsNFT));
 
-        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT));
+        oracleRegistry = new PriceOracleRegistryArbitrum(address(poolsNFT));
+
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
 
         poolsNFT.setGRETH(address(grETH));
         poolsNFT.setStrategyFactory(address(factory1));
@@ -112,8 +117,9 @@ contract URUSStrategy1ArbitrumTest is Test {
         pool0.setSwapRouter(address(mockSwapRouter));
         pool0.setLongNumberMax(4);
         pool0.setHedgeNumberMax(4);
-        pool0.setExtraCoef(2_00);
-        pool0.setAveragePriceVolatility(30 * 10 ** 8);
+        pool0.setExtraCoef(2_00); // x2.00
+        pool0.setInitHedgeSellPercent(50); // 0.5%
+        pool0.setPriceVolatility(1_00); // 1%
         
         (uint256 qty0, uint256 price0) = printLongPosition(poolId0);
         assert(qty0 == 0); // no long position
@@ -151,7 +157,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         assert(qty7 > qty5);
         assert(price7 < price5);
 
-        mockSwapRouter.setRate(2150 * 10 ** 8); // increase a little bit for initialize hedge sell bounds
+        mockSwapRouter.setRate(2160 * 10 ** 8); // increase a little bit for initialize hedge sell bounds
         console.log("8) Price decreased by another 10%.");
 
         poolsNFT.grind(poolId0);
@@ -161,6 +167,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         (uint256 hqty9, uint256 hprice9) = printHedgePosition(poolId0);
         assert(qty9 < qty7); // hedge sold
         assert(hqty9 == qty7 - qty9); // init hedge positions
+        assert(hprice9 > 0); // init hedge position price 
 
         mockSwapRouter.setRate(1700 * 10 ** 8); // Decrease price further
         console.log("10) Price decreased by another 10%.");
@@ -176,12 +183,14 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         /// HEDGE SELLING to the end
 
-        mockSwapRouter.setRate(2150 * 10 ** 8); // Decrease price further
-        console.log("12) Price set to 2150");
+        mockSwapRouter.setRate(2160 * 10 ** 8); // Decrease price further
+        console.log("12) Price set to 2160");
         poolsNFT.grind(poolId0);
         console.log("13) Init hedge sell");
         (uint256 qty13, uint256 price13) = printLongPosition(poolId0);
         (uint256 hqty13, uint256 hprice13) = printHedgePosition(poolId0);
+        assert(qty11 > qty13); // decrease qty in long position
+        assert(price11 == price13); // price same
         assert(hqty13 > 0); // initialize hedge position
         assert(hprice13 > 0); // initialize hedge position
 

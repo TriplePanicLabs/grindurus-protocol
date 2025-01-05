@@ -4,7 +4,7 @@ pragma solidity =0.8.28;
 import {IToken} from "src/interfaces/IToken.sol";
 import {IGRETH} from "src/interfaces/IGRETH.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {IStrategy} from "src/interfaces/IStrategy.sol";
+import {IStrategy, IURUSCore} from "src/interfaces/IStrategy.sol";
 import {IPoolsNFTImage} from "src/interfaces/IPoolsNFTImage.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
 import {IStrategyFactory} from "src/interfaces/IStrategyFactory.sol";
@@ -896,8 +896,6 @@ contract PoolsNFT is
         uint256 poolInfoId = 0;
         for (; poolId <= toPoolId; ) {
             IStrategy pool = IStrategy(pools[poolId]);
-            IToken quoteToken = pool.getQuoteToken();
-            IToken baseToken = pool.getBaseToken();
             (
                 uint256 quoteTokenYieldProfit,
                 uint256 baseTokenYieldProfit,
@@ -907,11 +905,12 @@ contract PoolsNFT is
             (uint256 APRNumerator, uint256 APRDenominator) = pool.APR();
             poolsInfo[poolInfoId] = PoolNFTInfo({
                 poolId: poolId,
+                config: getConfig(poolId),
                 strategyId: pool.strategyId(),
-                quoteToken: address(quoteToken),
-                baseToken: address(baseToken),
-                quoteTokenSymbol: quoteToken.symbol(),
-                baseTokenSymbol: baseToken.symbol(),
+                quoteToken: address(pool.getQuoteToken()),
+                baseToken: address(pool.getBaseToken()),
+                quoteTokenSymbol: pool.getQuoteToken().symbol(),
+                baseTokenSymbol: pool.getBaseToken().symbol(),
                 quoteTokenAmount: pool.getQuoteTokenAmount(),
                 baseTokenAmount: pool.getBaseTokenAmount(),
                 quoteTokenYieldProfit: quoteTokenYieldProfit,
@@ -920,6 +919,7 @@ contract PoolsNFT is
                 baseTokenTradeProfit: baseTokenTradeProfit,
                 APRNumerator: APRNumerator,
                 APRDenominator: APRDenominator,
+                activeCapital: pool.getActiveCapital(),
                 royaltyPrice: royaltyPrice[poolId]
             });
             unchecked {
@@ -929,10 +929,30 @@ contract PoolsNFT is
         }
     }
 
-    /// @notice return TVL of pool with `poolId`
-    /// @param poolId id of pool
-    function getTVL(uint256 poolId) external view override returns (uint256) {
-        return IStrategy(pools[poolId]).getTVL();
+    /// @notice returns config
+    function getConfig(uint256 poolId) public view override returns (IURUSCore.Config memory) {
+        IStrategy pool = IStrategy(pools[poolId]);
+        (
+            uint8 longNumberMax,
+            uint8 hedgeNumberMax,
+            uint256 priceVolatility,
+            uint256 initHedgeSellPercent,
+            uint256 extraCoef,
+            uint256 returnPercentLongSell,
+            uint256 returnPercentHedgeSell,
+            uint256 returnPercentHedgeRebuy
+        ) = pool.getConfig();
+
+        return IURUSCore.Config({
+            longNumberMax: longNumberMax,
+            hedgeNumberMax: hedgeNumberMax,
+            priceVolatility: priceVolatility,
+            initHedgeSellPercent: initHedgeSellPercent,
+            extraCoef: extraCoef,
+            returnPercentLongSell: returnPercentLongSell,
+            returnPercentHedgeSell: returnPercentHedgeSell,
+            returnPercentHedgeRebuy: returnPercentHedgeRebuy
+        });
     }
 
     /// @notice returns long position of poolId
@@ -995,36 +1015,6 @@ contract PoolsNFT is
             feeQty,
             feePrice
         ) = IStrategy(pools[poolId]).getHedge();
-    }
-
-    /// @notice returns long position of poolId
-    /// @param poolId pool id of pool in array `pools`
-    function getConfig(
-        uint256 poolId
-    )
-        external
-        view
-        override
-        returns (
-            uint8 longNumberMax,
-            uint8 hedgeNumberMax,
-            uint256 averagePriceVolatility,
-            uint256 extraCoef,
-            uint256 returnPercentLongSell,
-            uint256 returnPercentHedgeSell,
-            uint256 returnPercentHedgeRebuy
-        )
-    {
-        IStrategy pool = IStrategy(pools[poolId]);
-        (
-            longNumberMax,
-            hedgeNumberMax,
-            averagePriceVolatility,
-            extraCoef,
-            returnPercentLongSell,
-            returnPercentHedgeSell,
-            returnPercentHedgeRebuy
-        ) = pool.getConfig();
     }
 
     /// @notice sweep token from this smart contract to `to`

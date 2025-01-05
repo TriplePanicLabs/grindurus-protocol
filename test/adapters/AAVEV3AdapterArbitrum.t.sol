@@ -9,16 +9,29 @@ import {
     IToken
 } from "../../src/adapters/lendings/AAVEV3AdapterArbitrum.sol";
 
-// $ forge test --match-path test/adapters/AAVEV3AdapterArbitrum.t.sol
+contract TestAAVEV3AdapterArbitrum is AAVEV3AdapterArbitrum {
+    function put(
+        IToken token,
+        uint256 amount
+    ) public override returns (uint256 putAmount) {
+        putAmount = _put(token, amount);
+    }
+
+    function take(
+        IToken token,
+        uint256 amount
+    ) public override returns (uint256 takeAmount) {
+        takeAmount = _take(token, amount);
+    }
+}
+
+// $ forge test --match-path test/adapters/AAVEV3AdapterArbitrum.t.sol -vvv
 contract AAVEV3AdapterArbitrumTest is Test {
-    address arbitrumOracle_weth_usd = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
 
     address wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     address usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
 
     address aaveV3PoolArbitrum = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
-    address aArbWeth = 0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8;
-    address aArbUsdt = 0x6ab707Aca953eDAeFBc4fD23bA73294241490620;
 
     IToken public baseToken;
 
@@ -26,7 +39,7 @@ contract AAVEV3AdapterArbitrumTest is Test {
 
     IAAVEV3PoolArbitrum public aaveV3Pool;
 
-    AAVEV3AdapterArbitrum public adapter;
+    TestAAVEV3AdapterArbitrum public adapter;
 
     function setUp() public {
         vm.createSelectFork("arbitrum");
@@ -34,8 +47,8 @@ contract AAVEV3AdapterArbitrumTest is Test {
         baseToken = IToken(wethArbitrum);
         quoteToken = IToken(usdtArbitrum);
 
+        adapter = new TestAAVEV3AdapterArbitrum();
         bytes memory lendingConstructorArgs = abi.encode(address(aaveV3PoolArbitrum));
-        adapter = new AAVEV3AdapterArbitrum();
         adapter.initLending(lendingConstructorArgs);
     }
 

@@ -4,8 +4,9 @@ pragma solidity =0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
-import {Strategy1Arbitrum, IToken, IStrategy} from "src/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import {Strategy1FactoryArbitrum} from "src/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
+import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
+import {PriceOracleRegistryArbitrum} from "src/oracle/PriceOracleRegistryArbitrum.sol";
 
 // $ forge test --match-path test/PoolsNFT.t.sol
 contract PoolsNFTTest is Test {
@@ -25,6 +26,8 @@ contract PoolsNFTTest is Test {
 
     Strategy1Arbitrum public pool;
 
+    PriceOracleRegistryArbitrum public oracleRegistry;
+
     Strategy1FactoryArbitrum public factory1;
 
     function setUp() public {
@@ -37,7 +40,9 @@ contract PoolsNFTTest is Test {
 
         grindToken = new GRETH(address(poolsNFT));
 
-        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT));
+        oracleRegistry = new PriceOracleRegistryArbitrum(address(poolsNFT));
+
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
 
         poolsNFT.setGRETH(address(grindToken));
         poolsNFT.setStrategyFactory(address(factory1));
@@ -66,13 +71,14 @@ contract PoolsNFTTest is Test {
         (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
-            uint256 averagePriceVolatility,
+            uint256 priceVolatility,
+            uint256 initHedgeSellPercent,
             uint256 extraCoef,
             uint256 returnPercentLongSell,
             uint256 returnPercentHedgeSell,
             uint256 returnPercentHedgeRebuy
         ) = pool.config();
-        averagePriceVolatility;
+        priceVolatility; initHedgeSellPercent;
         assert(longNumberMax > 0);
         assert(hedgeNumberMax > 0);
         assert(extraCoef > 0);

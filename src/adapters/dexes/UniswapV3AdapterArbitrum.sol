@@ -87,8 +87,9 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         IToken tokenIn,
         IToken tokenOut,
         uint256 amountIn
-    ) public override returns (uint256 amountOut) {
+    ) public virtual override returns (uint256 amountOut) {
         tokenIn; tokenOut; amountIn; amountOut;
+        tokenIn.safeTransferFrom(msg.sender, address(this), amountIn);
         revert(); // no direct swap
     }
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {IGRETH} from "src/interfaces/IGRETH.sol";
 import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol"; // NFT
 import {IERC2981} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
+import {IURUSCore} from "src/interfaces/IURUSCore.sol";
 
 interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
@@ -71,6 +72,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     struct PoolNFTInfo {
         uint256 poolId;
+        IURUSCore.Config config;
         uint256 strategyId;
         address quoteToken;
         address baseToken;
@@ -86,6 +88,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         /// APR
         uint256 APRNumerator;
         uint256 APRDenominator;
+        uint256 activeCapital;
         /// royalty price
         uint256 royaltyPrice;
     }
@@ -260,7 +263,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 toPoolId
     ) external view returns (PoolNFTInfo[] memory poolsInfo);
 
-    function getTVL(uint256 poolId) external view returns (uint256);
+    function getConfig(uint256 poolId) external view returns (IURUSCore.Config memory);
 
     function getLong(
         uint256 poolId
@@ -292,21 +295,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
             uint256 price,
             uint256 feeQty,
             uint256 feePrice
-        );
-
-    function getConfig(
-        uint256 poolId
-    )
-        external
-        view
-        returns (
-            uint8 longNumberMax,
-            uint8 hedgeNumberMax,
-            uint256 averagePriceVolatility,
-            uint256 extraCoef,
-            uint256 returnPercentLongSell,
-            uint256 returnPercentHedgeSell,
-            uint256 returnPercentHedgeRebuy
         );
 
     function sweep(address token, address to) external payable;
