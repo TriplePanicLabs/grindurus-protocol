@@ -6,7 +6,7 @@ import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
 import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
-import {PriceOracleRegistryArbitrum} from "src/oracle/PriceOracleRegistryArbitrum.sol";
+import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 
 
 // Test purposes:
@@ -32,7 +32,7 @@ contract DeployArbitrumScript is Script {
 
     GRETH public grETH;
 
-    PriceOracleRegistryArbitrum public oracleRegistry;
+    RegistryArbitrum public registry;
 
     Strategy1FactoryArbitrum public factory1;
 
@@ -50,9 +50,9 @@ contract DeployArbitrumScript is Script {
         grETH = new GRETH(address(poolsNFT));
         poolsNFT.setGRETH(address(grETH));
 
-        oracleRegistry = new PriceOracleRegistryArbitrum(address(poolsNFT));
+        registry = new RegistryArbitrum(address(poolsNFT));
 
-        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry));
         poolsNFT.setStrategyFactory(address(factory1));
 
         vm.stopBroadcast();

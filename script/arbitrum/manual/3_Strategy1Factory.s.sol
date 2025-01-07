@@ -6,7 +6,7 @@ import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
 import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
-import {PriceOracleRegistryArbitrum} from "src/oracle/PriceOracleRegistryArbitrum.sol";
+import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 
 // Test purposes:
 // $ forge script script/arbitrum/manual/3_Strategy1Factory.s.sol:Strategy1FactoryScript
@@ -20,7 +20,7 @@ contract Strategy1FactoryScript is Script {
     Strategy1FactoryArbitrum public factory1;
 
     address public poolsNFTAddress = address(0); // REPASTE
-    address public oracleRegistryAddress = address(0); // REPASTE
+    address public registryAddress = address(0); // REPASTE
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -33,7 +33,7 @@ contract Strategy1FactoryScript is Script {
 
         poolsNFT = PoolsNFT(payable(poolsNFTAddress));
 
-        factory1 = new Strategy1FactoryArbitrum(poolsNFTAddress, oracleRegistryAddress);
+        factory1 = new Strategy1FactoryArbitrum(poolsNFTAddress, registryAddress);
         poolsNFT.setStrategyFactory(address(factory1));
 
         vm.stopBroadcast();
