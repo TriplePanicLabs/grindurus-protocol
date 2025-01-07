@@ -150,6 +150,10 @@ contract PoolsNFT is
     /// @dev quoteToken => amount of deposit in pool
     mapping(address token => uint256) public totalDeposited;
 
+    /// @dev token address => minimum amount to deposit
+    /// @dev if minDeposit == 0, that no limit for minimum deposit
+    mapping (address token => uint256) public minDeposit;
+
     /// @dev token address => token cap
     /// @dev if cap == 0, than cap is unlimited
     mapping(address token => uint256) public tokenCap;
@@ -223,6 +227,14 @@ contract PoolsNFT is
     function setPoolsNFTImage(address _poolsNFTImage) external override {
         _onlyOwner();
         poolsNFTImage = IPoolsNFTImage(_poolsNFTImage);
+    }
+
+    /// @notice sets minimum deposit
+    /// @param token address of token
+    /// @param _minDeposit minimum amount of deposit
+    function setMinimumDeposit(address token, uint256 _minDeposit) external override {
+        _onlyOwner();
+        minDeposit[token] = _minDeposit;
     }
 
     /// @notice sets cap tvl
@@ -414,6 +426,7 @@ contract PoolsNFT is
     ) internal returns (uint256 depositedAmount) {
         IStrategy pool = IStrategy(pools[poolId]);
         IToken quoteToken = pool.quoteToken();
+        _checkMinDeposit(address(quoteToken), quoteTokenAmount);
         _checkCap(address(quoteToken), quoteTokenAmount);
         quoteToken.safeTransferFrom(
             msg.sender,
@@ -484,6 +497,12 @@ contract PoolsNFT is
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
     }
 
+    function _checkMinDeposit(address quoteToken, uint256 depositAmount) private view {
+        if (depositAmount < minDeposit[quoteToken]) {
+            revert InsufficientDeposit();
+        }
+    }
+
     /// @notice checks TVL of quoteToken
     /// @param quoteToken address of quoteToken
     /// @param quoteTokenAmount amount of quote token
@@ -529,9 +548,6 @@ contract PoolsNFT is
         IStrategy pool1 = IStrategy(
             pools[poolId1]
         );
-        if (pool0.strategyId() != pool1.strategyId()) {
-            revert DifferentStrategyId();
-        }
         IToken pool0BaseToken = pool0.baseToken();
         IToken pool1BaseToken = pool1.baseToken();
         IToken pool0QuoteToken = pool0.quoteToken();

@@ -5,7 +5,7 @@ import {IStrategyFactory} from "src/interfaces/IStrategyFactory.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {Strategy0Arbitrum, IStrategy, IToken} from "./Strategy0Arbitrum.sol";
 import {IURUSCore} from "src/interfaces/IURUSCore.sol";
-import {IPriceOracleRegistry} from "src/interfaces/IPriceOracleRegistry.sol";
+import {IRegistry} from "src/interfaces/IRegistry.sol";
 
 /// @title GrindURUS Factory Pool Strategy 1
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
@@ -28,18 +28,18 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
     address public feeToken;
 
     /// @dev addess of oracle registry
-    IPriceOracleRegistry public oracleRegistry;
+    IRegistry public registry;
 
     /// @dev quoteToken => baseToken => uniswapV3PoolFee
     mapping (address quoteToken => mapping(address baseToken => uint24)) public uniswapV3PoolFee;
 
-    constructor(address _poolsNFT, address _oracleRegistry) {
+    constructor(address _poolsNFT, address _registry) {
         if (_poolsNFT != address(0)) {
             poolsNFT = IPoolsNFT(_poolsNFT);
         } else {
             poolsNFT = IPoolsNFT(msg.sender);
         }
-        oracleRegistry = IPriceOracleRegistry(_oracleRegistry);
+        registry = IRegistry(_registry);
         defaultConfig = IURUSCore.Config({
             // maxLiquidity = initLiquidity * (extraCoef + 1) ** (longNumberMax - 1)
             longNumberMax: 4,
@@ -96,11 +96,11 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
         address baseToken
     ) public override returns (address) {
         _onlyPoolsNFT();
-        address oracleQuoteTokenPerFeeToken = oracleRegistry.getOracle(quoteToken, feeToken);
+        address oracleQuoteTokenPerFeeToken = registry.getOracle(quoteToken, feeToken);
         if (oracleQuoteTokenPerFeeToken == address(0)) {
             revert InvalidOracleFeeToken();
         }
-        address oracleQuoteTokenPerBaseToken = oracleRegistry.getOracle(quoteToken, baseToken);
+        address oracleQuoteTokenPerBaseToken = registry.getOracle(quoteToken, baseToken);
         if (oracleQuoteTokenPerBaseToken == address(0)) {
             revert InvalidOracleBaseToken();
         }

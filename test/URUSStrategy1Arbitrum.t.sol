@@ -8,7 +8,7 @@ import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/stra
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 import {MockToken} from "test/mock/MockToken.sol";
 import {MockSwapRouterArbitrum} from "test/mock/MockSwapRouterArbitrum.sol";
-import {PriceOracleRegistryArbitrum} from "src/oracle/PriceOracleRegistryArbitrum.sol";
+import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 
 // $ forge test --match-path test/URUSStrategy1Arbitrum.t.sol -vvv
 contract URUSStrategy1ArbitrumTest is Test {
@@ -31,7 +31,7 @@ contract URUSStrategy1ArbitrumTest is Test {
 
     Strategy1Arbitrum public pool0;
 
-    PriceOracleRegistryArbitrum public oracleRegistry;
+    RegistryArbitrum public oracleRegistry;
 
     Strategy1FactoryArbitrum public factory1;
 
@@ -49,7 +49,7 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         grETH = new GRETH(address(poolsNFT));
 
-        oracleRegistry = new PriceOracleRegistryArbitrum(address(poolsNFT));
+        oracleRegistry = new RegistryArbitrum(address(poolsNFT));
 
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
 

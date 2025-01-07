@@ -69,6 +69,7 @@ contract GRETH is IGRETH, ERC20 {
 
     /// @notice burns grETH and get token
     /// @param amount amount of grETH
+    /// @param token address of token to earn instead
     function burn(uint256 amount, address token) external payable returns (uint256 tokenAmount) {
         address payable burner = payable(msg.sender);
         uint256 balance;

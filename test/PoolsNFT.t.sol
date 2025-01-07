@@ -6,7 +6,7 @@ import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
 import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
-import {PriceOracleRegistryArbitrum} from "src/oracle/PriceOracleRegistryArbitrum.sol";
+import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 
 // $ forge test --match-path test/PoolsNFT.t.sol
 contract PoolsNFTTest is Test {
@@ -26,7 +26,7 @@ contract PoolsNFTTest is Test {
 
     Strategy1Arbitrum public pool;
 
-    PriceOracleRegistryArbitrum public oracleRegistry;
+    RegistryArbitrum public oracleRegistry;
 
     Strategy1FactoryArbitrum public factory1;
 
@@ -40,7 +40,7 @@ contract PoolsNFTTest is Test {
 
         grindToken = new GRETH(address(poolsNFT));
 
-        oracleRegistry = new PriceOracleRegistryArbitrum(address(poolsNFT));
+        oracleRegistry = new RegistryArbitrum(address(poolsNFT));
 
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
 

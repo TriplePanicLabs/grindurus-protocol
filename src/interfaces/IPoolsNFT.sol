@@ -23,6 +23,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error InvalidRoyaltyPriceShare();
     error InvalidPoolNFTInfos();
     error InvalidInitRoyaltyPriceNumerator();
+    error InsufficientDeposit();
     error StrategyDontExist();
     error NotAllowedToRebalance();
     error DifferentStrategyId();
@@ -120,6 +121,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function tokenCap(address token) external view returns (uint256);
 
     /////// ONLY OWNER FUNCTIONS
+    
+    function setMinimumDeposit(address token, uint256 _minimumDeposit) external;
 
     function setTokenCap(address token, uint256 _tokenCap) external;
 

@@ -22,7 +22,16 @@ contract Grinder is Ownable2Step {
         /// any operation;
     }
 
+    function batchGrind(uint256[] memory poolIds) public {
+        uint256 len = poolIds.length;
+        for (uint256 i = 0; i < len; ) {
+            poolsNFT.grind(poolIds[i]);
+            unchecked { ++i; }
+        }
+    }
+
     function execute(address target, uint256 value, bytes calldata data) external returns (bool success) {
         (success, ) = target.call{value: value}(data);
     }
+
 }

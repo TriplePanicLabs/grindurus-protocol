@@ -10,8 +10,10 @@ contract PriceOracleInverse is AggregatorV3Interface {
     uint8 public originDecimals;
 
     constructor (address _oracle) {
-        oracle = AggregatorV3Interface(_oracle);
-        originDecimals = oracle.decimals();
+        if (_oracle != address(0)) {
+            oracle = AggregatorV3Interface(_oracle);
+            originDecimals = oracle.decimals();
+        }
     }
 
     function decimals() public view returns (uint8) {
