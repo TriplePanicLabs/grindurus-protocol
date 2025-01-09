@@ -33,6 +33,8 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
     /// @dev quoteToken => baseToken => uniswapV3PoolFee
     mapping (address quoteToken => mapping(address baseToken => uint24)) public uniswapV3PoolFee;
 
+    /// @param _poolsNFT address of PoolsNFT
+    /// @param _registry address of registry
     constructor(address _poolsNFT, address _registry) {
         if (_poolsNFT != address(0)) {
             poolsNFT = IPoolsNFT(_poolsNFT);
@@ -52,8 +54,8 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
             returnPercentHedgeRebuy: 100_50 // 100.50%
         });
 
-        uniswapV3PoolFee[usdtArbitrum][wethArbitrum] = 500;
-        uniswapV3PoolFee[usdcArbitrum][wethArbitrum] = 500;
+        uniswapV3PoolFee[usdtArbitrum][wethArbitrum] = 100;
+        uniswapV3PoolFee[usdcArbitrum][wethArbitrum] = 100;
 
         feeToken = wethArbitrum;
     }
@@ -70,6 +72,13 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
         if (msg.sender != owner()) {
             revert NotOwner();
         }
+    }
+
+    /// @notice sets uniswap V3 swap rourer
+    /// @param _swapRouter address of swap router
+    function setUniswapV3SwapRouter(address _swapRouter) public {
+        _onlyOwner();
+        uniswapV3SwapRouterArbitrum = _swapRouter;
     }
 
     /// @notice sets uniswapV3 fee

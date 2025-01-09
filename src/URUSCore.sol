@@ -46,6 +46,9 @@ contract URUSCore is IURUSCore {
     /// @dev total profits of pool
     TotalProfits public totalProfits;
 
+    /// @dev address of agent => is agent
+    mapping (address agent => bool) public isAgent;
+
     constructor() {} // only for verification simplification. As constructor call initCore()
 
     /// @notice constructor of URUS core
@@ -125,9 +128,6 @@ contract URUSCore is IURUSCore {
     }
 
     function _initHelperCoef() private {
-        // uint8 coefDecimals = 2;
-        // uint8 percentDecimals = 4;
-
         helper.coefMultiplier = 10 ** 2; // x1.00 = 100
         helper.percentMultiplier = 10 ** 4; // 100% = 100_00
     }
@@ -146,9 +146,11 @@ contract URUSCore is IURUSCore {
         }
     }
 
-    /// @notice checks that msg.sender is poolsNFT
     /// @dev should be reinitialized in nested contracts!
-    function _onlyTrustedEntity() internal view virtual {}
+    function _onlyGateway() internal view virtual {}
+
+    /// @dev should be reinitialized in nested contracts!
+    function _onlyAgent() internal view virtual {}
 
     /// @dev checks config
     function _checkConfig(Config memory conf) private pure {
@@ -164,19 +166,18 @@ contract URUSCore is IURUSCore {
 
     //// ONLY OWNER //////////////////////////////////////////////////////////////////////////
 
-    /// @notice set oracles quote token per fee token
-    /// @param _oracleQuoteTokenPerFeeToken oracle address of fee token in terms of quote token
-    /// @param _oracleQuoteTokenPerBaseToken oracle address of base token in terms of quote token
-    function setOracles(address _oracleQuoteTokenPerFeeToken, address _oracleQuoteTokenPerBaseToken) public {
+    /// @notice sets agent to address;
+    /// @param _isAgent true if agent. false if not agent
+    function setAgent(address agent, bool _isAgent) public {
         _onlyOwner();
-        oracleQuoteTokenPerFeeToken = AggregatorV3Interface(_oracleQuoteTokenPerFeeToken);
-        oracleQuoteTokenPerBaseToken = AggregatorV3Interface(_oracleQuoteTokenPerBaseToken);
-        _initHelperOracle();
+        isAgent[agent] = _isAgent;
     }
+
+    //// ONLY AGENT //////////////////////////////////////////////////////////////////////////
 
     /// @notice sets config of strategy pool
     function setConfig(Config memory conf) public override {
-        _onlyOwner();
+        _onlyAgent();
         _checkConfig(conf);
         config = conf;
         _setHelperInitLiquidityAndInvestCoef();
@@ -185,7 +186,7 @@ contract URUSCore is IURUSCore {
     /// @notice sets long number max
     /// @param longNumberMax new long number max
     function setLongNumberMax(uint8 longNumberMax) public override {
-        _onlyOwner();
+        _onlyAgent();
         if (longNumberMax == 0) {
             revert InvalidLongNumberMax();
         }
@@ -196,7 +197,7 @@ contract URUSCore is IURUSCore {
     /// @notice sets hedge number max
     /// @param hedgeNumberMax new hedge number max
     function setHedgeNumberMax(uint8 hedgeNumberMax) public override {
-        _onlyOwner();
+        _onlyAgent();
         if (hedgeNumberMax == 0) {
             revert InvalidHedgeNumberMax();
         }
@@ -206,7 +207,7 @@ contract URUSCore is IURUSCore {
     /// @notice sets extra coef
     /// @param extraCoef new extra coef
     function setExtraCoef(uint256 extraCoef) public override {
-        _onlyOwner();
+        _onlyAgent();
         if (extraCoef == 0) {
             revert InvalidExtraCoef();
         }
@@ -218,7 +219,7 @@ contract URUSCore is IURUSCore {
     /// @dev example: priceVolatility = 1%, that means that priceVolatility = 1_00
     /// @param priceVolatility price volatility. [priceVolatility]=%
     function setPriceVolatility(uint256 priceVolatility) public override {
-        _onlyOwner();
+        _onlyAgent();
         if (priceVolatility == 0 && priceVolatility > helper.percentMultiplier) {
             revert InvalidPriceVolatility();
         }
@@ -229,7 +230,7 @@ contract URUSCore is IURUSCore {
     /// @dev this parameter uses in calculating thresholds of initialization of hedge position.
     /// @param initHedgeSellPercent percent for initialization of hedge sell. [initHedgeSellPercent]=%.
     function setInitHedgeSellPercent(uint256 initHedgeSellPercent) public override {
-        _onlyOwner();
+        _onlyAgent();
         if (initHedgeSellPercent > helper.percentMultiplier) {
             revert InvalidInitHedgeSellPercent();
         }
@@ -241,7 +242,7 @@ contract URUSCore is IURUSCore {
     /// @param op operation to apply return
     /// @param returnPercent return scaled by helper.percentMultiplier
     function setOpReturnPercent(StrategyOp op, uint256 returnPercent) public override {
-        _onlyOwner();
+        _onlyAgent();
         if (returnPercent < 100 * helper.percentMultiplier)
             revert InvalidReturnOfInvestment();
         if (op == StrategyOp.LONG_SELL) {
@@ -259,7 +260,7 @@ contract URUSCore is IURUSCore {
     /// @dev if realFeeCoef = 1.61, than feeConfig = realFeeCoef * helper.feeCoeficientMultiplier
     /// @param _feeCoef fee coeficient scaled by helper.feeCoeficientMultiplier
     function setOpFeeCoef(StrategyOp op, uint256 _feeCoef) public override {
-        _onlyOwner();
+        _onlyAgent();
         if (op == StrategyOp.LONG_SELL) {
             feeConfig.longSellFeeCoef = _feeCoef;
         } else if (op == StrategyOp.HEDGE_SELL) {
@@ -280,7 +281,7 @@ contract URUSCore is IURUSCore {
     function deposit(
         uint256 quoteTokenAmount
     ) public override returns (uint256 depositedAmount) {
-        _onlyTrustedEntity(); 
+        _onlyGateway(); 
         quoteToken.safeTransferFrom(
             msg.sender,
             address(this),
@@ -300,7 +301,7 @@ contract URUSCore is IURUSCore {
         address to,
         uint256 quoteTokenAmount
     ) public override returns (uint256 withdrawn) {
-        _onlyTrustedEntity();
+        _onlyGateway();
         uint256 maxLiqudity = calcMaxLiquidity();
         if (quoteTokenAmount > maxLiqudity) {
             revert QuoteTokenAmountExceededMaxLiquidity();
@@ -361,7 +362,7 @@ contract URUSCore is IURUSCore {
         public
         returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
     {
-        _onlyTrustedEntity();
+        _onlyGateway();
         (quoteTokenAmount) = _take(quoteToken, type(uint256).max);
         (baseTokenAmount) = _take(baseToken, type(uint256).max);
         uint256 quoteTokenBalance = quoteToken.balanceOf(address(this));
@@ -773,7 +774,7 @@ contract URUSCore is IURUSCore {
         public
         returns (uint256 baseTokenAmount, uint256 price)
     {
-        _onlyTrustedEntity();
+        _onlyGateway();
         if (hedge.number > 0) {
             revert Hedged();
         }
@@ -789,7 +790,7 @@ contract URUSCore is IURUSCore {
     /// @notice third step for rebalance the positions via poolsNFT
     /// @dev called after rebalance by poolsNFT
     function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public {
-        _onlyTrustedEntity();
+        _onlyGateway();
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         (baseTokenAmount) = _put(baseToken, baseTokenAmount);
         long.qty = baseTokenAmount;

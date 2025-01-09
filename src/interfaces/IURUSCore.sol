@@ -20,6 +20,7 @@ interface IURUSCore is IERC5313 {
     error NotQuoteToken();
     error NotOwner();
     error NotPoolsNFT();
+    error NotAgent();
     error QuoteTokenInvested();
     error LongNumberMax();
     error BuyUpperPriceMin(uint256 swapPrice, uint256 priceMin);

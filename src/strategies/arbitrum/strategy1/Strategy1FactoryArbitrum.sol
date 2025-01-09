@@ -22,8 +22,8 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
     address private usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
     address private usdcArbitrum = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
 
-    address private aaveV3PoolArbitrum = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
-    address private uniswapV3SwapRouterArbitrum = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address public aaveV3PoolArbitrum = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    address public uniswapV3SwapRouterArbitrum = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
     /// @dev address of fee token
     address public feeToken;
@@ -34,6 +34,8 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
     /// @dev quoteToken => baseToken => uniswapV3PoolFee
     mapping (address quoteToken => mapping(address baseToken => uint24)) public uniswapV3PoolFee;
 
+    /// @param _poolsNFT address of PoolsNFT
+    /// @param _registry address of registry
     constructor(address _poolsNFT, address _registry) {
         if (_poolsNFT != address(0)) {
             poolsNFT = IPoolsNFT(_poolsNFT);
@@ -52,8 +54,8 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
             returnPercentHedgeSell: 100_50, // 100.50%
             returnPercentHedgeRebuy: 100_50 // 100.50%
         });
-        uniswapV3PoolFee[usdtArbitrum][wethArbitrum] = 500;
-        uniswapV3PoolFee[usdcArbitrum][wethArbitrum] = 500;
+        uniswapV3PoolFee[usdtArbitrum][wethArbitrum] = 100;
+        uniswapV3PoolFee[usdcArbitrum][wethArbitrum] = 100;
 
         feeToken = wethArbitrum;
     }
@@ -70,6 +72,20 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
         if (msg.sender != owner()) {
             revert NotOwner();
         }
+    }
+
+    /// @notice sets aave v3 pool
+    /// @param _aaveV3Pool address of aave v3 pool
+    function setAAVEV3Pool(address _aaveV3Pool) public {
+        _onlyOwner();
+        aaveV3PoolArbitrum = _aaveV3Pool;
+    }
+
+    /// @notice sets uniswap V3 swap rourer
+    /// @param _swapRouter address of swap router
+    function setUniswapV3SwapRouter(address _swapRouter) public {
+        _onlyOwner();
+        uniswapV3SwapRouterArbitrum = _swapRouter;
     }
 
     /// @notice sets uniswapV3 fee
@@ -114,7 +130,7 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
             poolId,
             oracleQuoteTokenPerFeeToken,
             oracleQuoteTokenPerBaseToken,
-            feeToken, // fee token
+            feeToken,
             quoteToken,
             baseToken,
             lendingArgs,

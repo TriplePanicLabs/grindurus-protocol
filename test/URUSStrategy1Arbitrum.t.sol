@@ -72,6 +72,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         );
         address pool0Address = poolsNFT.pools(poolId0);
         pool0 = Strategy1Arbitrum(payable(pool0Address));
+        pool0.setAgent(owner, true);
         
     }
 
@@ -233,6 +234,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         );
         address pool1Address = poolsNFT.pools(poolId1);
         Strategy1Arbitrum pool1 = Strategy1Arbitrum(payable(pool1Address));
+        pool1.setAgent(owner, true);
         pool1.setLongNumberMax(1);
         pool1.setSwapRouter(address(mockSwapRouter));
 
@@ -246,6 +248,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         );
         address pool2Address = poolsNFT.pools(poolId2);
         Strategy1Arbitrum pool2 = Strategy1Arbitrum(payable(pool2Address));
+        pool2.setAgent(owner, true);
         pool2.setLongNumberMax(1);
         pool2.setSwapRouter(address(mockSwapRouter));
 

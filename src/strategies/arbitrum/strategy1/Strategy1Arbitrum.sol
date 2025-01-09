@@ -36,10 +36,17 @@ contract Strategy1Arbitrum is IStrategy, URUSCore, AAVEV3AdapterArbitrum, Uniswa
         }
     }
 
-    /// @dev checks that msg.sender is poolsNFT
-    function _onlyTrustedEntity() internal view override(URUSCore) {
+    /// @dev checks that msg.sender is gateway
+    function _onlyGateway() internal view override(URUSCore) {
         if (msg.sender != address(poolsNFT)) {
             revert NotPoolsNFT();
+        }
+    }
+
+    /// @dev checks that msg.sender is agent
+    function _onlyAgent() internal view override(URUSCore) {
+        if (!isAgent[msg.sender] || msg.sender != owner()) {
+            revert NotAgent();
         }
     }
 

@@ -28,6 +28,8 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
     /// @dev timestamp of deployment
     uint256 public deploymentTimestamp;
 
+    constructor () {}
+
     function init(
         address _poolsNFT,
         uint256 _poolId,
@@ -64,19 +66,26 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
         }
     }
 
-    /// @dev checks that msg.sender is poolsNFT
-    function _onlyTrustedEntity() internal view override(URUSCore) {
+    /// @dev checks that msg.sender is gateway
+    function _onlyGateway() internal view override(URUSCore) {
         if (msg.sender != address(poolsNFT)) {
             revert NotPoolsNFT();
         }
     }
 
-    function _take(IToken token, uint256 amount) internal override(NoLendingAdapter, URUSCore) returns (uint256) {
-        return NoLendingAdapter._take(token, amount);
+    /// @dev checks that msg.sender is agent
+    function _onlyAgent() internal view override(URUSCore) {
+        if (!isAgent[msg.sender] || msg.sender != owner()) {
+            revert NotAgent();
+        }
     }
 
     function _put(IToken token, uint256 amount) internal override(NoLendingAdapter, URUSCore) returns (uint256){
         return NoLendingAdapter._put(token, amount);
+    }
+
+    function _take(IToken token, uint256 amount) internal override(NoLendingAdapter, URUSCore) returns (uint256) {
+        return NoLendingAdapter._take(token, amount);
     }
 
     function _swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) internal override(UniswapV3AdapterArbitrum, URUSCore) returns (uint256) {

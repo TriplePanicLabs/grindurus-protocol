@@ -147,8 +147,11 @@ contract PoolsNFT is
     /// @dev poolId => token address => deposit amount
     mapping (uint256 poolId => mapping (address token => uint256)) public deposited;
 
-    /// @dev quoteToken => amount of deposit in pool
-    mapping(address token => uint256) public totalDeposited;
+    /// @dev token address => amount of deposit in pool
+    mapping (address token => uint256) public totalDeposited;
+
+    /// @dev token address => maximum amount to deposit
+    mapping (address token => uint256) public maxDeposit;
 
     /// @dev token address => minimum amount to deposit
     /// @dev if minDeposit == 0, that no limit for minimum deposit
@@ -229,10 +232,18 @@ contract PoolsNFT is
         poolsNFTImage = IPoolsNFTImage(_poolsNFTImage);
     }
 
+    /// @notice sets maximum deposit
+    /// @param token address of token
+    /// @param _maxDeposit maximum amount of deposit
+    function setMaxDeposit(address token, uint256 _maxDeposit) external override {
+        _onlyOwner();
+        maxDeposit[token] = _maxDeposit;
+    }
+
     /// @notice sets minimum deposit
     /// @param token address of token
     /// @param _minDeposit minimum amount of deposit
-    function setMinimumDeposit(address token, uint256 _minDeposit) external override {
+    function setMinDeposit(address token, uint256 _minDeposit) external override {
         _onlyOwner();
         minDeposit[token] = _minDeposit;
     }
@@ -426,6 +437,7 @@ contract PoolsNFT is
     ) internal returns (uint256 depositedAmount) {
         IStrategy pool = IStrategy(pools[poolId]);
         IToken quoteToken = pool.quoteToken();
+        _checkMaxDeposit(address(quoteToken), quoteTokenAmount);
         _checkMinDeposit(address(quoteToken), quoteTokenAmount);
         _checkCap(address(quoteToken), quoteTokenAmount);
         quoteToken.safeTransferFrom(
@@ -497,6 +509,14 @@ contract PoolsNFT is
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
     }
 
+    /// @notice checks max deposit
+    function _checkMaxDeposit(address quoteToken, uint256 depositAmount) private view {
+        if (depositAmount > maxDeposit[quoteToken] && maxDeposit[quoteToken] != 0) {
+            revert ExceededDeposit();
+        }
+    }
+
+    /// @notice checks min deposit
     function _checkMinDeposit(address quoteToken, uint256 depositAmount) private view {
         if (depositAmount < minDeposit[quoteToken]) {
             revert InsufficientDeposit();
