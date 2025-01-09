@@ -3,8 +3,8 @@ pragma solidity =0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
-import {PriceOracleInverse} from "src/oracle/PriceOracleInverse.sol";
-import {PriceOracleSelf} from "src/oracle/PriceOracleSelf.sol";
+import {PriceOracleInverse} from "src/oracles/PriceOracleInverse.sol";
+import {PriceOracleSelf} from "src/oracles/PriceOracleSelf.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
 
 // $ forge test --match-path test/RegistryArbitrum.t.sol -vvv

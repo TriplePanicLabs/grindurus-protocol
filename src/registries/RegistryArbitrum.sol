@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.28;
 
-import {PriceOracleSelf} from "src/oracle/PriceOracleSelf.sol";
-import {PriceOracleInverse} from "src/oracle/PriceOracleInverse.sol";
+import {PriceOracleSelf} from "src/oracles/PriceOracleSelf.sol";
+import {PriceOracleInverse} from "src/oracles/PriceOracleInverse.sol";
 import {IRegistry} from "src/interfaces/IRegistry.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 
