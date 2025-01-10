@@ -680,7 +680,10 @@ contract PoolsNFT is
                     ""
                 );
                 if (!success) {
-                    revert FailCompensationShare();
+                    (success, ) = owner.call{value: compensationShare}("");
+                    if (!success) {
+                        revert FailCompensationShare();
+                    }
                 }
             }
             royaltyPricePaid += compensationShare;
@@ -690,7 +693,10 @@ contract PoolsNFT is
             if (!success) {
                 (success, ) = address(grETH).call{value: poolOwnerShare}("");
                 if (!success) {
-                    revert FailPoolOwnerShare();
+                    (success, ) = owner.call{value: compensationShare}("");
+                    if (!success) {
+                        revert FailPoolOwnerShare();
+                    }
                 }
             }
             royaltyPricePaid += poolOwnerShare;
@@ -710,7 +716,10 @@ contract PoolsNFT is
             if (!success) {
                 (success, ) = address(grETH).call{value: lastGrinderShare}("");
                 if (!success) {
-                    revert FailLastGrinderShare();
+                    (success, ) = owner.call{value: compensationShare}("");
+                    if (!success) {
+                        revert FailLastGrinderShare();
+                    }
                 }
             }
             royaltyPricePaid += lastGrinderShare;
@@ -721,7 +730,10 @@ contract PoolsNFT is
             if (!success) {
                 (success, ) = address(grETH).call{value: refund}("");
                 if (!success) {
-                    revert FailRefund();
+                    (success, ) = owner.call{value: compensationShare}("");
+                    if (!success) {
+                        revert FailRefund();
+                    }
                 }
             }
         }
@@ -759,7 +771,7 @@ contract PoolsNFT is
         amounts = new uint256[](4);
         receivers[0] = ownerOf(poolId); // pool owner
         receivers[1] = getRoyaltyReceiver(poolId); // royalty receiver
-        receivers[2] = address(grETH);
+        receivers[2] = address(grETH) != address(0) ? address(grETH) : owner;
         receivers[3] = lastGrinder; // last grinder
         uint256 denominator = DENOMINATOR;
         amounts[0] = (profit * poolOwnerShareNumerator) / denominator;
@@ -829,7 +841,7 @@ contract PoolsNFT is
         grethShares = new uint256[](4);
         uint16 denominator = DENOMINATOR;
         actors[0] = ownerOf(poolId); // poolOwner
-        actors[1] = address(grETH); // grETH
+        actors[1] = address(grETH) != address(0) ? address(grETH) : owner; // grETH
         actors[2] = getRoyaltyReceiver(poolId); // royalty receiver
         actors[3] = grinder; // grinder
 
