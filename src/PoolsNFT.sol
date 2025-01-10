@@ -605,26 +605,33 @@ contract PoolsNFT is
     /// @notice grind the pool with `poolId`
     /// @dev grETH == fee spend on iterate
     /// @param poolId pool id of pool in array `pools`
-    function grind(uint256 poolId) external override {
+    function grind(uint256 poolId) external override returns (bool isGrinded) {
+        return grindTo(poolId, msg.sender);
+    }
+
+    /// @notice grind the pool with `poolId` and grinder is `to`
+    /// @dev grETH == fee spend on iterate
+    /// @param poolId pool id of pool in array `pools`
+    /// @param grinder address of grinder, that will receive grind reward
+    function grindTo(uint256 poolId, address grinder) public override returns (bool isGrinded) {
         uint256 gasStart = gasleft();
         IStrategy pool = IStrategy(pools[poolId]);
-        bool successIterate;
         try pool.iterate() returns (bool iterated) {
-            successIterate = iterated;
+            isGrinded = iterated;
         } catch {
-            successIterate = false;
+            isGrinded = false;
         }
-        uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
-        (address[] memory actors, uint256[] memory grethShares) = calcGRETHShares(
-            poolId,
-            grethReward,
-            msg.sender
-        );
-        if (successIterate) {
+        if (isGrinded) {
+            uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
+            (address[] memory actors, uint256[] memory grethShares) = calcGRETHShares(
+                poolId,
+                grethReward,
+                grinder
+            );
             try grETH.mint(actors, grethShares) {} catch {}
         }
-        lastGrinder = payable(msg.sender);
-        emit Grind(poolId, msg.sender);
+        lastGrinder = payable(grinder);
+        emit Grind(poolId, grinder, isGrinded);
     }
 
     /// @notice buy royalty for pool with `poolId`
