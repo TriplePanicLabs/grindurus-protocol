@@ -272,7 +272,7 @@ contract URUSCore is IURUSCore {
         }
     }
 
-    //// ONLY TRUSTED ENTITY //////////////////////////////////////////////////////////////////////////
+    //// ONLY GATEWAY //////////////////////////////////////////////////////////////////////////
 
     /// @notice deposit the quote token to strategy
     /// @dev callable only by pools NFT. This made for accounting the amount of input tokens
