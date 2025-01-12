@@ -75,8 +75,14 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
 
     /// @dev checks that msg.sender is agent
     function _onlyAgent() internal view override(URUSCore) {
-        if (!isAgent[msg.sender] || msg.sender != owner()) {
-            revert NotAgent();
+        try poolsNFT.isAgentOf(owner(), msg.sender) returns (bool isAgent) {
+            if (!isAgent) {
+                revert NotAgent();
+            }
+        } catch {
+            if (owner() != address(poolsNFT)) {
+                revert NotAgent();
+            }
         }
     }
 

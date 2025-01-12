@@ -46,9 +46,6 @@ contract URUSCore is IURUSCore {
     /// @dev total profits of pool
     TotalProfits public totalProfits;
 
-    /// @dev address of agent => is agent
-    mapping (address agent => bool) public isAgent;
-
     constructor() {} // only for verification simplification. As constructor call initCore()
 
     /// @notice constructor of URUS core
@@ -166,12 +163,7 @@ contract URUSCore is IURUSCore {
 
     //// ONLY OWNER //////////////////////////////////////////////////////////////////////////
 
-    /// @notice sets agent to address;
-    /// @param _isAgent true if agent. false if not agent
-    function setAgent(address agent, bool _isAgent) public {
-        _onlyOwner();
-        isAgent[agent] = _isAgent;
-    }
+
 
     //// ONLY AGENT //////////////////////////////////////////////////////////////////////////
 

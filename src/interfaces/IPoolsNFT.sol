@@ -8,30 +8,21 @@ import {IURUSCore} from "src/interfaces/IURUSCore.sol";
 
 interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
-    error NotTreasury();
     error NotOwnerOrPending();
-    error ExceededDepositCap();
-    error NotOwnerOfPool(uint256 poolId, address ownerOf);
-    error NotPendingOwner();
-    error NotPrimaryReceiverRoyaltyOrPending();
-    error NotPrimaryReceiverRoyalty();
-    error NotPendingPrimaryReceiverRoyalty();
-    error StartRoyaltyPriceNumeratorZero();
+    error NotOwnerOf();
     error InvalidRoyaltyNumerator();
     error InvalidGRETHShares();
     error InvalidRoyaltyShares();
     error InvalidRoyaltyPriceShare();
     error InvalidPoolNFTInfos();
-    error InvalidInitRoyaltyPriceNumerator();
     error InsufficientDeposit();
     error ExceededDeposit();
-    error StrategyDontExist();
-    error NotAllowedToRebalance();
-    error DifferentStrategyId();
-    error DifferentBaseTokens();
+    error ExceededDepositCap();
+    error DifferentOwnersOfPools();
+    error NotAgent();
     error DifferentQuoteTokens();
+    error DifferentBaseTokens();
     error InsufficientRoyaltyPrice();
-    error InsufficientBuyOwnership();
     error FailCompensationShare();
     error FailPoolOwnerShare();
     error FailPrimaryReceiverShare();
@@ -105,6 +96,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function lastGrinder() external view returns (address payable);
 
+    function agent(address _ownerOf) external view returns (address);
+
     function baseURI() external view returns (string memory);
 
     function totalPools() external view returns (uint256);
@@ -126,7 +119,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function tokenCap(address token) external view returns (uint256);
 
     /////// ONLY OWNER FUNCTIONS
-    
+
     function setMaxDeposit(address token, uint256 _maxDeposit) external;
 
     function setMinDeposit(address token, uint256 _minDeposit) external;
@@ -137,7 +130,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function setPoolsNFTImage(address _poolsNFTImage) external;
 
-    function setInitRoyaltyPriceNumerator(uint16 _initRoyaltyPriceNumerator) external;
+    function setRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator) external;
 
     function setRoyaltyShares(
         uint16 _poolOwnerRoyaltyShareNumerator,
@@ -200,6 +193,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function exit(
         uint256 poolId
     ) external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
+
+    function approveAgent(address _agent) external;
 
     function rebalance(uint256 poolIdLeft, uint256 poolIdRight) external;
 
@@ -274,6 +269,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 fromPoolId,
         uint256 toPoolId
     ) external view returns (PoolNFTInfo[] memory poolsInfo);
+
+    function isAgentOf(address _ownerOf, address _agent) external view returns (bool);
 
     function getConfig(uint256 poolId) external view returns (IURUSCore.Config memory);
 

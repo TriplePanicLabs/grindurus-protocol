@@ -32,16 +32,11 @@ contract PoolsNFT is
     /// @dev this value of denominator is 100%
     uint16 public constant DENOMINATOR = 100_00;
 
-    /// @notice maximum royalty numerator.
-    /// @dev this value of max royalty is 30%
-    /// Dont panic, the actural royalty numerator stores in `royaltyNumerator`
-    uint16 public constant MAX_ROYALTY_NUMERATOR = 30_00;
-
     //// ROYALTY PRICE SHARES //////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice the init royalty price numerator
     /// @dev converts initial `quoteToken` to `feeToken` and multiply to numerator and divide by DENOMINATOR
-    uint16 public royaltyInitPriceNumerator;
+    uint16 public royaltyPriceInitNumerator;
 
     /// require CompensationShareNumerator + TreasuryShareNumerator + PoolOwnerShareNumerator + LastGrinderShareNumerator > 100%
     /// @dev numerator of royalty price compensation to previous owner share
@@ -159,7 +154,10 @@ contract PoolsNFT is
 
     /// @dev token address => token cap
     /// @dev if cap == 0, than cap is unlimited
-    mapping(address token => uint256) public tokenCap;
+    mapping (address token => uint256) public tokenCap;
+
+    /// @dev owner of => agent
+    mapping (address _ownerOf => address) public agent;
 
     constructor() ERC721("GRINDURUS Pools Collection", "GRINDURUS_POOLS") {
         baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/";
@@ -182,7 +180,7 @@ contract PoolsNFT is
         // total greth share = 80% + 5% + 4% + 11% = 100%
         require(grethGrinderShareNumerator + grethReserveShareNumerator + grethPoolOwnerShareNumerator + grethRoyaltyReceiverShareNumerator == DENOMINATOR);
         
-        royaltyInitPriceNumerator = 10_00; // 10%
+        royaltyPriceInitNumerator = 10_00; // 10%
         // poolOwnerShareNumerator + royaltyReserveShareNumerator + royaltyReceiverShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR
         royaltyNumerator = 20_00; // 20%
         poolOwnerShareNumerator = 80_00; // 80%
@@ -212,7 +210,7 @@ contract PoolsNFT is
     function _onlyOwnerOf(uint256 poolId) private view {
         address _ownerOf = ownerOf(poolId);
         if (msg.sender != _ownerOf) {
-            revert NotOwnerOfPool(poolId, _ownerOf);
+            revert NotOwnerOf();
         }
     }
 
@@ -259,11 +257,11 @@ contract PoolsNFT is
 
     /// @notice sets start royalty price
     /// @dev callable only by owner
-    function setInitRoyaltyPriceNumerator(
-        uint16 _royaltyInitPriceNumerator
+    function setRoyaltyPriceInitNumerator(
+        uint16 _royaltyPriceInitNumerator
     ) external override {
         _onlyOwner();
-        royaltyInitPriceNumerator = _royaltyInitPriceNumerator;
+        royaltyPriceInitNumerator = _royaltyPriceInitNumerator;
     }
 
     /// @notice sets royalty price share to actors
@@ -315,9 +313,6 @@ contract PoolsNFT is
             revert InvalidRoyaltyShares();
         }
         royaltyNumerator = DENOMINATOR - _poolOwnerRoyaltyShareNumerator;
-        if (royaltyNumerator > MAX_ROYALTY_NUMERATOR) {
-            revert InvalidRoyaltyNumerator();
-        }
         poolOwnerShareNumerator = _poolOwnerRoyaltyShareNumerator;
         royaltyReceiverShareNumerator = _royaltyReceiverShareNumerator;
         royaltyReserveShareNumerator = _royaltyReserveShareNumerator;
@@ -550,17 +545,25 @@ contract PoolsNFT is
         }
     }
 
+    /// @notice approve agent to msg.sender
+    /// @param _agent address of agent
+    function approveAgent(address _agent) public override {
+        agent[msg.sender] = _agent;
+    }
+
     /// @notice rebalance the pools with poolIds `poolId0` and `poolId1`
-    /// @dev only owner of pools can rebalance with equal strategy id
+    /// @dev only owner or AI-agent of pools can rebalance with equal strategy id
     /// @param poolId0 pool id of pool to rebalance
     /// @param poolId1 pool id of pool to rebalance
     function rebalance(
         uint256 poolId0,
         uint256 poolId1
     ) external override {
-        _onlyOwnerOf(poolId0);
         if (ownerOf(poolId0) != ownerOf(poolId1)) {
-            revert NotAllowedToRebalance();
+            revert DifferentOwnersOfPools();
+        }
+        if (!isAgentOf(ownerOf(poolId0), agent[msg.sender])) {
+            revert NotAgent();
         }
         IStrategy pool0 = IStrategy(
             pools[poolId0]
@@ -867,7 +870,7 @@ contract PoolsNFT is
         uint256 quoteTokenAmount
     ) public view returns (uint256 initRoyaltyPrice) {
         uint256 feeTokenAmount = IStrategy(pools[poolId]).calcFeeTokenByQuoteToken(quoteTokenAmount);
-        initRoyaltyPrice = (feeTokenAmount * royaltyInitPriceNumerator) / DENOMINATOR;
+        initRoyaltyPrice = (feeTokenAmount * royaltyPriceInitNumerator) / DENOMINATOR;
     }
 
     /// @notice returns tokenURI of `tokenId`
@@ -982,6 +985,12 @@ contract PoolsNFT is
                 poolInfoId++;
             }
         }
+    }
+
+    /// @notice return true, if `_agent` is agent of `_ownerOf`. Else false
+    /// @dev `_ownerOf` is agent of `_ownerOf`. Approved `_agent` of `_ownerOf` is agent
+    function isAgentOf(address _ownerOf, address _agent) public view override returns (bool) {
+        return  _ownerOf == _agent || agent[_ownerOf] == _agent;
     }
 
     /// @notice returns config
