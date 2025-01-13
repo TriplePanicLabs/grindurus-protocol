@@ -96,8 +96,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function lastGrinder() external view returns (address payable);
 
-    function agent(address _ownerOf) external view returns (address);
-
     function baseURI() external view returns (string memory);
 
     function totalPools() external view returns (uint256);
@@ -119,8 +117,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function tokenCap(address token) external view returns (uint256);
 
     /////// ONLY OWNER FUNCTIONS
-
-    function setMaxDeposit(address token, uint256 _maxDeposit) external;
 
     function setMinDeposit(address token, uint256 _minDeposit) external;
 
@@ -194,7 +190,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 poolId
     ) external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    function approveAgent(address _agent) external;
+    function approveAgent(address _agent, bool _approveAgent) external;
 
     function rebalance(uint256 poolIdLeft, uint256 poolIdRight) external;
 
@@ -272,13 +268,19 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function isAgentOf(address _ownerOf, address _agent) external view returns (bool);
 
-    function getConfig(uint256 poolId) external view returns (IURUSCore.Config memory);
+    function getConfig(uint256 poolId) external view 
+        returns (
+            uint8 longNumberMax,
+            uint8 hedgeNumberMax,
+            uint256 priceVolatility,
+            uint256 initHedgeSellPercent,
+            uint256 extraCoef,
+            uint256 returnPercentLongSell,
+            uint256 returnPercentHedgeSell,
+            uint256 returnPercentHedgeRebuy
+        );
 
-    function getLong(
-        uint256 poolId
-    )
-        external
-        view
+    function getLong(uint256 poolId) external view
         returns (
             uint8 number,
             uint8 numberMax,
@@ -290,11 +292,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
             uint256 feePrice
         );
 
-    function getHedge(
-        uint256 poolId
-    )
-        external
-        view
+    function getHedge(uint256 poolId) external view
         returns (
             uint8 number,
             uint8 numberMax,

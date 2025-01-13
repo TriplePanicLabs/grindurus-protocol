@@ -17,11 +17,7 @@ import {ERC721, ERC721Enumerable, IERC165} from "lib/openzeppelin-contracts/cont
 /// @title GrindURUS Pools NFT
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice NFT that represets ownership of every grindurus strategy pools
-contract PoolsNFT is
-    IPoolsNFT,
-    ERC721Enumerable,
-    ReentrancyGuard
-{
+contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     using SafeERC20 for IToken;
     using Base64 for bytes;
     using Strings for uint256;
@@ -145,9 +141,6 @@ contract PoolsNFT is
     /// @dev token address => amount of deposit in pool
     mapping (address token => uint256) public totalDeposited;
 
-    /// @dev token address => maximum amount to deposit
-    mapping (address token => uint256) public maxDeposit;
-
     /// @dev token address => minimum amount to deposit
     /// @dev if minDeposit == 0, that no limit for minimum deposit
     mapping (address token => uint256) public minDeposit;
@@ -156,8 +149,9 @@ contract PoolsNFT is
     /// @dev if cap == 0, than cap is unlimited
     mapping (address token => uint256) public tokenCap;
 
-    /// @dev owner of => agent
-    mapping (address _ownerOf => address) public agent;
+    /// @dev owner of address => agent address => is agent of `_ownerOf`
+    /// @dev true - is agent. False - is not agent
+    mapping (address _ownerOf => mapping (address _agent => bool)) internal _agentApprovals;
 
     constructor() ERC721("GRINDURUS Pools Collection", "GRINDURUS_POOLS") {
         baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/";
@@ -228,14 +222,6 @@ contract PoolsNFT is
     function setPoolsNFTImage(address _poolsNFTImage) external override {
         _onlyOwner();
         poolsNFTImage = IPoolsNFTImage(_poolsNFTImage);
-    }
-
-    /// @notice sets maximum deposit
-    /// @param token address of token
-    /// @param _maxDeposit maximum amount of deposit
-    function setMaxDeposit(address token, uint256 _maxDeposit) external override {
-        _onlyOwner();
-        maxDeposit[token] = _maxDeposit;
     }
 
     /// @notice sets minimum deposit
@@ -432,7 +418,6 @@ contract PoolsNFT is
     ) internal returns (uint256 depositedAmount) {
         IStrategy pool = IStrategy(pools[poolId]);
         IToken quoteToken = pool.quoteToken();
-        _checkMaxDeposit(address(quoteToken), quoteTokenAmount);
         _checkMinDeposit(address(quoteToken), quoteTokenAmount);
         _checkCap(address(quoteToken), quoteTokenAmount);
         quoteToken.safeTransferFrom(
@@ -504,13 +489,6 @@ contract PoolsNFT is
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
     }
 
-    /// @notice checks max deposit
-    function _checkMaxDeposit(address quoteToken, uint256 depositAmount) private view {
-        if (depositAmount > maxDeposit[quoteToken] && maxDeposit[quoteToken] != 0) {
-            revert ExceededDeposit();
-        }
-    }
-
     /// @notice checks min deposit
     function _checkMinDeposit(address quoteToken, uint256 depositAmount) private view {
         if (depositAmount < minDeposit[quoteToken]) {
@@ -547,8 +525,8 @@ contract PoolsNFT is
 
     /// @notice approve agent to msg.sender
     /// @param _agent address of agent
-    function approveAgent(address _agent) public override {
-        agent[msg.sender] = _agent;
+    function approveAgent(address _agent, bool _approveAgent) public override {
+        _agentApprovals[msg.sender][_agent] = _approveAgent;
     }
 
     /// @notice rebalance the pools with poolIds `poolId0` and `poolId1`
@@ -562,7 +540,8 @@ contract PoolsNFT is
         if (ownerOf(poolId0) != ownerOf(poolId1)) {
             revert DifferentOwnersOfPools();
         }
-        if (!isAgentOf(ownerOf(poolId0), agent[msg.sender])) {
+        address _ownerOf = ownerOf(poolId0);
+        if (!isAgentOf(_ownerOf, msg.sender)) {
             revert NotAgent();
         }
         IStrategy pool0 = IStrategy(
@@ -963,7 +942,7 @@ contract PoolsNFT is
             (uint256 APRNumerator, uint256 APRDenominator) = pool.APR();
             poolsInfo[poolInfoId] = PoolNFTInfo({
                 poolId: poolId,
-                config: getConfig(poolId),
+                config: _formConfig(poolId),
                 strategyId: pool.strategyId(),
                 quoteToken: address(pool.getQuoteToken()),
                 baseToken: address(pool.getBaseToken()),
@@ -990,12 +969,11 @@ contract PoolsNFT is
     /// @notice return true, if `_agent` is agent of `_ownerOf`. Else false
     /// @dev `_ownerOf` is agent of `_ownerOf`. Approved `_agent` of `_ownerOf` is agent
     function isAgentOf(address _ownerOf, address _agent) public view override returns (bool) {
-        return  _ownerOf == _agent || agent[_ownerOf] == _agent;
+        return balanceOf(_ownerOf) > 0 ? (_ownerOf == _agent || _agentApprovals[_ownerOf][_agent]) : false;
     }
 
-    /// @notice returns config
-    function getConfig(uint256 poolId) public view override returns (IURUSCore.Config memory) {
-        IStrategy pool = IStrategy(pools[poolId]);
+    /// @notice forms config structure for `getPoolNFTInfos`
+    function _formConfig(uint256 poolId) private view returns (IURUSCore.Config memory) {
         (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
@@ -1005,8 +983,7 @@ contract PoolsNFT is
             uint256 returnPercentLongSell,
             uint256 returnPercentHedgeSell,
             uint256 returnPercentHedgeRebuy
-        ) = pool.getConfig();
-
+        ) = getConfig(poolId);
         return IURUSCore.Config({
             longNumberMax: longNumberMax,
             hedgeNumberMax: hedgeNumberMax,
@@ -1017,16 +994,37 @@ contract PoolsNFT is
             returnPercentHedgeSell: returnPercentHedgeSell,
             returnPercentHedgeRebuy: returnPercentHedgeRebuy
         });
+
+    }
+
+    /// @notice returns config
+    /// @param poolId id of pool
+    function getConfig(uint256 poolId) public view override 
+        returns (
+            uint8 longNumberMax,
+            uint8 hedgeNumberMax,
+            uint256 priceVolatility,
+            uint256 initHedgeSellPercent,
+            uint256 extraCoef,
+            uint256 returnPercentLongSell,
+            uint256 returnPercentHedgeSell,
+            uint256 returnPercentHedgeRebuy
+        ) {
+        (
+            longNumberMax,
+            hedgeNumberMax,
+            priceVolatility,
+            initHedgeSellPercent,
+            extraCoef,
+            returnPercentLongSell,
+            returnPercentHedgeSell,
+            returnPercentHedgeRebuy
+        ) = IStrategy(pools[poolId]).getConfig();
     }
 
     /// @notice returns long position of poolId
     /// @param poolId pool id of pool in array `pools`
-    function getLong(
-        uint256 poolId
-    )
-        external
-        view
-        override
+    function getLong(uint256 poolId) external view override
         returns (
             uint8 number,
             uint8 numberMax,
@@ -1052,12 +1050,7 @@ contract PoolsNFT is
 
     /// @notice returns hedge position of poolId
     /// @param poolId pool id of pool in array `pools`
-    function getHedge(
-        uint256 poolId
-    )
-        external
-        view
-        override
+    function getHedge(uint256 poolId) external view override
         returns (
             uint8 number,
             uint8 numberMax,
