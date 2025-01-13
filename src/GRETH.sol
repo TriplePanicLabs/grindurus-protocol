@@ -7,6 +7,7 @@ import {ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol"
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title GrindURUS Token grETH
+/// @dev this ERC20 token is treasury of accumulated profits from stategies.
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice incentivization token for grinding the strategy
 contract GRETH is IGRETH, ERC20 {
@@ -47,30 +48,29 @@ contract GRETH is IGRETH, ERC20 {
     /// @dev callable only by `poolsNFT`
     function mint(
         address[] memory actors,
-        uint256[] memory shares
+        uint256[] memory amounts
     ) public returns (uint256 totalShares) {
         _onlyPoolsNFT();
-        if (actors.length != shares.length) {
+        if (actors.length != amounts.length) {
             return 0;
         }
         uint256 len = actors.length;
-        uint256 i = 0;
-        for (; i < len; ) {
-            if (shares[i] > 0) {
-                _mint(actors[i], shares[i]);
-                totalMintedBy[actors[i]] += shares[i];
-                totalGrinded += shares[i];
-                totalShares += shares[i];
+        for (uint256 i; i < len; ) {
+            if (amounts[i] > 0) {
+                _mint(actors[i], amounts[i]);
+                totalMintedBy[actors[i]] += amounts[i];
+                totalGrinded += amounts[i];
+                totalShares += amounts[i];
             }
             unchecked { ++i; }
         }
-        emit Mint(actors, shares, totalShares);
+        emit Mint(actors, amounts, totalShares);
     }
 
     /// @notice burns grETH and get token
     /// @param amount amount of grETH
     /// @param token address of token to earn instead
-    function burn(uint256 amount, address token) external payable returns (uint256 tokenAmount) {
+    function burn(uint256 amount, address token) public payable override returns (uint256 tokenAmount) {
         address payable burner = payable(msg.sender);
         uint256 balance;
         if (burner == owner()) {
@@ -85,24 +85,37 @@ contract GRETH is IGRETH, ERC20 {
         tokenAmount = share(amount, token);
         if (tokenAmount == 0) {
             revert ZeroTokenAmount();
-        } else {
-            _burn(msg.sender, amount);
-            emit Burn(msg.sender, amount, token, tokenAmount);
-            if (token == address(0)) {
-                (bool success,) = burner.call{value: tokenAmount}("");
-                if (!success) {
-                    revert FailTransferETH();
-                }
-            } else {
-                IToken(token).safeTransfer(burner, tokenAmount);
+        }
+        _burn(msg.sender, amount);
+        emit Burn(msg.sender, amount, token, tokenAmount);
+        if (token == address(0)) {
+            (bool success,) = burner.call{value: tokenAmount}("");
+            if (!success) {
+                revert FailTransferETH();
             }
+        } else {
+            IToken(token).safeTransfer(burner, tokenAmount);
+        }
+    }
+
+    /// @notice batch burns grETH and get tokens
+    /// @param amounts array of amounts of grETH
+    /// @param tokens array of addresses of token to earn
+    function burn(uint256[] memory amounts, address[] memory tokens) public payable override returns (uint256 tokenAmount) {
+        uint256 len = amounts.length;
+        if (len > 0 && len != tokens.length) {
+            revert InvalidLength();
+        }
+        for (uint256 i; i < len; ) {
+            tokenAmount += burn(amounts[i], tokens[i]);
+            unchecked { ++i; }
         }
     }
 
     /// @notice calculates the share of token
     /// @param amount grETH amount
     /// @param token address of token to calculate the share
-    function share(uint256 amount, address token) public view returns (uint256) {
+    function share(uint256 amount, address token) public view override returns (uint256) {
         uint256 totalLiquidity;
         if (token == address(0)) {
             totalLiquidity = address(this).balance;
@@ -121,7 +134,7 @@ contract GRETH is IGRETH, ERC20 {
     }
 
     /// @notice returns address of owner
-    function owner() public view returns (address) {
+    function owner() public view override returns (address) {
         try poolsNFT.owner() returns (address payable _owner) {
             return _owner;
         } catch {
