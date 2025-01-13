@@ -27,12 +27,6 @@ contract PoolsNFTScript is Script {
 
         poolsNFT = new PoolsNFT();
 
-        // grETH = new GRETH(address(poolsNFT));
-        // poolsNFT.setGRETH(address(grETH));
-
-        // factory1 = new Strategy1FactoryArbitrum(address(poolsNFT));
-        // poolsNFT.setStrategyFactory(address(factory1));
-
         vm.stopBroadcast();
     }
 }

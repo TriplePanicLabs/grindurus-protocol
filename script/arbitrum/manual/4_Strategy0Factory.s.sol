@@ -4,6 +4,7 @@ pragma solidity =0.8.28;
 import {Script, console} from "forge-std/Script.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
+import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 import {Strategy0Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy0/Strategy0Arbitrum.sol";
 import {Strategy0FactoryArbitrum} from "src/strategies/arbitrum/strategy0/Strategy0FactoryArbitrum.sol";
 
@@ -15,12 +16,10 @@ import {Strategy0FactoryArbitrum} from "src/strategies/arbitrum/strategy0/Strate
 
 
 contract Strategy0FactoryScript is Script {
-    PoolsNFT public poolsNFT;
+    PoolsNFT public poolsNFT = PoolsNFT(payable(address(0))); // address can be change
+    RegistryArbitrum public registry = RegistryArbitrum(payable(address(0))); // address can be change
 
     Strategy0FactoryArbitrum public factory0;
-
-    address public poolsNFTAddress = address(0); // REPASTE
-    address public oracleRegistryAddress = address(0); // REPASTE
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -31,9 +30,7 @@ contract Strategy0FactoryScript is Script {
         vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
 
-        poolsNFT = PoolsNFT(payable(poolsNFTAddress));
-
-        factory0 = new Strategy0FactoryArbitrum(poolsNFTAddress, oracleRegistryAddress);
+        factory0 = new Strategy0FactoryArbitrum(address(poolsNFT), address(registry));
         poolsNFT.setStrategyFactory(address(factory0));
 
         vm.stopBroadcast();
