@@ -168,21 +168,21 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         require(royaltyPriceCompensationShareNumerator + royaltyPriceReserveShareNumerator + royaltyPricePoolOwnerShareNumerator + royaltyPriceGrinderShareNumerator > DENOMINATOR);
 
         grethGrinderShareNumerator = 80_00; // 80%
-        grethReserveShareNumerator = 5_00; // 5%
-        grethPoolOwnerShareNumerator = 4_00; // 4%
-        grethRoyaltyReceiverShareNumerator = 11_00; // 11%;
-        // total greth share = 80% + 5% + 4% + 11% = 100%
+        grethReserveShareNumerator = 15_00; // 15%
+        grethPoolOwnerShareNumerator = 2_00; // 2%
+        grethRoyaltyReceiverShareNumerator = 3_00; // 3%;
+        // total greth share = 80% + 15% + 2% + 3% = 100%
         require(grethGrinderShareNumerator + grethReserveShareNumerator + grethPoolOwnerShareNumerator + grethRoyaltyReceiverShareNumerator == DENOMINATOR);
         
         royaltyPriceInitNumerator = 10_00; // 10%
         // poolOwnerShareNumerator + royaltyReserveShareNumerator + royaltyReceiverShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR
         royaltyNumerator = 20_00; // 20%
         poolOwnerShareNumerator = 80_00; // 80%
-        royaltyReceiverShareNumerator = 14_00; // 14%
+        royaltyReceiverShareNumerator = 10_00; // 10%
         royaltyReserveShareNumerator = 5_00; // 5%
-        royaltyGrinderShareNumerator = 1_00; // 1%
+        royaltyGrinderShareNumerator = 5_00; // 5%
         // total royalty + owner share = 20% + 80% = 100%
-        // total royalty share = 80% + 14% + 5% + 1% = 100%
+        // total royalty share = 80% + 10% + 5% + 5% = 100%
         require(royaltyNumerator + poolOwnerShareNumerator == DENOMINATOR);
         require(poolOwnerShareNumerator + royaltyReceiverShareNumerator + royaltyReserveShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR);
         //  profit = 1 USDT
