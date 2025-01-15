@@ -54,7 +54,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     uint16 public grethGrinderShareNumerator;
 
     /// @dev numerator of grETH reserve share
-    /// @dev grETHReserveShareNumerator == 10_00 == 10%
+    /// @dev grETHReserveShareNumerator == 15_00 == 15%
     uint16 public grethReserveShareNumerator;
 
     /// @dev numerator of pool owner share
@@ -62,7 +62,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     uint16 public grethPoolOwnerShareNumerator;
 
     /// @dev numerator of royalty receiver share
-    /// @dev example: grETHRoyaltyReceiverShareNumerator == 8_00 == 8%
+    /// @dev example: grETHRoyaltyReceiverShareNumerator == 3_00 == 3%
     uint16 public grethRoyaltyReceiverShareNumerator;
 
     //// ROYALTY SHARES ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     uint16 public poolOwnerShareNumerator;
 
     /// @notice royalty share of royalty receiver. You can buy it
-    /// @dev example: royaltyReceiverShareNumerator == 14_00 == 14%
+    /// @dev example: royaltyReceiverShareNumerator == 10_00 == 10%
     uint16 public royaltyReceiverShareNumerator;
 
     /// @notice royalty share of reserve. Reserve on grETH
@@ -86,7 +86,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     uint16 public royaltyReserveShareNumerator;
 
     /// @notice royalty share of last grinder
-    /// @dev example: royaltyGrinderShareNumerator == 1_00 == 1%
+    /// @dev example: royaltyGrinderShareNumerator == 5_00 == 5%
     uint16 public royaltyGrinderShareNumerator;
 
     //// PoolsNFT OWNERSHIP DATA ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,6 +113,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @notice address of poolsNFTImage
     IPoolsNFTImage public poolsNFTImage;
 
+    /// @notice reserve for accumulation of percent of strategy profits
     /// @dev grETH token address
     IGRETH public grETH;
 
@@ -120,23 +121,27 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     mapping (address strategiest => bool) public isStrategiest;
 
     /// @dev strategyId => address of grindurus pool strategy implementation
-    mapping(uint16 strategyId => IStrategyFactory) public strategyFactory;
+    mapping (uint16 strategyId => IStrategyFactory) public strategyFactory;
+
+    /// @dev strategyId => is strategy stoped. true - stopped. false - not stopped
+    /// @dev by default strategy is not stopped
+    mapping (uint16 strategyId => bool) public isStrategyStopped;
 
     /// @dev poolId => royalty receiver
-    mapping(uint256 poolId => address) public royaltyReceiver;
+    mapping (uint256 poolId => address) public royaltyReceiver;
 
     /// @dev poolId => royalty price
-    mapping(uint256 poolId => uint256) public royaltyPrice;
+    mapping (uint256 poolId => uint256) public royaltyPrice;
 
     /// @notice store minter of pool for airdrop points
     /// @dev poolId => address of creator of NFT
-    mapping(uint256 poolId => address) public minter;
+    mapping (uint256 poolId => address) public minter;
 
     /// @dev poolId => pool strategy address
-    mapping(uint256 poolId => address) public pools;
+    mapping (uint256 poolId => address) public pools;
 
     /// @dev pool strategy address => poolId
-    mapping(address pool => uint256) public poolIds;
+    mapping (address pool => uint256) public poolIds;
 
     /// @dev poolId => token address => deposit amount
     mapping (uint256 poolId => mapping (address token => uint256)) public deposited;
@@ -225,6 +230,16 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         if (!isStrategiest[msg.sender]) {
             revert NotStrategiest();
         }
+    }
+
+    /////// ONLY STRATEGIEST FUNCTIONS
+
+    /// @notice set stop on strategy with `strategyId`
+    /// @param strategyId id of strategy
+    /// @param _isStrategyStopped is strategy stopped. true - stopped. false - not stopped
+    function setStrategyStopped(uint16 strategyId, bool _isStrategyStopped) public override {
+        _onlyStrategiest();
+        isStrategyStopped[strategyId] = _isStrategyStopped;
     }
 
     /////// ONLY OWNER FUNCTIONS
@@ -352,6 +367,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         _onlyStrategiest();
         uint16 strategyId = IStrategyFactory(_strategyFactory).strategyId();
         strategyFactory[strategyId] = IStrategyFactory(_strategyFactory);
+        isStrategyStopped[strategyId] = false;
         emit SetFactoryStrategy(strategyId, _strategyFactory);
     }
 
@@ -391,6 +407,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         address baseToken,
         uint256 quoteTokenAmount
     ) public override returns (uint256 poolId) {
+        if (isStrategyStopped[strategyId]) {
+            revert StrategyStopped();
+        }
         poolId = totalPools;
         address pool = strategyFactory[strategyId].deploy(
             poolId,

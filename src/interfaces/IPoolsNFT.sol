@@ -17,6 +17,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error InvalidRoyaltyShares();
     error InvalidRoyaltyPriceShare();
     error InvalidPoolNFTInfos();
+    error StrategyStopped();
     error InsufficientDeposit();
     error ExceededDeposit();
     error ExceededDepositCap();
@@ -121,7 +122,13 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function tokenCap(address token) external view returns (uint256);
 
-    /////// ONLY OWNER FUNCTIONS
+    //// ONLY STRATEGIEST FUNCTIONS
+    
+    function setStrategyStopped(uint16 strategyId, bool _isStrategyStopped) external;
+
+    function setStrategyFactory(address _strategyFactory) external;
+
+    //// ONLY OWNER FUNCTIONS
 
     function setStrategiest(address strategiest, bool _isStrategiest) external;
 
@@ -157,8 +164,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     ) external;
 
     function transferOwnership(address payable _owner) external;
-
-    function setStrategyFactory(address _strategyFactory) external;
 
     function mint(
         uint16 strategyId,
