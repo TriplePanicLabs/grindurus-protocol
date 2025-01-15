@@ -29,7 +29,7 @@ contract GRETHScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         grETH = new GRETH(address(poolsNFT));
-        poolsNFT.setGRETH(address(grETH));
+        poolsNFT.init(address(grETH));
 
         vm.stopBroadcast();
     }

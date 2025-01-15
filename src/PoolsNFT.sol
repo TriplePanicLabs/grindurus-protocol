@@ -116,6 +116,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev grETH token address
     IGRETH public grETH;
 
+    /// @dev strategiest address => is strategiest
+    mapping (address strategiest => bool) public isStrategiest;
+
     /// @dev strategyId => address of grindurus pool strategy implementation
     mapping(uint16 strategyId => IStrategyFactory) public strategyFactory;
 
@@ -154,11 +157,12 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     mapping (address _ownerOf => mapping (address _agent => bool)) internal _agentApprovals;
 
     constructor() ERC721("GRINDURUS Pools Collection", "GRINDURUS_POOLS") {
-        baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/";
+        baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/grindurus-poolsnft-data/refs/heads/main/arbitrum/";
         totalPools = 0;
         pendingOwner = payable(address(0));
         owner = payable(msg.sender);
         lastGrinder = payable(msg.sender);
+        isStrategiest[msg.sender] = true;
 
         royaltyPriceCompensationShareNumerator = 101_00; // 101%
         royaltyPriceReserveShareNumerator = 1_00; // 1%
@@ -193,6 +197,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         //      royalty grinder = 0.2 * 1% = 0.002 USDT
     }
 
+    /// @notice sets grETH token
+    /// @dev callable only by owner
+    function init(address _grETH) external override {
+        _onlyOwner();
+        require(address(grETH) == address(0));
+        grETH = IGRETH(_grETH);
+    }
+
     /// @notice checks that msg.sender is owner
     function _onlyOwner() private view {
         if (msg.sender != owner) {
@@ -208,7 +220,22 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         }
     }
 
+    /// @notice checks that msg.sender is strategiest
+    function _onlyStrategiest() private view {
+        if (!isStrategiest[msg.sender]) {
+            revert NotStrategiest();
+        }
+    }
+
     /////// ONLY OWNER FUNCTIONS
+
+    /// @notice sets strategiest
+    /// @param strategiest address of strategiest
+    /// @param _isStrategiest true if strategiest, false if not strategiest
+    function setStrategiest(address strategiest, bool _isStrategiest) public override {
+        _onlyOwner();
+        isStrategiest[strategiest] = _isStrategiest;
+    }
 
     /// @notice sets base URI
     /// @param _baseURI string with baseURI
@@ -305,13 +332,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         royaltyGrinderShareNumerator = _royaltyGrinderShareNumerator;
     }
 
-    /// @notice sets grETH token
-    /// @dev callable only by owner
-    function setGRETH(address _grETH) external override {
-        _onlyOwner();
-        grETH = IGRETH(_grETH);
-    }
-
     /// @notice First step - transfering ownership to `newOwner`
     ///         Second step - accept ownership
     /// @dev for future DAO
@@ -329,7 +349,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @notice set factrory strategy
     /// @dev callable only by strategiest
     function setStrategyFactory(address _strategyFactory) external override {
-        _onlyOwner();
+        _onlyStrategiest();
         uint16 strategyId = IStrategyFactory(_strategyFactory).strategyId();
         strategyFactory[strategyId] = IStrategyFactory(_strategyFactory);
         emit SetFactoryStrategy(strategyId, _strategyFactory);

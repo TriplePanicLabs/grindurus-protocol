@@ -53,7 +53,7 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
 
-        poolsNFT.setGRETH(address(grETH));
+        poolsNFT.init(address(grETH));
         poolsNFT.setStrategyFactory(address(factory1));
 
         mockSwapRouter = new MockSwapRouterArbitrum();

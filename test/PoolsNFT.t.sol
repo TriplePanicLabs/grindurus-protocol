@@ -44,7 +44,7 @@ contract PoolsNFTTest is Test {
 
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
 
-        poolsNFT.setGRETH(address(grindToken));
+        poolsNFT.init(address(grindToken));
         poolsNFT.setStrategyFactory(address(factory1));
     }
 

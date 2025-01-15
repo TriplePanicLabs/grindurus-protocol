@@ -10,6 +10,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
     error NotOwnerOrPending();
     error NotOwnerOf();
+    error NotStrategiest();
+    error NotAgent();
     error InvalidRoyaltyNumerator();
     error InvalidGRETHShares();
     error InvalidRoyaltyShares();
@@ -19,7 +21,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error ExceededDeposit();
     error ExceededDepositCap();
     error DifferentOwnersOfPools();
-    error NotAgent();
     error DifferentQuoteTokens();
     error DifferentBaseTokens();
     error InsufficientRoyaltyPrice();
@@ -90,6 +91,10 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 royaltyPrice;
     }
 
+    function isStrategiest(address strategiest) external view returns (bool);
+
+    function init(address _grETH) external;
+
     function pendingOwner() external view returns (address payable);
 
     function owner() external view returns (address payable);
@@ -117,6 +122,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function tokenCap(address token) external view returns (uint256);
 
     /////// ONLY OWNER FUNCTIONS
+
+    function setStrategiest(address strategiest, bool _isStrategiest) external;
 
     function setMinDeposit(address token, uint256 _minDeposit) external;
 
@@ -148,8 +155,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint16 _royaltyPricePoolOwnerShareNumerator,
         uint16 _royaltyPriceLastGrinderShareNumerator
     ) external;
-
-    function setGRETH(address _grETH) external;
 
     function transferOwnership(address payable _owner) external;
 

@@ -48,7 +48,7 @@ contract DeployArbitrumScript is Script {
         poolsNFT = new PoolsNFT();
 
         grETH = new GRETH(address(poolsNFT));
-        poolsNFT.setGRETH(address(grETH));
+        poolsNFT.init(address(grETH));
 
         registry = new RegistryArbitrum(address(poolsNFT));
 
