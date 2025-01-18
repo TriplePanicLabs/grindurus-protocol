@@ -6,6 +6,8 @@ import {PriceOracleInverse} from "src/oracles/PriceOracleInverse.sol";
 import {IRegistry} from "src/interfaces/IRegistry.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 
+/// @title RegistryArbitrum
+/// @dev stores array of strategy ids, strategy pairs, quote tokens, base tokens, and bounded oracles
 contract RegistryArbitrum is IRegistry {
 
     address private oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612; // chainlink WETH/USD oracle;
@@ -20,14 +22,20 @@ contract RegistryArbitrum is IRegistry {
     /// @dev address of oracle, that return 1:1 price
     address public priceOracleSelf;
 
+    /// @dev array of strategy ids
+    uint16[] public strategyIds;
+
     /// @dev set of quote token
     address[] public quoteTokens;
 
     /// @dev set of base token
     address[] public baseTokens;
 
-    /// @dev quote token address => base token address => oracle address
-    mapping (address quoteToken => mapping(address baseToken => address)) internal oracles;
+    /// @dev strategy id => index of strategy in array `strategyIds`
+    mapping (uint16 strategyId => uint256) public strategyIdIndex;
+
+    /// @dev strategy id => description of strategy
+    mapping (uint16 strategyId => string) public strategyDescription;
 
     /// @dev quote token address => index of quote token in array `quoteTokens`
     mapping (address quoteToken => uint256) public quoteTokenIndex;
@@ -35,12 +43,36 @@ contract RegistryArbitrum is IRegistry {
     /// @dev quote token address => index of quote token in array `baseTokens`
     mapping (address baseToken => uint256) public baseTokenIndex;
 
+    /// @dev quote token address => base token address => oracle address
+    mapping (address quoteToken => mapping(address baseToken => address)) public oracles;
+
+    /** c === coherence = sum of raws minus one (exclude diagonal element)
+           t0 t1 t2 t3   
+         t0 1  1  1  0  c(t0) = 3 - 1 = 2
+    A0 = t1 1  1  0  0  c(t1) = 2 - 1 = 1
+         t2 1  0  1  1  c(t2) = 3 - 1 = 2
+         t3 0  0  1  1  c(t3) = 2 - 1 = 1
+
+    Add oracle to t0+t3
+
+           t0 t1 t2 t3
+         t0 1  1  1  1  c(t0) = 4 - 1 = 3
+    A1 = t1 1  1  0  0  c(t1) = 2 - 1 = 1
+         t2 1  0  1  1  c(t2) = 3 - 1 = 2
+         t3 1  0  1  1  c(t3) = 3 - 1 = 2
+
+     */
+
     /// @dev quote token => coherence of quote token
     mapping (address quoteToken => uint256) public quoteTokenCoherence;
 
     /// @dev base token address => coherence of base token
     mapping (address baseToken => uint256) public baseTokenCoherence;
 
+    /// @dev id of strategy => address of token => allowed token for strategy
+    mapping (uint256 strategyId => mapping (address quoteToken => mapping(address baseToken => bool))) internal _strategyPairs;
+
+    /// @param _poolsNFT address of poolsNFT
     constructor(address _poolsNFT) {
         if (_poolsNFT == address(0)) {
             poolsNFT = IPoolsNFT(msg.sender);
@@ -79,12 +111,41 @@ contract RegistryArbitrum is IRegistry {
         baseTokenCoherence[usdtArbitrum]++;
         baseTokenCoherence[usdcArbitrum]++;
 
+        uint16 uniswapV3PlusPureURUSStrategyId = 0;
+        uint16 aavePlusUniswapV3PlusPureURUSStrategyId = 1;
+        strategyIds.push(uniswapV3PlusPureURUSStrategyId);
+        strategyIds.push(aavePlusUniswapV3PlusPureURUSStrategyId);
+        strategyIdIndex[aavePlusUniswapV3PlusPureURUSStrategyId] = 0;
+        strategyIdIndex[aavePlusUniswapV3PlusPureURUSStrategyId] = 1;
+
+        strategyDescription[uniswapV3PlusPureURUSStrategyId] = "UniswapV3 Pure URUS Strategy";
+        strategyDescription[aavePlusUniswapV3PlusPureURUSStrategyId] = "AAVEV3 + UniswapV3 URUS Strategy";
+
+        // all strategy pairs with strategy id = 0 is true;
+        // following strategies pairs with strategy id = 1 is true
+        _strategyPairs[1][usdtArbitrum][wethArbitrum] = true;
+        _strategyPairs[1][wethArbitrum][usdtArbitrum] = true;
+
+        _strategyPairs[1][usdcArbitrum][wethArbitrum] = true;
+        _strategyPairs[1][wethArbitrum][usdcArbitrum] = true;
     }
 
     /// @notice checks that msg.sender is owner
     function _onlyOwner() internal view {
         if (msg.sender != owner()) {
             revert NotOwner();
+        }
+    }
+
+    function _onlyStrategiest() internal view {
+        if (address(poolsNFT) == address(0)) {
+            if (msg.sender != owner()) {
+                revert NotOwner();
+            }
+        } else {
+            if(!poolsNFT.isStrategiest(msg.sender)) {
+                revert NotStrategiest();
+            }
         }
     }
 
@@ -130,6 +191,62 @@ contract RegistryArbitrum is IRegistry {
         }
     }
 
+    /// @notice set strategy pair
+    /// @param strategyId id of strategy
+    /// @param quoteToken address of quote token
+    /// @param baseToken address of base token
+    /// @param _isStrategyPair true - strategy pair, false - not strategy pair
+    function setStrategyPair(uint16 strategyId, address quoteToken, address baseToken, bool _isStrategyPair) public override {
+        _onlyStrategiest();
+        if (quoteTokenCoherence[quoteToken] == 0) {
+            revert QuoteTokenNotListed();
+        }
+        if (baseTokenCoherence[baseToken] == 0) {
+            revert BaseTokenNotListed();
+        }
+        _strategyPairs[strategyId][quoteToken][baseToken] = _isStrategyPair;
+    }
+
+    /// @notice add strategy id to `strategyIds` array
+    /// @param strategyId id of strategy
+    /// @param _strategyDescription description of strategy
+    function addStrategyId(uint16 strategyId, string memory _strategyDescription) public {
+        _onlyStrategiest();
+        if (strategyIds[strategyIdIndex[strategyId]] == strategyId) {
+            revert StrategyIdExist();
+        }
+        strategyIdIndex[strategyId] = strategyIds.length;
+        strategyIds.push(strategyId);
+        strategyDescription[strategyId] = _strategyDescription;
+    }
+
+    /// @notice modify strategy description
+    /// @param strategyId id of strategy
+    /// @param _strategyDescription description of strategy
+    function modifyStrategyDescription(uint16 strategyId, string memory _strategyDescription) public {
+        _onlyStrategiest();
+        if (strategyIds[strategyIdIndex[strategyId]] != strategyId) {
+            revert StrategyIdNotExist();
+        }
+        strategyDescription[strategyId] = _strategyDescription;
+    }
+
+    /// @notice remove strategy id from `strategyIds`
+    /// @param strategyId id of strategy
+    function removeStrategyId(uint16 strategyId) public override {
+        _onlyStrategiest();
+        uint256 _strategyIdIndex = strategyIdIndex[strategyId];
+        if (strategyIds[_strategyIdIndex] != strategyId) {
+            revert StrategyIdNotExist();
+        }
+        uint256 lastStrategyIdIndex = strategyIds.length - 1;
+        if (_strategyIdIndex != lastStrategyIdIndex) {
+            strategyIds[_strategyIdIndex] = strategyIds[lastStrategyIdIndex];
+        }
+        strategyIds.pop();
+        delete strategyDescription[strategyId];
+    }
+
     /// @notice returns oracle address of base token in terms of quote token
     /// @param quoteToken address of quote token
     /// @param baseToken address of base token
@@ -140,8 +257,19 @@ contract RegistryArbitrum is IRegistry {
         return oracles[quoteToken][baseToken];
     }
 
+    /// @notice returns if it is strategy pair
+    /// @param strategyId id of strategy
+    /// @param quoteToken address of quote token
+    /// @param baseToken address of base token
+    function isStrategyPair(uint256 strategyId, address quoteToken, address baseToken) public view override returns (bool) {
+        if (strategyId == 0 && quoteTokenCoherence[quoteToken] > 0 && baseTokenCoherence[baseToken] > 0) {
+            return true;
+        }
+        return _strategyPairs[strategyId][quoteToken][baseToken];
+    }
+
     /// @notice return the owner
-    function owner() public view returns (address) {
+    function owner() public view override returns (address) {
         try poolsNFT.owner() returns (address payable _owner) {
             return _owner;
         } catch {
@@ -156,6 +284,11 @@ contract RegistryArbitrum is IRegistry {
         return oracles[quoteToken][baseToken] != address(0);
     }
 
+    /// @notice returns `strategyIds` array
+    function getStrategyIds() public view override returns (uint256, uint16[] memory) {
+        return (strategyIds.length, strategyIds);
+    }
+
     /// @notice returns `quoteTokens` array
     function getQuoteTokens() public view override returns (uint256, address[] memory) {
         return (quoteTokens.length, quoteTokens);
@@ -166,29 +299,43 @@ contract RegistryArbitrum is IRegistry {
         return (baseTokens.length, baseTokens);
     }
 
+    /// @notice returns `strategyIds` array
+    /// @param fromId index from in `quoteTokens` array
+    /// @param toId index to in `quoteTokens` array
+    function getStrategyIds(uint256 fromId, uint256 toId) public view override returns (uint256, uint16[] memory) {
+        require(fromId <= toId);
+        uint256 len = toId - fromId + 1;
+        uint16[] memory _strategyIds = new uint16[](len);
+        for (uint256 i; i < len;) {
+            _strategyIds[i] = strategyIds[fromId + i];
+            unchecked { ++i; }
+        }
+        return (len, _strategyIds);
+    }
+
     /// @notice returns length and slice array `quoteTokens` from index `from` to index `to`
-    /// @param from index from in `quoteTokens` array
-    /// @param to index to in `quoteTokens` array
-    function getQuoteTokens(uint256 from, uint256 to) public view override returns (uint256, address[] memory) {
-        require(from <= to, "from>to");
-        uint256 len = to - from + 1;
+    /// @param fromId index from in `quoteTokens` array
+    /// @param toId index to in `quoteTokens` array
+    function getQuoteTokens(uint256 fromId, uint256 toId) public view override returns (uint256, address[] memory) {
+        require(fromId <= toId);
+        uint256 len = toId - fromId + 1;
         address[] memory _quoteTokens = new address[](len);
         for (uint256 i; i < len;) {
-            _quoteTokens[i] = quoteTokens[from + i];
+            _quoteTokens[i] = quoteTokens[fromId + i];
             unchecked { ++i; }
         }
         return (len, _quoteTokens);
     }
-     
+
     /// @notice returns length and slice array `baseTokens` from index `from` to index `to`
-    /// @param from index from in `baseTokens` array
-    /// @param to index to in `baseTokens` array
-    function getBaseTokens(uint256 from, uint256 to) public view override returns (uint256, address[] memory) {
-        require(from <= to, "from>to");
-        uint256 len = to - from + 1;
+    /// @param fromId index from in `baseTokens` array
+    /// @param toId index to in `baseTokens` array
+    function getBaseTokens(uint256 fromId, uint256 toId) public view override returns (uint256, address[] memory) {
+        require(fromId <= toId);
+        uint256 len = toId - fromId + 1;
         address[] memory _baseTokens = new address[](len);
         for (uint256 i; i < len;) {
-            _baseTokens[i] = baseTokens[from + i];
+            _baseTokens[i] = baseTokens[fromId + i];
             unchecked { ++i; }
         }
         return (len, _baseTokens);
