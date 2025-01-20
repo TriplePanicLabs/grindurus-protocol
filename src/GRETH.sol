@@ -33,7 +33,7 @@ contract GRETH is IGRETH, ERC20 {
     /// @notice checks that msg.sender is grindurus pools NFT
     function _onlyPoolsNFT() private view {
         if (msg.sender != address(poolsNFT)) {
-            revert NotGrindURUSPoolsNFT();
+            revert NotPoolsNFT();
         }
     }
 
@@ -124,7 +124,7 @@ contract GRETH is IGRETH, ERC20 {
     function share(
         uint256 amount,
         address token
-    ) public view override returns (uint256) {
+    ) public view override returns (uint256 _share) {
         uint256 totalLiquidity;
         if (token == address(0)) {
             totalLiquidity = address(this).balance;
@@ -136,9 +136,7 @@ contract GRETH is IGRETH, ERC20 {
             revert AmountExceededSupply();
         }
         if (supply > 0) {
-            return totalLiquidity * amount / supply;
-        } else {
-            return 0;
+            _share = totalLiquidity * amount / supply;
         }
     }
 
@@ -149,6 +147,60 @@ contract GRETH is IGRETH, ERC20 {
         } catch {
             return address(poolsNFT);
         }
+    }
+
+    /// @notice swap tokens
+    /// @param fromToken address of token to be swapped from
+    /// @param toToken address of token to swapped to
+    /// @param fromTokenAmount amount of fromToken
+    /// @param toTokenAmount amount of toToken
+    /// @param target address of target contract (swap router)
+    /// @param value amount of ETH
+    /// @param data swap data
+    function swap(
+        address fromToken,
+        address toToken,
+        uint256 fromTokenAmount,
+        uint256 toTokenAmount,
+        address target,
+        uint256 value,
+        bytes calldata data
+    ) public {
+        _onlyOwner();
+        require(fromToken != address(this), "fromToken==grETH");
+        require(fromToken != toToken, "fromToken==toToken");
+        uint256 fromTokenBalanceBefore;
+        if (fromToken == address(0)) {
+            fromTokenBalanceBefore = address(this).balance;
+        } else {
+            fromTokenBalanceBefore = IToken(fromToken).balanceOf(address(this));
+            IToken(fromToken).forceApprove(target, fromTokenAmount);
+        }
+        uint256 toTokenBalanceBefore;
+        if (toToken == address(0)) {
+            toTokenBalanceBefore = address(this).balance;
+        } else {
+            toTokenBalanceBefore = IToken(toToken).balanceOf(address(this));
+        }
+        
+        (bool success, bytes memory result) = target.call{value: value}(data);
+        require(success, "swap fail");
+        
+        uint256 fromTokenBalanceAfter;
+        if (fromToken == address(0)) {
+            fromTokenBalanceAfter = address(this).balance;
+        } else {
+            fromTokenBalanceAfter = IToken(fromToken).balanceOf(address(this));
+        }
+        uint256 toTokenBalanceAfter;
+        if (toToken == address(0)) {
+            toTokenBalanceAfter = address(this).balance;
+        } else {
+            toTokenBalanceAfter = IToken(toToken).balanceOf(address(this));
+        }
+
+        require(fromTokenBalanceBefore - fromTokenBalanceAfter >= fromTokenAmount, "Insufficient fromToken spent");
+        require(toTokenBalanceAfter - toTokenBalanceBefore >= toTokenAmount, "Insufficient toToken received");
     }
 
     receive() external payable {}
