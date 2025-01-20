@@ -17,10 +17,10 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
     /// @dev default config for strategyV1
     IURUSCore.Config public defaultConfig;
 
-    address private oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612; // chainlink WETH/USD oracle;
-    address private wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-    address private usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
-    address private usdcArbitrum = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
+    address public oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612; // chainlink WETH/USD oracle;
+    address public wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+    address public usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+    address public usdcArbitrum = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
 
     address public aaveV3PoolArbitrum = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
     address public uniswapV3SwapRouterArbitrum = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
@@ -47,7 +47,7 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
             // maxLiquidity = initLiquidity * (extraCoef + 1) ** (longNumberMax - 1)
             longNumberMax: 4,
             hedgeNumberMax: 4,
-            priceVolatility: 1_00, // 1%
+            priceVolatilityPercent: 1_00, // 1%
             initHedgeSellPercent: 50, // 0.5%
             extraCoef: 2_00, // x2.00
             returnPercentLongSell: 100_50, // 100.50% // returnPercent = (amountInvested + profit) * 100 / amountInvested
@@ -133,9 +133,9 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
             feeToken,
             quoteToken,
             baseToken,
+            defaultConfig,
             lendingArgs,
-            dexArgs,
-            defaultConfig
+            dexArgs
         );
         return address(pool);
     }

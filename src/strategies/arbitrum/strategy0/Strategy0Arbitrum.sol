@@ -11,10 +11,10 @@ import {IDexAdapter} from "src/interfaces/IDexAdapter.sol";
 import {NoLendingAdapter} from "src/adapters/lendings/NoLendingAdapter.sol";
 import {UniswapV3AdapterArbitrum} from "src/adapters/dexes/UniswapV3AdapterArbitrum.sol";
 
-/// @title Strategy 0
-/// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
+/// @title Strategy0
+/// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice strategy pool, that implements pure URUS algorithm
-/// @dev stores tokens on strategy0 and hadles tokens swaps
+/// @dev Pure URUS algorithm on UniswapV3. Stores tokens on Strategy0 and hadles tokens swaps
 contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3AdapterArbitrum {
     using SafeERC20 for IToken;
 
@@ -38,8 +38,8 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
         address _feeToken,
         address _quoteToken,
         address _baseToken,
-        bytes memory _dexArgs,
-        Config memory _config
+        Config memory _config,
+        bytes memory _dexArgs
     ) public {
         if (address(poolsNFT) != address(0)) {
             revert StrategyInitialized(strategyId());
@@ -128,6 +128,14 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
             }
             unchecked { ++i; }
         }
+    }
+
+    /// @notice execute any transaction
+    function execute(address target, uint256 value, bytes calldata data) public returns (bytes memory result) {
+        _onlyOwner();
+        bool success;
+        (success, result) = target.call{value: value}(data);
+        require(success);
     }
 
     /// @notice calculates return of investment of strategy pool.

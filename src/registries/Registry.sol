@@ -84,7 +84,6 @@ contract Registry is IRegistry {
         }
         PriceOracleSelf _priceOracleSelf = new PriceOracleSelf();
         priceOracleSelf = address(_priceOracleSelf);
-
     }
 
       /// @notice checks that msg.sender is owner
@@ -244,6 +243,16 @@ contract Registry is IRegistry {
     /// @notice returns `strategyIds` array
     function getStrategyIds() public view override returns (uint256, uint16[] memory) {
         return (strategyIds.length, strategyIds);
+    }
+
+    /// @notice returns array of strategy descriptions
+    function getStrategiesDescriptions(uint16[] memory _strategyIds) public view override returns (string[] memory descriptions) {
+        uint256 len = _strategyIds.length;
+        descriptions = new string[](len);
+        for (uint16 i; i < len;) {
+            descriptions[i] = strategyDescription[_strategyIds[i]]; 
+            unchecked { ++i; }
+        }
     }
 
     /// @notice returns `quoteTokens` array

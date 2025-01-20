@@ -118,7 +118,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         pool0.setHedgeNumberMax(4);
         pool0.setExtraCoef(2_00); // x2.00
         pool0.setInitHedgeSellPercent(50); // 0.5%
-        pool0.setPriceVolatility(1_00); // 1%
+        pool0.setPriceVolatilityPercent(1_00); // 1%
         
         (uint256 qty0, uint256 price0) = printLongPosition(poolId0);
         assert(qty0 == 0); // no long position
@@ -182,8 +182,8 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         /// HEDGE SELLING to the end
 
-        mockSwapRouter.setRate(2160 * 10 ** 8); // Decrease price further
-        console.log("12) Price set to 2160");
+        mockSwapRouter.setRate(2140 * 10 ** 8); // Decrease price further
+        console.log("12) Price set to 2140");
         poolsNFT.grind(poolId0);
         console.log("13) Init hedge sell");
         (uint256 qty13, uint256 price13) = printLongPosition(poolId0);

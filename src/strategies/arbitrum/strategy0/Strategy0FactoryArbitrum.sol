@@ -46,7 +46,7 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
             // maxLiquidity = initLiquidity * (extraCoef + 1) ** (longNumberMax - 1)
             longNumberMax: 4,
             hedgeNumberMax: 4,
-            priceVolatility: 1_00, // 1%
+            priceVolatilityPercent: 1_00, // 1%
             initHedgeSellPercent: 50, // 0.5%
             extraCoef: 2_00, // x2.00
             returnPercentLongSell: 100_50, // 100.50% // returnPercent = (amountInvested + profit) * 100 / amountInvested
@@ -125,8 +125,8 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
             feeToken, // fee token
             quoteToken,
             baseToken,
-            dexArgs,
-            defaultConfig
+            defaultConfig,
+            dexArgs
         );
         return address(pool);
     }

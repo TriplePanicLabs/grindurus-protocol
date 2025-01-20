@@ -154,7 +154,7 @@ contract URUSCore is IURUSCore {
         if (
             conf.longNumberMax == 0 ||
             conf.hedgeNumberMax == 0 ||
-            conf.priceVolatility == 0 ||
+            conf.priceVolatilityPercent == 0 ||
             conf.extraCoef == 0
         ) {
             revert InvalidConfig();
@@ -208,14 +208,14 @@ contract URUSCore is IURUSCore {
     }
 
     /// @notice sets price volatility
-    /// @dev example: priceVolatility = 1%, that means that priceVolatility = 1_00
-    /// @param priceVolatility price volatility. [priceVolatility]=%
-    function setPriceVolatility(uint256 priceVolatility) public override {
+    /// @dev example: priceVolatilityPercent = 1%, that means that priceVolatilityPercent = 1_00
+    /// @param priceVolatilityPercent price volatility. [priceVolatilityPercent]=%
+    function setPriceVolatilityPercent(uint256 priceVolatilityPercent) public override {
         _onlyAgent();
-        if (priceVolatility == 0 && priceVolatility > helper.percentMultiplier) {
+        if (priceVolatilityPercent > helper.percentMultiplier) {
             revert InvalidPriceVolatility();
         }
-        config.priceVolatility = priceVolatility;
+        config.priceVolatilityPercent = priceVolatilityPercent;
     }
 
     /// @notice sets init hedge sell percent
@@ -454,8 +454,8 @@ contract URUSCore is IURUSCore {
             quoteTokenAmount,
             baseTokenAmount
         ); // [baseTokenPrice] = quoteToken/baseToken
-        if (baseTokenPrice > long.priceMin) {
-            revert BuyUpperPriceMin(baseTokenPrice, long.priceMin);
+        if (baseTokenPrice > calcLongPriceMin()) {
+            revert BuyUpperPriceMin(baseTokenPrice, calcLongPriceMin());
         }
 
         // 3.1. Update position
@@ -466,7 +466,7 @@ contract URUSCore is IURUSCore {
         long.price = (long.qty * long.price + baseTokenAmount * baseTokenPrice) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
         long.liquidity += quoteTokenAmount;
-        long.priceMin = long.price - long.price * config.priceVolatility / helper.percentMultiplier;
+        long.priceMin = calcLongPriceMin();
 
         // 4.1. Put baseToken to lending protocol
         (baseTokenAmount) = _put(baseToken, baseTokenAmount);
@@ -828,10 +828,19 @@ contract URUSCore is IURUSCore {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //// CALCULATE FUNCTIONS
 
+    /// @notice calculate min price for long position
+    function calcLongPriceMin() public view returns (uint256) {
+        if (long.number == 0) {
+            return type(uint256).max;
+        } else {
+            return long.price - long.price * config.priceVolatilityPercent  / helper.percentMultiplier;
+        }
+    }
+
     /// @notice calculate max liquidity that can be used for buying
     /// @dev q_n = q_1 * investCoef / coefMultiplier
     function calcMaxLiquidity() public view override returns (uint256) {
-        return (helper.initLiquidity * helper.investCoef) / helper.coefMultiplier;
+        return helper.initLiquidity * helper.investCoef / helper.coefMultiplier;
     }
 
     /// @notice calculates invest coeficient
@@ -931,7 +940,7 @@ contract URUSCore is IURUSCore {
 
     /// @notice calculates hedge sell thresholds bounds for initialization of hedge position
     function calcHedgeSellInitBounds() public view override returns (uint256 thresholdHigh, uint256 thresholdLow) {
-        thresholdHigh = long.priceMin;
+        thresholdHigh = calcLongPriceMin();
         thresholdLow = thresholdHigh - thresholdHigh * hedge.numberMax * config.initHedgeSellPercent / helper.percentMultiplier;
     }
 
@@ -1181,7 +1190,7 @@ contract URUSCore is IURUSCore {
     {
         number = long.number;
         numberMax = long.numberMax;
-        priceMin = long.priceMin;
+        priceMin = calcLongPriceMin();
         liquidity = long.liquidity;
         qty = long.qty;
         price = long.price;
@@ -1223,7 +1232,7 @@ contract URUSCore is IURUSCore {
         returns (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
-            uint256 priceVolatility,
+            uint256 priceVolatilityPercent,
             uint256 initHedgeSellPercent,
             uint256 extraCoef,
             uint256 returnPercentLongSell,
@@ -1233,7 +1242,7 @@ contract URUSCore is IURUSCore {
     {
         longNumberMax = config.longNumberMax;
         hedgeNumberMax = config.hedgeNumberMax;
-        priceVolatility = config.priceVolatility;
+        priceVolatilityPercent = config.priceVolatilityPercent;
         initHedgeSellPercent = config.initHedgeSellPercent;
         extraCoef = config.extraCoef;
         returnPercentLongSell = config.returnPercentLongSell;

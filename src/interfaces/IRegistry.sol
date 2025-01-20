@@ -46,6 +46,8 @@ interface IRegistry {
 
     function getStrategyIds() external view returns (uint256, uint16[] memory);
 
+    function getStrategiesDescriptions(uint16[] memory _strategyIds) external view returns (string[] memory descriptions);
+
     function getQuoteTokens() external view returns (uint256, address[] memory);
 
     function getBaseTokens() external view returns (uint256, address[] memory);

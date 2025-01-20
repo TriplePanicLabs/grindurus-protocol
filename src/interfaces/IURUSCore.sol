@@ -89,7 +89,7 @@ interface IURUSCore is IERC5313 {
         longNumberMax = 4
         hedgeNumberMax = 4
         extraCoef = 2_00 // x2.00
-        priceVolatility = 1_00 // 1%
+        priceVolatilityPercent = 1_00 // 1%
         initHedgeSellPercent = 50 // 0.5%
         returnPercentLongSell = 100_50 // 100.5%
         returnPercentHedgeSell = 100_50 // 100.5%
@@ -99,7 +99,7 @@ interface IURUSCore is IERC5313 {
         uint8 longNumberMax; // [longNumberMax] = (no dimension)
         uint8 hedgeNumberMax; // [hedgeNumberMax] = (no dimension)
         uint256 extraCoef; // [extraCoef] = (no dimension)
-        uint256 priceVolatility; // [priceVolatility] = %
+        uint256 priceVolatilityPercent; // [priceVolatilityPercent] = %
         uint256 initHedgeSellPercent; // [initHedgePercent] = %
         uint256 returnPercentLongSell; // [returnPercentLongSell] = %
         uint256 returnPercentHedgeSell; // [returnPercentHedgeSell] = %
@@ -148,7 +148,7 @@ interface IURUSCore is IERC5313 {
 
     function setExtraCoef(uint256 extraCoef) external;
 
-    function setPriceVolatility(uint256 priceVolatility) external;
+    function setPriceVolatilityPercent(uint256 priceVolatilityPercent) external;
 
     function setInitHedgeSellPercent(uint256 initHedgeSellPercent) external;
 
@@ -316,7 +316,7 @@ interface IURUSCore is IERC5313 {
         returns (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
-            uint256 priceVolatility,
+            uint256 priceVolatilityPercent,
             uint256 initHedgeSellPercent,
             uint256 extraCoef,
             uint256 returnPercentLongSell,

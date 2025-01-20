@@ -5,10 +5,9 @@ import {IToken} from "src/interfaces/IToken.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 
 interface IGRETH is IToken {
-    error NotGrindURUSPoolsNFT();
-    error NotGrindURUSOwner();
-    error InvalidLength();
+    error NotPoolsNFT();
     error NotOwner();
+    error InvalidLength();
     error InvalidAmount();
     error AmountExceededSupply();
     error ZeroTokenAmount();

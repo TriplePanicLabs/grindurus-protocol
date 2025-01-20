@@ -53,8 +53,8 @@ contract RegistryArbitrum is Registry {
         strategyIdIndex[aavePlusUniswapV3PlusPureURUSStrategyId] = 0;
         strategyIdIndex[aavePlusUniswapV3PlusPureURUSStrategyId] = 1;
 
-        strategyDescription[uniswapV3PlusPureURUSStrategyId] = "UniswapV3 Pure URUS Strategy";
-        strategyDescription[aavePlusUniswapV3PlusPureURUSStrategyId] = "AAVEV3 + UniswapV3 URUS Strategy";
+        strategyDescription[uniswapV3PlusPureURUSStrategyId] = "UniswapV3 with URUS";
+        strategyDescription[aavePlusUniswapV3PlusPureURUSStrategyId] = "AAVEV3 + UniswapV3 with URUS";
 
         // all strategy pairs with strategy id = 0 is true;
         // following strategies pairs with strategy id = 1 is true

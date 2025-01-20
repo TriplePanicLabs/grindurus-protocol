@@ -10,7 +10,7 @@ import {AAVEV3AdapterArbitrum} from "src/adapters/lendings/AAVEV3AdapterArbitrum
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {URUSCore, IERC5313} from "src/URUSCore.sol";
 
-/// @title GrindURUS Pool Strategy 1
+/// @title Strategy1
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice strategy pool, that put and take baseToken and quouteToken on AAVEV3 and swaps tokens on UniswapV3
 /// @dev stores the tokens LP and handles tokens swaps
@@ -75,9 +75,9 @@ contract Strategy1Arbitrum is IStrategy, URUSCore, AAVEV3AdapterArbitrum, Uniswa
         address _feeToken,
         address _quoteToken,
         address _baseToken,
+        Config memory _config,
         bytes calldata _lendingArgs,
-        bytes calldata _dexArgs,
-        Config memory _config
+        bytes calldata _dexArgs
     ) public {
         if (address(poolsNFT) != address(0)) {
             revert StrategyInitialized(strategyId());
@@ -159,6 +159,14 @@ contract Strategy1Arbitrum is IStrategy, URUSCore, AAVEV3AdapterArbitrum, Uniswa
         }
     }
 
+    /// @notice execute any transaction
+    function execute(address target, uint256 value, bytes calldata data) public returns (bytes memory result) {
+        _onlyOwner();
+        bool success;
+        (success, result) = target.call{value: value}(data);
+        require(success);
+    }
+
     /// @notice calculates return of investment of strategy pool.
     /// @dev returns the numerator and denominator of ROI. ROI = ROINumerator / ROIDenominator
     function ROI()
@@ -234,35 +242,6 @@ contract Strategy1Arbitrum is IStrategy, URUSCore, AAVEV3AdapterArbitrum, Uniswa
             return _owner;
         } catch {
             return address(poolsNFT);
-        }
-    }
-
-    /// @notice sweep tokens from smart contract
-    /// @param token address of token to sweep
-    function sweep(address token, address to) public payable {
-        _onlyOwner();
-        if (
-            token == address(getAToken(baseToken)) ||
-            token == address(getAToken(quoteToken))
-        ) {
-            revert CantSweepYieldToken();
-        }
-        uint256 _balance;
-        if (token == address(0)) {
-            _balance = address(this).balance;
-            if (_balance == 0) {
-                revert ZeroETH();
-            }
-            (bool success, ) = payable(to).call{value: _balance}("");
-            if (!success) {
-                revert FailETHTransfer();
-            }
-        } else {
-            _balance = IToken(token).balanceOf(address(this));
-            if (_balance == 0) {
-                revert FailTokenTransfer();
-            }
-            IToken(token).safeTransfer(to, _balance);
         }
     }
 
