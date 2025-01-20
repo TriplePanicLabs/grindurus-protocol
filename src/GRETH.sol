@@ -70,7 +70,10 @@ contract GRETH is IGRETH, ERC20 {
     /// @notice burns grETH and get token
     /// @param amount amount of grETH
     /// @param token address of token to earn instead
-    function burn(uint256 amount, address token) public payable override returns (uint256 tokenAmount) {
+    function burn(
+        uint256 amount,
+        address token
+    ) public payable override returns (uint256 tokenAmount) {
         address payable burner = payable(msg.sender);
         uint256 balance;
         if (burner == owner()) {
@@ -101,7 +104,10 @@ contract GRETH is IGRETH, ERC20 {
     /// @notice batch burns grETH and get tokens
     /// @param amounts array of amounts of grETH
     /// @param tokens array of addresses of token to earn
-    function burn(uint256[] memory amounts, address[] memory tokens) public payable override returns (uint256 tokenAmount) {
+    function batchBurn(
+        uint256[] memory amounts,
+        address[] memory tokens
+    ) public payable override returns (uint256 tokenAmount) {
         uint256 len = amounts.length;
         if (len > 0 && len != tokens.length) {
             revert InvalidLength();
@@ -115,7 +121,10 @@ contract GRETH is IGRETH, ERC20 {
     /// @notice calculates the share of token
     /// @param amount grETH amount
     /// @param token address of token to calculate the share
-    function share(uint256 amount, address token) public view override returns (uint256) {
+    function share(
+        uint256 amount,
+        address token
+    ) public view override returns (uint256) {
         uint256 totalLiquidity;
         if (token == address(0)) {
             totalLiquidity = address(this).balance;
