@@ -1037,7 +1037,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
-            uint256 priceVolatility,
+            uint256 priceVolatilityPercent,
             uint256 initHedgeSellPercent,
             uint256 extraCoef,
             uint256 returnPercentLongSell,
@@ -1047,7 +1047,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         return IURUSCore.Config({
             longNumberMax: longNumberMax,
             hedgeNumberMax: hedgeNumberMax,
-            priceVolatility: priceVolatility,
+            priceVolatilityPercent: priceVolatilityPercent,
             initHedgeSellPercent: initHedgeSellPercent,
             extraCoef: extraCoef,
             returnPercentLongSell: returnPercentLongSell,
