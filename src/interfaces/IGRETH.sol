@@ -28,7 +28,7 @@ interface IGRETH is IToken {
 
     function burn(uint256 amount, address token) external payable returns (uint256 tokenAmount);
 
-    function burn(uint256[] memory amounts, address[] memory tokens) external payable returns (uint256 tokenAmount);
+    function batchBurn(uint256[] memory amounts, address[] memory tokens) external payable returns (uint256 tokenAmount);
 
     function share(uint256 amount, address token) external view returns (uint256);
 
