@@ -35,6 +35,30 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error FailETHTransfer();
     error FailTokenTransfer(address token);
 
+    event SetStrategiest(address strategiest, bool isStrategiest);
+    event SetBaseURI(string baseURI);
+    event SetPoolsNFTImage(address poolsNFTImage);
+    event SetMinDeposit(address token, uint256 minDeposit);
+    event SetTokenCap(address token, uint256 _tokenCap);
+    event SetRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator);
+    event SetRoyaltyPriceShares(
+        uint16 _royaltyPriceCompensationShareNumerator,
+        uint16 _royaltyPriceReserveShareNumerator,
+        uint16 _royaltyPricePoolOwnerShareNumerator,
+        uint16 _royaltyPriceGrinderShareNumerator
+    );
+    event SetGRETHShares(
+        uint16 _grethGrinderShareNumerator,
+        uint16 _grethReserveShareNumerator,
+        uint16 _grethPoolOwnerShareNumerator,
+        uint16 _grethRoyaltyReceiverShareNumerator
+    );
+    event SetRoyaltyShares(
+        uint16 _poolOwnerRoyaltyShareNumerator,
+        uint16 _royaltyReceiverShareNumerator,
+        uint16 _royaltyReserveShareNumerator,
+        uint16 _royaltyGrinderShareNumerator
+    );
     event SetFactoryStrategy(uint256 strategyId, address factoryStrategy);
     event Mint(
         uint256 poolId,
@@ -58,6 +82,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 quoteTokenAmount,
         uint256 baseTokenAmount
     );
+    event Rebalance(uint256 poolId0, uint256 poolId1);
 
     event Grind(
         uint256 poolId,
@@ -92,9 +117,39 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 royaltyPrice;
     }
 
-    function isStrategiest(address strategiest) external view returns (bool);
+    //// ROYALTY PRICE SHARES
 
-    function init(address _grETH) external;
+    function royaltyPriceInitNumerator() external view returns (uint16);
+
+    function royaltyPriceCompensationShareNumerator() external view returns (uint16);
+
+    function royaltyPriceReserveShareNumerator() external view returns (uint16);
+    
+    function royaltyPricePoolOwnerShareNumerator() external view returns (uint16);
+
+    function royaltyPriceGrinderShareNumerator() external view returns (uint16);
+
+    //// GRETH SHARES
+
+    function grethGrinderShareNumerator() external view returns (uint16);
+
+    function grethReserveShareNumerator() external view returns (uint16);
+
+    function grethPoolOwnerShareNumerator() external view returns (uint16);
+
+    function grethRoyaltyReceiverShareNumerator() external view returns (uint16);
+
+    //// ROYALTY SHARES
+
+    function royaltyNumerator() external view returns (uint16);
+
+    function poolOwnerShareNumerator() external view returns (uint16);
+
+    function royaltyReceiverShareNumerator() external view returns (uint16);
+
+    function royaltyReserveShareNumerator() external view returns (uint16);
+
+    function royaltyGrinderShareNumerator() external view returns (uint16);
 
     function pendingOwner() external view returns (address payable);
 
@@ -102,15 +157,23 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function lastGrinder() external view returns (address payable);
 
+    function isStrategyStopped(uint16 stratrgyId) external view returns (bool);
+
     function baseURI() external view returns (string memory);
 
     function totalPools() external view returns (uint256);
 
     function grETH() external view returns (IGRETH);
 
+    function isStrategiest(address strategiest) external view returns (bool);
+
+    function strategyFactory(uint16 strategyId) external view returns (address);
+
     function royaltyReceiver(uint256 poolId) external view returns (address);
 
     function royaltyPrice(uint256 poolId) external view returns (uint256);
+
+    function minter(uint256 poolId) external view returns (address); 
 
     function pools(uint256 poolId) external view returns (address);
 
@@ -120,7 +183,11 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function totalDeposited(address token) external view returns (uint256);
 
+    function minDeposit(address token) external view returns (uint256);
+
     function tokenCap(address token) external view returns (uint256);
+
+    function init(address _grETH) external;
 
     //// ONLY STRATEGIEST FUNCTIONS
     

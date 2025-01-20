@@ -121,7 +121,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     mapping (address strategiest => bool) public isStrategiest;
 
     /// @dev strategyId => address of grindurus pool strategy implementation
-    mapping (uint16 strategyId => IStrategyFactory) public strategyFactory;
+    mapping (uint16 strategyId => address) public strategyFactory;
 
     /// @dev strategyId => is strategy stoped. true - stopped. false - not stopped
     /// @dev by default strategy is not stopped
@@ -250,6 +250,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setStrategiest(address strategiest, bool _isStrategiest) public override {
         _onlyOwner();
         isStrategiest[strategiest] = _isStrategiest;
+        emit SetStrategiest(strategiest, _isStrategiest);
     }
 
     /// @notice sets base URI
@@ -257,6 +258,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setBaseURI(string memory _baseURI) external override {
         _onlyOwner();
         baseURI = _baseURI;
+        emit SetBaseURI(_baseURI);
     }
 
     /// @notice sets pools NFT Image
@@ -264,6 +266,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setPoolsNFTImage(address _poolsNFTImage) external override {
         _onlyOwner();
         poolsNFTImage = IPoolsNFTImage(_poolsNFTImage);
+        emit SetPoolsNFTImage(_poolsNFTImage);
     }
 
     /// @notice sets minimum deposit
@@ -272,6 +275,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setMinDeposit(address token, uint256 _minDeposit) external override {
         _onlyOwner();
         minDeposit[token] = _minDeposit;
+        emit SetMinDeposit(token, _minDeposit);
     }
 
     /// @notice sets cap tvl
@@ -281,6 +285,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setTokenCap(address token, uint256 _tokenCap) external override {
         _onlyOwner();
         tokenCap[token] = _tokenCap;
+        emit SetTokenCap(token, _tokenCap);
     }
 
     /// @notice sets start royalty price
@@ -290,6 +295,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     ) external override {
         _onlyOwner();
         royaltyPriceInitNumerator = _royaltyPriceInitNumerator;
+        emit SetRoyaltyPriceInitNumerator(_royaltyPriceInitNumerator);
     }
 
     /// @notice sets royalty price share to actors
@@ -308,6 +314,12 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         royaltyPriceReserveShareNumerator = _royaltyPriceReserveShareNumerator;
         royaltyPricePoolOwnerShareNumerator = _royaltyPricePoolOwnerShareNumerator;
         royaltyPriceGrinderShareNumerator = _royaltyPriceGrinderShareNumerator;
+        emit SetRoyaltyPriceShares(        
+            _royaltyPriceCompensationShareNumerator,
+            _royaltyPriceReserveShareNumerator,
+            _royaltyPricePoolOwnerShareNumerator,
+            _royaltyPriceGrinderShareNumerator
+        );
     }
 
     /// @notice sets greth shares
@@ -326,6 +338,12 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         grethReserveShareNumerator = _grethReserveShareNumerator; // 10%
         grethPoolOwnerShareNumerator = _grethPoolOwnerShareNumerator; // 5%
         grethRoyaltyReceiverShareNumerator = _grethRoyaltyReceiverShareNumerator; // 5%
+        emit SetGRETHShares(        
+            _grethGrinderShareNumerator,
+            _grethReserveShareNumerator,
+            _grethPoolOwnerShareNumerator,
+            _grethRoyaltyReceiverShareNumerator
+        );
     }
 
     /// @notice sets primary receiver royalty share
@@ -345,6 +363,12 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         royaltyReceiverShareNumerator = _royaltyReceiverShareNumerator;
         royaltyReserveShareNumerator = _royaltyReserveShareNumerator;
         royaltyGrinderShareNumerator = _royaltyGrinderShareNumerator;
+        emit SetRoyaltyShares(
+            _poolOwnerRoyaltyShareNumerator,
+            _royaltyReceiverShareNumerator,
+            _royaltyReserveShareNumerator,
+            _royaltyGrinderShareNumerator
+        );
     }
 
     /// @notice First step - transfering ownership to `newOwner`
@@ -366,7 +390,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setStrategyFactory(address _strategyFactory) external override {
         _onlyStrategiest();
         uint16 strategyId = IStrategyFactory(_strategyFactory).strategyId();
-        strategyFactory[strategyId] = IStrategyFactory(_strategyFactory);
+        strategyFactory[strategyId] = _strategyFactory;
         isStrategyStopped[strategyId] = false;
         emit SetFactoryStrategy(strategyId, _strategyFactory);
     }
@@ -411,7 +435,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             revert StrategyStopped();
         }
         poolId = totalPools;
-        address pool = strategyFactory[strategyId].deploy(
+        address pool = IStrategyFactory(strategyFactory[strategyId]).deploy(
             poolId,
             quoteToken,
             baseToken
@@ -579,21 +603,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         if (ownerOf(poolId0) != ownerOf(poolId1)) {
             revert DifferentOwnersOfPools();
         }
-        address _ownerOf = ownerOf(poolId0);
-        if (!isAgentOf(_ownerOf, msg.sender)) {
+        if (!isAgentOf(ownerOf(poolId0), msg.sender)) {
             revert NotAgent();
         }
-        IStrategy pool0 = IStrategy(
-            pools[poolId0]
-        );
-        IStrategy pool1 = IStrategy(
-            pools[poolId1]
-        );
+        IStrategy pool0 = IStrategy(pools[poolId0]);
+        IStrategy pool1 = IStrategy(pools[poolId1]);
         IToken pool0BaseToken = pool0.baseToken();
         IToken pool1BaseToken = pool1.baseToken();
-        IToken pool0QuoteToken = pool0.quoteToken();
-        IToken pool1QuoteToken = pool1.quoteToken();
-        if (address(pool0QuoteToken) != address(pool1QuoteToken)) {
+        if (address(pool0.quoteToken()) != address(pool1.quoteToken())) {
             revert DifferentQuoteTokens();
         }
         if (address(pool0BaseToken) != address(pool1BaseToken)) {
@@ -604,9 +621,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         pool0BaseToken.safeTransferFrom(address(pool0), address(this), baseTokenAmount0);
         (uint256 baseTokenAmount1, uint256 price1) = pool1.beforeRebalance();
         pool1BaseToken.safeTransferFrom(address(pool1), address(this), baseTokenAmount1);
-        
+
         // second step: rebalance
-        uint256 totalBaseTokenAmount = baseTokenAmount0 +baseTokenAmount1;
+        uint256 totalBaseTokenAmount = baseTokenAmount0 + baseTokenAmount1;
         uint256 rebalancedPrice = (baseTokenAmount0 * price0 + baseTokenAmount1 * price1) / totalBaseTokenAmount;
         uint256 newBaseTokenAmount0 = totalBaseTokenAmount / 2;
         uint256 newBaseTokenAmount1 = totalBaseTokenAmount - newBaseTokenAmount0;
@@ -621,6 +638,10 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         );
         pool0.afterRebalance(newBaseTokenAmount0, rebalancedPrice);
         pool1.afterRebalance(newBaseTokenAmount1, rebalancedPrice);
+        emit Rebalance(
+            poolId0,
+            poolId1
+        );
     }
 
     /// @notice grind the pool with `poolId`
