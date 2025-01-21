@@ -15,6 +15,7 @@ interface IGRETH is IToken {
 
     event Mint(address[] actors, uint256[] shares, uint256 minted);
     event Burn(address burner, uint256 amount, address token, uint256 tokenAmount);
+    event CallResult(bytes result);
 
     function poolsNFT() external view returns (IPoolsNFT);
 
@@ -29,6 +30,10 @@ interface IGRETH is IToken {
 
     function batchBurn(uint256[] memory amounts, address[] memory tokens) external payable returns (uint256 tokenAmount);
 
+    function calcShare(uint256 amount, address token) external view returns (uint256 share);
+
+    function owner() external view returns (address);
+
     function swap(
         address token,
         uint256 amountIn,
@@ -36,10 +41,6 @@ interface IGRETH is IToken {
         address target,
         bytes calldata data
     ) external;
-
-    function calcShare(uint256 amount, address token) external view returns (uint256 share);
-
-    function owner() external view returns (address);
 
 
 }

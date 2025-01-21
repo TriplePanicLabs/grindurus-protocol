@@ -173,8 +173,10 @@ contract GRETH is IGRETH, ERC20 {
         uint256 targetTokenBalanceBefore = weth.balanceOf(address(this));
         
         (bool success, bytes memory result) = target.call(data);
+        emit CallResult(result);
         require(success, "swap fail");
-        
+         
+
         uint256 tokenBalanceAfter = IToken(token).balanceOf(address(this));
         uint256 targetTokenBalanceAfter = weth.balanceOf(address(this));
 
