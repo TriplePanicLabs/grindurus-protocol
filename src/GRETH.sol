@@ -165,7 +165,7 @@ contract GRETH is IGRETH, ERC20 {
         uint256 amountOut,
         address target,
         bytes calldata data
-    ) public {
+    ) public override {
         _onlyOwner();
 
         uint256 tokenBalanceBefore = IToken(token).balanceOf(address(this));
