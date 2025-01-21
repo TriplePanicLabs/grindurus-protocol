@@ -16,18 +16,22 @@ contract GRETH is IGRETH, ERC20 {
     /// @dev address of grindurus strategy positions NFT
     IPoolsNFT public poolsNFT;
 
+    /// @dev address of weth
+    IToken public weth;
+
     /// @dev total grinded
     uint256 public totalGrinded;
 
     /// @dev account address => amount grETH minted
     mapping (address account => uint256) public totalMintedBy;
 
-    constructor(address _poolsNFT) ERC20("GrindURUS ETH", "grETH") {
+    constructor(address _poolsNFT, address _weth) ERC20("GrindURUS ETH", "grETH") {
         if (_poolsNFT != address(0)) {
             poolsNFT = IPoolsNFT(_poolsNFT);
         } else {
             poolsNFT == IPoolsNFT(msg.sender);
         }
+        weth = IToken(_weth);
     }
 
     /// @notice checks that msg.sender is grindurus pools NFT
@@ -85,7 +89,7 @@ contract GRETH is IGRETH, ERC20 {
         if (amount == 0 || amount > balance) {
             revert InvalidAmount();
         }
-        tokenAmount = share(amount, token);
+        tokenAmount = calcShare(amount, token);
         if (tokenAmount == 0) {
             revert ZeroTokenAmount();
         }
@@ -118,13 +122,13 @@ contract GRETH is IGRETH, ERC20 {
         }
     }
 
-    /// @notice calculates the share of token
+    /// @notice calculates the calcShare of token
     /// @param amount grETH amount
-    /// @param token address of token to calculate the share
-    function share(
+    /// @param token address of token to calculate the calcShare
+    function calcShare(
         uint256 amount,
         address token
-    ) public view override returns (uint256 _share) {
+    ) public view override returns (uint256 share) {
         uint256 totalLiquidity;
         if (token == address(0)) {
             totalLiquidity = address(this).balance;
@@ -136,7 +140,7 @@ contract GRETH is IGRETH, ERC20 {
             revert AmountExceededSupply();
         }
         if (supply > 0) {
-            _share = totalLiquidity * amount / supply;
+            share = totalLiquidity * amount / supply;
         }
     }
 
@@ -149,58 +153,33 @@ contract GRETH is IGRETH, ERC20 {
         }
     }
 
-    /// @notice swap tokens
-    /// @param fromToken address of token to be swapped from
-    /// @param toToken address of token to swapped to
-    /// @param fromTokenAmount amount of fromToken
-    /// @param toTokenAmount amount of toToken
+    /// @notice swap tokens to weth
+    /// @param token address of token to be swapped from
+    /// @param amountIn amount of token
+    /// @param amountOut amount of weth
     /// @param target address of target contract (swap router)
-    /// @param value amount of ETH
     /// @param data swap data
     function swap(
-        address fromToken,
-        address toToken,
-        uint256 fromTokenAmount,
-        uint256 toTokenAmount,
+        address token,
+        uint256 amountIn,
+        uint256 amountOut,
         address target,
-        uint256 value,
         bytes calldata data
     ) public {
         _onlyOwner();
-        require(fromToken != address(this), "fromToken==grETH");
-        require(fromToken != toToken, "fromToken==toToken");
-        uint256 fromTokenBalanceBefore;
-        if (fromToken == address(0)) {
-            fromTokenBalanceBefore = address(this).balance;
-        } else {
-            fromTokenBalanceBefore = IToken(fromToken).balanceOf(address(this));
-            IToken(fromToken).forceApprove(target, fromTokenAmount);
-        }
-        uint256 toTokenBalanceBefore;
-        if (toToken == address(0)) {
-            toTokenBalanceBefore = address(this).balance;
-        } else {
-            toTokenBalanceBefore = IToken(toToken).balanceOf(address(this));
-        }
+
+        uint256 tokenBalanceBefore = IToken(token).balanceOf(address(this));
+        IToken(token).forceApprove(target, amountIn);
+        uint256 targetTokenBalanceBefore = weth.balanceOf(address(this));
         
-        (bool success, bytes memory result) = target.call{value: value}(data);
+        (bool success, bytes memory result) = target.call(data);
         require(success, "swap fail");
         
-        uint256 fromTokenBalanceAfter;
-        if (fromToken == address(0)) {
-            fromTokenBalanceAfter = address(this).balance;
-        } else {
-            fromTokenBalanceAfter = IToken(fromToken).balanceOf(address(this));
-        }
-        uint256 toTokenBalanceAfter;
-        if (toToken == address(0)) {
-            toTokenBalanceAfter = address(this).balance;
-        } else {
-            toTokenBalanceAfter = IToken(toToken).balanceOf(address(this));
-        }
+        uint256 tokenBalanceAfter = IToken(token).balanceOf(address(this));
+        uint256 targetTokenBalanceAfter = weth.balanceOf(address(this));
 
-        require(fromTokenBalanceBefore - fromTokenBalanceAfter >= fromTokenAmount, "Insufficient fromToken spent");
-        require(toTokenBalanceAfter - toTokenBalanceBefore >= toTokenAmount, "Insufficient toToken received");
+        require(tokenBalanceBefore - tokenBalanceAfter >= amountIn, "Insufficient amountIn");
+        require(targetTokenBalanceAfter - targetTokenBalanceBefore >= amountOut, "Insufficient amountOut");
     }
 
     receive() external payable {}

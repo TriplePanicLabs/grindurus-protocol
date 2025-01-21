@@ -17,6 +17,8 @@ import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strate
 contract GRETHScript is Script {
     PoolsNFT public poolsNFT = PoolsNFT(payable(address(0))); // address can be replaced
 
+    address public weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+
     GRETH public grETH;
 
     function run() public {
@@ -28,7 +30,7 @@ contract GRETHScript is Script {
         vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
 
-        grETH = new GRETH(address(poolsNFT));
+        grETH = new GRETH(address(poolsNFT), weth);
         poolsNFT.init(address(grETH));
 
         vm.stopBroadcast();

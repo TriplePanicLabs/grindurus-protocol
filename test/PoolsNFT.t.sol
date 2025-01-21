@@ -38,7 +38,7 @@ contract PoolsNFTTest is Test {
 
         poolsNFT = new PoolsNFT();
 
-        grindToken = new GRETH(address(poolsNFT));
+        grindToken = new GRETH(address(poolsNFT), wethArbitrum);
 
         oracleRegistry = new RegistryArbitrum(address(poolsNFT));
 

@@ -30,6 +30,8 @@ import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 contract DeployArbitrumScript is Script {
     PoolsNFT public poolsNFT;
 
+    address public weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+
     GRETH public grETH;
 
     RegistryArbitrum public registry;
@@ -47,7 +49,7 @@ contract DeployArbitrumScript is Script {
 
         poolsNFT = new PoolsNFT();
 
-        grETH = new GRETH(address(poolsNFT));
+        grETH = new GRETH(address(poolsNFT), weth);
         poolsNFT.init(address(grETH));
 
         registry = new RegistryArbitrum(address(poolsNFT));

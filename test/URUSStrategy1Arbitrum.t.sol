@@ -47,7 +47,7 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         poolsNFT = new PoolsNFT();
 
-        grETH = new GRETH(address(poolsNFT));
+        grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
         oracleRegistry = new RegistryArbitrum(address(poolsNFT));
 
