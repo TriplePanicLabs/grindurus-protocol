@@ -16,15 +16,17 @@ import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 // $ forge script script/arbitrum/DeployArbitrum.s.sol:DeployArbitrumScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 // Verify:
-// $ forge verify-contract 0x6e0ba6683Ce4f1b575977DaF7a484341C183ec02 src/PoolsNFT.sol:PoolsNFT --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge verify-contract 0xfC7a86Ab7c0E48F26F3aEe7382eBc6fe313956Db src/PoolsNFT.sol:PoolsNFT --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
-// $ forge verify-contract 0x5aA6C095981C75B1085EB447ECe5A3e544616F5b src/GRETH.sol:GRETH --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge verify-contract 0xae4312A2E0D15550B0cD9889B2aF56a520589E53 src/GRETH.sol:GRETH --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address,address)" "0xfC7a86Ab7c0E48F26F3aEe7382eBc6fe313956Db" "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1")
+
+// $ forge verify-contract 0x8BCC8B5Cd7e9E0138896A82E6Db7b55b283EbBcB src/registries/RegistryArbitrum.sol:RegistryArbitrum --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address)" "0xfC7a86Ab7c0E48F26F3aEe7382eBc6fe313956Db")
 
 // $ forge verify-contract 0x307c207C0dC988f4dfe726c521e407BB64164541 src/strategy1/PoolStrategy1.sol:PoolStrategy1 --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
-// $ curl "https://api.arbiscan.io/api?module=contract&action=checkverifystatus&guid=r8grwfdgt7dnwdp4ir3fhn17w6lbeqij3gzcyk3y1jagu99bat&apikey=$ARBITRUMSCAN_API_KEY"
+// $ curl "https://api.arbiscan.io/api?module=contract&action=checkverifystatus&guid=qx5xfggkwzkzqyiv76wlw6benfhfmkdnuqi1ycn6bblwzhebfm&apikey=$ARBITRUMSCAN_API_KEY"
 
-// $ forge verify-contract 0x0CCD1B1a42dbc5baBb53dF800BE8821f4d3411aA src/arbitrum/strategy1/Strategy1Arbitrum.sol:Strategy1Arbitrum --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge verify-contract 0x614494E35a752B9a91aBf6F3f88CE5Fc230Ea62c src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol:Strategy1Arbitrum --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 
 contract DeployArbitrumScript is Script {
@@ -56,6 +58,11 @@ contract DeployArbitrumScript is Script {
 
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry));
         poolsNFT.setStrategyFactory(address(factory1));
+
+        console.log("PoolsNFT: ", address(poolsNFT));
+        console.log("GRETH: ", address(grETH));
+        console.log("Registry: ", address(registry));
+        console.log("Factory1: ",address(factory1));
 
         vm.stopBroadcast();
     }
