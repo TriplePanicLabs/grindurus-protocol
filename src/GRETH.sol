@@ -2,6 +2,7 @@
 pragma solidity =0.8.28;
 
 import {IGRETH, IToken} from "./interfaces/IGRETH.sol";
+import {IWETH9} from "./interfaces/IWETH9.sol";
 import {IPoolsNFT} from "./interfaces/IPoolsNFT.sol";
 import {ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -17,7 +18,7 @@ contract GRETH is IGRETH, ERC20 {
     IPoolsNFT public poolsNFT;
 
     /// @dev address of weth
-    IToken public weth;
+    IWETH9 public weth;
 
     /// @dev total grinded
     uint256 public totalGrinded;
@@ -31,7 +32,7 @@ contract GRETH is IGRETH, ERC20 {
         } else {
             poolsNFT == IPoolsNFT(msg.sender);
         }
-        weth = IToken(_weth);
+        weth = IWETH9(_weth);
     }
 
     /// @notice checks that msg.sender is grindurus pools NFT
@@ -167,23 +168,45 @@ contract GRETH is IGRETH, ERC20 {
         bytes calldata data
     ) public override {
         _onlyOwner();
+        require(token != address(weth) && token != address(this));
 
-        uint256 tokenBalanceBefore = IToken(token).balanceOf(address(this));
-        IToken(token).forceApprove(target, amountIn);
-        uint256 targetTokenBalanceBefore = weth.balanceOf(address(this));
+        uint256 tokenBalanceBefore;
+        if (token == address(0)) {
+            tokenBalanceBefore = address(this).balance;
+        } else {
+            tokenBalanceBefore = IToken(token).balanceOf(address(this));
+            IToken(token).forceApprove(target, amountIn);
+        }
+        uint256 wethBalanceBefore = weth.balanceOf(address(this));
         
-        (bool success, bytes memory result) = target.call(data);
+        bool success;
+        bytes memory result;
+        if (token == address(0)) {
+            (success, result) = target.call{value: amountIn}(data);
+        } else {
+            (success, result) = target.call(data);
+        }
         emit CallResult(result);
         require(success, "swap fail");
          
-
-        uint256 tokenBalanceAfter = IToken(token).balanceOf(address(this));
-        uint256 targetTokenBalanceAfter = weth.balanceOf(address(this));
+        uint256 tokenBalanceAfter;
+        if (token == address(0)) {
+            tokenBalanceAfter = address(this).balance;
+        } else {
+            tokenBalanceAfter = IToken(token).balanceOf(address(this));
+        }
+        uint256 wethBalanceAfter = weth.balanceOf(address(this));
 
         require(tokenBalanceBefore - tokenBalanceAfter >= amountIn, "Insufficient amountIn");
-        require(targetTokenBalanceAfter - targetTokenBalanceBefore >= amountOut, "Insufficient amountOut");
+        require(wethBalanceAfter - wethBalanceBefore >= amountOut, "Insufficient amountOut");
     }
 
-    receive() external payable {}
+    receive() external payable {
+        try weth.deposit{value: msg.value}() {
+            // successfully deposited
+        } catch {
+            // hold ETH on smart contract
+        }
+    }
 
 }

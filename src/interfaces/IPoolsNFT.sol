@@ -16,7 +16,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error InvalidGRETHShares();
     error InvalidRoyaltyShares();
     error InvalidRoyaltyPriceShare();
-    error InvalidPoolNFTInfos();
     error StrategyStopped();
     error InsufficientDeposit();
     error ExceededDeposit();

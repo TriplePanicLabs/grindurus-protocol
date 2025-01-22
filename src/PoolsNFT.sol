@@ -952,6 +952,13 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         }
     }
 
+    /// @notice return true, if `_agent` is agent of `_ownerOf`. Else false
+    /// @dev `_ownerOf` is agent of `_ownerOf`. Approved `_agent` of `_ownerOf` is agent
+    function isAgentOf(address _ownerOf, address _agent) public view override returns (bool) {
+        return balanceOf(_ownerOf) > 0 ? (_ownerOf == _agent || _agentApprovals[_ownerOf][_agent]) : false;
+    }
+
+
     /// @notice gets pool ids owned by `poolOwner`
     /// @param poolOwner address of pool owner
     /// @return totalPoolIds total amount of pool ids owned by `poolOwner`
@@ -984,55 +991,68 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function getPoolNFTInfos(
         uint256 fromPoolId,
         uint256 toPoolId
-    ) external view returns (PoolNFTInfo[] memory poolsInfo) {
-        if (fromPoolId > toPoolId) {
-            revert InvalidPoolNFTInfos();
-        }
-        poolsInfo = new PoolNFTInfo[](toPoolId - fromPoolId + 1);
+    ) external view returns (PoolNFTInfo[] memory poolInfos) {
+        require(fromPoolId <= toPoolId);
+        poolInfos = new PoolNFTInfo[](toPoolId - fromPoolId + 1);
         uint256 poolId = fromPoolId;
-        uint256 poolInfoId = 0;
+        uint256 poolInfosId = 0;
         for (; poolId <= toPoolId; ) {
-            IStrategy pool = IStrategy(pools[poolId]);
-            (
-                uint256 quoteTokenYieldProfit,
-                uint256 baseTokenYieldProfit,
-                uint256 quoteTokenTradeProfit,
-                uint256 baseTokenTradeProfit
-            ) = pool.getTotalProfits();
-            (uint256 APRNumerator, uint256 APRDenominator) = pool.APR();
-            poolsInfo[poolInfoId] = PoolNFTInfo({
-                poolId: poolId,
-                config: _formConfig(poolId),
-                strategyId: pool.strategyId(),
-                quoteToken: address(pool.getQuoteToken()),
-                baseToken: address(pool.getBaseToken()),
-                quoteTokenSymbol: pool.getQuoteToken().symbol(),
-                baseTokenSymbol: pool.getBaseToken().symbol(),
-                quoteTokenAmount: pool.getQuoteTokenAmount(),
-                baseTokenAmount: pool.getBaseTokenAmount(),
-                quoteTokenYieldProfit: quoteTokenYieldProfit,
-                baseTokenYieldProfit: baseTokenYieldProfit,
-                quoteTokenTradeProfit: quoteTokenTradeProfit,
-                baseTokenTradeProfit: baseTokenTradeProfit,
-                APRNumerator: APRNumerator,
-                APRDenominator: APRDenominator,
-                activeCapital: pool.getActiveCapital(),
-                royaltyPrice: royaltyPrice[poolId]
-            });
+            poolInfos[poolInfosId] = _formPoolInfo(poolId);
             unchecked {
-                poolId++;
-                poolInfoId++;
+                ++poolId;
+                ++poolInfosId;
             }
         }
     }
 
-    /// @notice return true, if `_agent` is agent of `_ownerOf`. Else false
-    /// @dev `_ownerOf` is agent of `_ownerOf`. Approved `_agent` of `_ownerOf` is agent
-    function isAgentOf(address _ownerOf, address _agent) public view override returns (bool) {
-        return balanceOf(_ownerOf) > 0 ? (_ownerOf == _agent || _agentApprovals[_ownerOf][_agent]) : false;
+    /// @notice get pool nft info by pool ids
+    /// @param _poolIds array of poolIds
+    function getPoolNFTInfosBy(uint256[] memory _poolIds) external view returns (PoolNFTInfo[] memory poolInfos) {
+        uint256 poolIdsLen = _poolIds.length;
+        poolInfos = new PoolNFTInfo[](poolIdsLen);
+        uint256 poolInfosId = 0;
+        for (; poolInfosId < poolIdsLen; ) {
+            poolInfos[poolInfosId] = _formPoolInfo(_poolIds[poolInfosId]);
+            unchecked {
+                ++poolInfosId;
+            }
+        }
+    }
+
+    /// @notice forms pool info
+    /// @param poolId id of pool
+    function _formPoolInfo(uint256 poolId) private view returns (PoolNFTInfo memory poolInfo) {
+        IStrategy pool = IStrategy(pools[poolId]);
+        (
+            uint256 quoteTokenYieldProfit,
+            uint256 baseTokenYieldProfit,
+            uint256 quoteTokenTradeProfit,
+            uint256 baseTokenTradeProfit
+        ) = pool.getTotalProfits();
+        (uint256 APRNumerator, uint256 APRDenominator) = pool.APR();
+        poolInfo = PoolNFTInfo({
+            poolId: poolId,
+            config: _formConfig(poolId),
+            strategyId: pool.strategyId(),
+            quoteToken: address(pool.getQuoteToken()),
+            baseToken: address(pool.getBaseToken()),
+            quoteTokenSymbol: pool.getQuoteToken().symbol(),
+            baseTokenSymbol: pool.getBaseToken().symbol(),
+            quoteTokenAmount: pool.getQuoteTokenAmount(),
+            baseTokenAmount: pool.getBaseTokenAmount(),
+            quoteTokenYieldProfit: quoteTokenYieldProfit,
+            baseTokenYieldProfit: baseTokenYieldProfit,
+            quoteTokenTradeProfit: quoteTokenTradeProfit,
+            baseTokenTradeProfit: baseTokenTradeProfit,
+            APRNumerator: APRNumerator,
+            APRDenominator: APRDenominator,
+            activeCapital: pool.getActiveCapital(),
+            royaltyPrice: royaltyPrice[poolId]
+        });
     }
 
     /// @notice forms config structure for `getPoolNFTInfos`
+    /// @param poolId id of pool
     function _formConfig(uint256 poolId) private view returns (IURUSCore.Config memory) {
         (
             uint8 longNumberMax,
