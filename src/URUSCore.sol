@@ -941,7 +941,7 @@ contract URUSCore is IURUSCore {
     /// @notice calculates hedge sell thresholds bounds for initialization of hedge position
     function calcHedgeSellInitBounds() public view override returns (uint256 thresholdHigh, uint256 thresholdLow) {
         thresholdHigh = calcLongPriceMin();
-        thresholdLow = thresholdHigh - thresholdHigh * hedge.numberMax * config.initHedgeSellPercent / helper.percentMultiplier;
+        thresholdLow = thresholdHigh - (thresholdHigh * config.initHedgeSellPercent) / helper.percentMultiplier;
     }
 
     /// @notice calculates hedge sell threshold
@@ -1001,13 +1001,8 @@ contract URUSCore is IURUSCore {
         liquidity =
             calcQuoteTokenByBaseToken(hedgeQty + baseTokenAmount, targetPrice) -
             calcQuoteTokenByBaseToken(hedgeQty, hedge.price);
-        quoteTokenAmountThreshold =
-            ((liquidity + fees) * config.returnPercentHedgeSell) /
-            helper.percentMultiplier;
-        swapPriceThreshold = calcSwapPrice(
-            quoteTokenAmountThreshold,
-            baseTokenAmount
-        );
+        quoteTokenAmountThreshold = ((liquidity + fees) * config.returnPercentHedgeSell) / helper.percentMultiplier;
+        swapPriceThreshold = calcSwapPrice(quoteTokenAmountThreshold, baseTokenAmount);
     }
 
     /// @notice calculates hedge rebuy threshold
