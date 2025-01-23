@@ -156,7 +156,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         assert(qty7 > qty5);
         assert(price7 < price5);
 
-        mockSwapRouter.setRate(2160 * 10 ** 8); // increase a little bit for initialize hedge sell bounds
+        mockSwapRouter.setRate(2190 * 10 ** 8); // increase a little bit for initialize hedge sell bounds
         console.log("8) Price decreased by another 10%.");
 
         poolsNFT.grind(poolId0);
