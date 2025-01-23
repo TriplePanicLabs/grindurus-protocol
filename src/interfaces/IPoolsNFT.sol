@@ -326,6 +326,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function getRoyaltyReceiver(
         uint256 poolId
     ) external view returns (address receiver);
+    
+    function isAgentOf(address _ownerOf, address _agent) external view returns (bool);
 
     function getPoolIdsOf(
         address poolOwner
@@ -342,7 +344,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 toPoolId
     ) external view returns (PoolNFTInfo[] memory poolsInfo);
 
-    function isAgentOf(address _ownerOf, address _agent) external view returns (bool);
+    function getPoolNFTInfosBy(uint256[] memory _poolIds) external view returns (PoolNFTInfo[] memory poolInfos);
 
     function getConfig(uint256 poolId) external view 
         returns (

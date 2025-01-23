@@ -1007,7 +1007,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     /// @notice get pool nft info by pool ids
     /// @param _poolIds array of poolIds
-    function getPoolNFTInfosBy(uint256[] memory _poolIds) external view returns (PoolNFTInfo[] memory poolInfos) {
+    function getPoolNFTInfosBy(uint256[] memory _poolIds) external view override returns (PoolNFTInfo[] memory poolInfos) {
         uint256 poolIdsLen = _poolIds.length;
         poolInfos = new PoolNFTInfo[](poolIdsLen);
         uint256 poolInfosId = 0;
