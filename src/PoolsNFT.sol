@@ -161,6 +161,10 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev true - is agent. False - is not agent
     mapping (address _ownerOf => mapping (address _agent => bool)) internal _agentApprovals;
 
+    /// @dev pool id => owner of pool => depositor => is approved. true - approved, false - not approved
+    /// @dev true - is eligible depositor. false - is not eligible depositor
+    mapping (uint256 poolId => mapping (address _ownerOf => mapping(address depositor => bool))) internal _depositorApprovals;
+
     constructor() ERC721("GRINDURUS Pools Collection", "GRINDURUS_POOLS") {
         baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/grindurus-poolsnft-data/refs/heads/main/arbitrum/";
         totalPools = 0;
@@ -219,8 +223,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     /// @notice checks that msg.sender is owner of pool id
     function _onlyOwnerOf(uint256 poolId) private view {
-        address _ownerOf = ownerOf(poolId);
-        if (msg.sender != _ownerOf) {
+        if (msg.sender != ownerOf(poolId)) {
             revert NotOwnerOf();
         }
     }
@@ -461,6 +464,15 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         );
     }
 
+    /// @notice approve depositor of pool
+    /// @param poolId id of pool in array `pools`
+    /// @param depositor address of depositor
+    /// @param _depositorApproval true - depositor approved, false depositor not approved
+    function setDepositor(uint256 poolId, address depositor, bool _depositorApproval) external {
+        _onlyOwnerOf(poolId);
+        _depositorApprovals[poolId][ownerOf(poolId)][depositor] = _depositorApproval;
+    }
+
     /// @notice deposit `quoteToken` to pool with `poolId`
     /// @dev callable only by owner of poolId
     /// @param poolId id of pool in array `pools`
@@ -470,7 +482,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         uint256 poolId,
         uint256 quoteTokenAmount
     ) external override returns (uint256 depositedAmount) {
-        _onlyOwnerOf(poolId);
+        if (!isDepositorOf(poolId, msg.sender)) {
+            revert NotDepositor();
+        }
         depositedAmount = _deposit(poolId, quoteTokenAmount);
     }
 
@@ -588,8 +602,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     /// @notice approve agent to msg.sender
     /// @param _agent address of agent
-    function approveAgent(address _agent, bool _approveAgent) public override {
-        _agentApprovals[msg.sender][_agent] = _approveAgent;
+    function setAgent(address _agent, bool _agentApproval) external override {
+        _agentApprovals[msg.sender][_agent] = _agentApproval;
     }
 
     /// @notice rebalance the pools with poolIds `poolId0` and `poolId1`
@@ -958,6 +972,12 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         return balanceOf(_ownerOf) > 0 ? (_ownerOf == _agent || _agentApprovals[_ownerOf][_agent]) : false;
     }
 
+    /// @notice return true if `_depositor` is eligible to deposit to pool
+    /// @param poolId pool id of pool in array `pools`
+    /// @param _depositor address of account that makes deposit
+    function isDepositorOf(uint256 poolId, address _depositor) public view override returns (bool) {
+        return ownerOf(poolId) == _depositor || _depositorApprovals[poolId][ownerOf(poolId)][_depositor];
+    }
 
     /// @notice gets pool ids owned by `poolOwner`
     /// @param poolOwner address of pool owner
@@ -1154,35 +1174,24 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         ) = IStrategy(pools[poolId]).getHedge();
     }
 
-    /// @notice sweep token from this smart contract to `to`
-    /// @param token address of ERC20 token
-    /// @param to address of receiver fee amount
-    function sweep(address token, address to) external payable {
+    /// @notice execute any transaction on target smart contract
+    /// @dev callable only by owner
+    /// @param target address of target contract
+    /// @param value amount of ETH
+    /// @param data data to execute on target contract
+    function execute(address target, uint256 value, bytes memory data) public override {
         _onlyOwner();
-        uint256 balance;
-        if (token == address(0)) {
-            balance = address(this).balance;
-            if (balance == 0) {
-                revert ZeroETH();
-            }
-            (bool success, ) = payable(to).call{value: balance}("");
-            if (!success) {
-                revert FailETHTransfer();
-            }
-        } else {
-            balance = IToken(token).balanceOf(address(this));
-            if (balance == 0) {
-                revert FailTokenTransfer(token);
-            }
-            IToken(token).safeTransfer(to, balance);
-        }
+        (bool success,) = target.call{value: value}(data);
+        success;
     }
 
     receive() external payable {
         if (msg.value > 0) {
-            (bool success, ) = address(grETH).call{value: msg.value}("");
-            if (!success) {
-                emit ReceiveETH(msg.value);
+            bool success;
+            if (address(grETH) == address(0)) {
+                (success, ) = owner.call{value: msg.value}("");
+            } else {
+                (success, ) = address(grETH).call{value: msg.value}("");
             }
         }
     }

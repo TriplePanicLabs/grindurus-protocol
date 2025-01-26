@@ -11,6 +11,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwnerOrPending();
     error NotOwnerOf();
     error NotStrategiest();
+    error NotDepositor();
     error NotAgent();
     error InvalidRoyaltyNumerator();
     error InvalidGRETHShares();
@@ -90,8 +91,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     );
 
     event BuyRoyalty(uint256 poolId, address buyer, uint256 paidPrice);
-
-    event ReceiveETH(uint256 ethAmount);
 
     struct PoolNFTInfo {
         uint256 poolId;
@@ -246,6 +245,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 quoteTokenAmount
     ) external returns (uint256 poolId);
 
+    function setDepositor(uint256 poolId, address depositor, bool _depositorApproval) external;
+
     function deposit(
         uint256 poolId,
         uint256 quoteTokenAmount
@@ -266,7 +267,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 poolId
     ) external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    function approveAgent(address _agent, bool _approveAgent) external;
+    function setAgent(address _agent, bool _agentApproval) external;
 
     function rebalance(uint256 poolIdLeft, uint256 poolIdRight) external;
 
@@ -329,6 +330,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
     
     function isAgentOf(address _ownerOf, address _agent) external view returns (bool);
 
+    function isDepositorOf(uint256 poolId, address _depositor) external view returns (bool);
+
     function getPoolIdsOf(
         address poolOwner
     )
@@ -382,5 +385,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
             uint256 feePrice
         );
 
-    function sweep(address token, address to) external payable;
+    function execute(address target, uint256 value, bytes memory data) external;
+
 }
