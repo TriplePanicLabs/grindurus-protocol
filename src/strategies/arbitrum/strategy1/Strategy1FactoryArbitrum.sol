@@ -74,6 +74,13 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
         }
     }
 
+    /// @notice sets default config
+    /// @param config new filled config
+    function setDefaultConfig(IURUSCore.Config memory config) external {
+        _onlyOwner();
+        defaultConfig = config;
+    }
+
     /// @notice sets aave v3 pool
     /// @param _aaveV3Pool address of aave v3 pool
     function setAAVEV3Pool(address _aaveV3Pool) public {

@@ -74,6 +74,13 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
         }
     }
 
+    /// @notice sets default config
+    /// @param config new filled config
+    function setDefaultConfig(IURUSCore.Config memory config) external {
+        _onlyOwner();
+        defaultConfig = config;
+    }
+
     /// @notice sets uniswap V3 swap rourer
     /// @param _swapRouter address of swap router
     function setUniswapV3SwapRouter(address _swapRouter) public {
