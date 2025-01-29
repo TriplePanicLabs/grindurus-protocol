@@ -214,10 +214,10 @@ contract GRETH is IGRETH, ERC20 {
         require(wethBalanceAfter - wethBalanceBefore >= amountOut, "Insufficient amountOut");
     }
 
-    /// @notice picks token on owner determination. Forbid to withdraw WETH
+    /// @notice withdraw token on owner determination. Forbid to withdraw WETH
     /// @param token address of token to pick
     /// @param amount amount of token to pick
-    function pick(address token, uint256 amount) public override {
+    function withdraw(address token, uint256 amount) public override returns (uint256 withdrawnAmount) {
         _onlyOwner();
         if (token == address(weth)) {
             revert Forbid();
@@ -235,6 +235,7 @@ contract GRETH is IGRETH, ERC20 {
         } else {
             IToken(token).safeTransfer(msg.sender, amount);
         }
+        withdrawnAmount = amount;
     }
 
     /// @notice calculates the calcShare of weth

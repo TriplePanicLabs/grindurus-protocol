@@ -46,7 +46,7 @@ interface IGRETH is IToken {
         bytes calldata data
     ) external;
 
-    function pick(address token, uint256 amount) external;
+    function withdraw(address token, uint256 amount) external returns (uint256 withdrawnAmount);
 
     function calcShareWeth(uint256 amount) external view returns (uint256 share);
 
