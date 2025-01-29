@@ -117,12 +117,14 @@ contract URUS is IURUS {
         });
     }
 
+    /// @dev initialize tokens decimals
     function _initHelperTokensDecimals() private {
         helper.baseTokenDecimals = baseToken.decimals();
         helper.quoteTokenDecimals = quoteToken.decimals();
         helper.feeTokenDecimals = feeToken.decimals();
     }
 
+    /// @dev 
     function _initHelperOracle() private {
         helper.oracleQuoteTokenPerFeeTokenDecimals = oracleQuoteTokenPerFeeToken.decimals();
         helper.oracleQuoteTokenPerBaseTokenDecimals = oracleQuoteTokenPerBaseToken.decimals();
@@ -1217,9 +1219,9 @@ contract URUS is IURUS {
         returns (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
+            uint256 extraCoef,
             uint256 priceVolatilityPercent,
             uint256 initHedgeSellPercent,
-            uint256 extraCoef,
             uint256 returnPercentLongSell,
             uint256 returnPercentHedgeSell,
             uint256 returnPercentHedgeRebuy
@@ -1227,9 +1229,9 @@ contract URUS is IURUS {
     {
         longNumberMax = config.longNumberMax;
         hedgeNumberMax = config.hedgeNumberMax;
+        extraCoef = config.extraCoef;
         priceVolatilityPercent = config.priceVolatilityPercent;
         initHedgeSellPercent = config.initHedgeSellPercent;
-        extraCoef = config.extraCoef;
         returnPercentLongSell = config.returnPercentLongSell;
         returnPercentHedgeSell = config.returnPercentHedgeSell;
         returnPercentHedgeRebuy = config.returnPercentHedgeRebuy;

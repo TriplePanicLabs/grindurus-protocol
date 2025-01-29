@@ -301,9 +301,9 @@ interface IURUS is IERC5313 {
         returns (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
+            uint256 extraCoef,
             uint256 priceVolatilityPercent,
             uint256 initHedgeSellPercent,
-            uint256 extraCoef,
             uint256 returnPercentLongSell,
             uint256 returnPercentHedgeSell,
             uint256 returnPercentHedgeRebuy
