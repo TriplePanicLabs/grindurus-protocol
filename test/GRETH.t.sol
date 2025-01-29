@@ -20,7 +20,7 @@ contract GRETHTest is Test {
         vm.createSelectFork("arbitrum");
         vm.txGasPrice(0.05 gwei);
 
-        vm.startPrank(address(0xabc));
+        vm.startPrank(address(0x123));
       
         poolsNFT = new PoolsNFT();
 
@@ -30,7 +30,7 @@ contract GRETHTest is Test {
         vm.stopPrank();
     }
 
-    function testMint() public {
+    function testMintToActors() public {
         address[] memory actors = new address[](2);
         actors[0] = address(0xabc);
         actors[1] = address(0xdef);

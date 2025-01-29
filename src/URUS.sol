@@ -1,16 +1,22 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {IURUSCore, IToken, IERC5313} from "src/interfaces/IURUSCore.sol";
+import {IURUS, IToken, IERC5313} from "src/interfaces/IURUS.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @title URUS Core
+/// @title URUS
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
-/// @notice core logic of URUS algorithm
+/// @notice core logic of URUS algorithm. Ubiquitous Resources for Utilities and Securities (URUS)
 /// @dev constructor is function `initCore`
-contract URUSCore is IURUSCore {
+contract URUS is IURUS {
    using SafeERC20 for IToken;
+
+    /// @dev minimum value of `longNumberMax` in `config`
+    uint8 public constant MIN_LONG_NUMBER_MAX = 1;
+
+    /// @dev minimum value of `hedgeNumberMax` in `config`
+    uint8 public constant MIN_HEDGE_NUMBER_MAX = 2;
 
     /// @dev price feed of fee token. [oracle] = quoteToken/feeToken
     ///      for Ethereum mainnet = ETH, for BSC = BNB, Optimism = ETH, etc
@@ -46,7 +52,7 @@ contract URUSCore is IURUSCore {
     /// @dev total profits of pool
     TotalProfits public totalProfits;
 
-    constructor() {} // only for verification simplification. As constructor call initCore()
+    constructor() {} // only for verification simplification. As constructor call initURUS()
 
     /// @notice constructor of URUS core
     /// @dev config of URUS can be catched from structure `Config`
@@ -56,7 +62,7 @@ contract URUSCore is IURUSCore {
     /// @param _quoteToken address of `quoteToken`
     /// @param _baseToken address of `baseToken`
     /// @param _config config of URUS.
-    function initCore(
+    function initURUS(
         address _oracleQuoteTokenPerFeeToken,
         address _oracleQuoteTokenPerBaseToken,
         address _feeToken,
@@ -65,7 +71,7 @@ contract URUSCore is IURUSCore {
         Config memory _config
     ) public {
         if (address(quoteToken) != address(0)) {
-            revert URUSCoreInitialized();
+            revert URUSInitialized();
         }
 
         oracleQuoteTokenPerFeeToken = AggregatorV3Interface(_oracleQuoteTokenPerFeeToken);
@@ -179,7 +185,7 @@ contract URUSCore is IURUSCore {
     /// @param longNumberMax new long number max
     function setLongNumberMax(uint8 longNumberMax) public override {
         _onlyAgent();
-        if (longNumberMax == 0) {
+        if (longNumberMax < MIN_LONG_NUMBER_MAX) { // require(longNumberMax > MIN_LONG_NUMBER_MAX)
             revert InvalidLongNumberMax();
         }
         config.longNumberMax = longNumberMax;
@@ -190,7 +196,7 @@ contract URUSCore is IURUSCore {
     /// @param hedgeNumberMax new hedge number max
     function setHedgeNumberMax(uint8 hedgeNumberMax) public override {
         _onlyAgent();
-        if (hedgeNumberMax == 0) {
+        if (hedgeNumberMax < MIN_HEDGE_NUMBER_MAX) {
             revert InvalidHedgeNumberMax();
         }
         config.hedgeNumberMax = hedgeNumberMax;
@@ -489,7 +495,7 @@ contract URUSCore is IURUSCore {
     {
         // 0. Verify that number != 0
         if (long.number == 0) {
-            revert NoBuy();
+            revert NoLong();
         }
         if (hedge.number > 0) {
             revert Hedged();
@@ -540,6 +546,7 @@ contract URUSCore is IURUSCore {
         }
         uint8 hedgeNumber = hedge.number;
         uint8 hedgeNumberMaxMinusOne;
+        // 1.0 Define hedge number max
         if (hedgeNumber == 0) {
             hedge.numberMax = config.hedgeNumberMax;
         }
@@ -664,7 +671,7 @@ contract URUSCore is IURUSCore {
         // 3.1. Put the baseToken to lending protocol
         (baseTokenAmount) = _put(baseToken, baseTokenAmount);
 
-        long.price = (long.qty * long.price + hedge.qty * (swapPrice + long.price - hedge.price)) / (long.qty + hedge.qty);
+        long.price = ((long.qty * long.price) + (hedge.qty * ((swapPrice + long.price) - hedge.price))) / (long.qty + hedge.qty);
         long.qty += baseTokenAmount;
         long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
 
@@ -684,7 +691,7 @@ contract URUSCore is IURUSCore {
     /// @dev calls long_buy, long_sell, hedge_sell, hedge_rebuy
     /// @return iterated true if successfully operation made, false otherwise
     function iterate() public returns (bool iterated) {
-        IURUSCore strategy = IURUSCore(address(this));
+        IURUS strategy = IURUS(address(this));
         if (long.number == 0) {
             // BUY
             try strategy.long_buy() returns (
@@ -759,7 +766,7 @@ contract URUSCore is IURUSCore {
     //// REBALANCE FUNCTIONS
 
     /// @notice first step for rebalance the positions via poolsNFT
-    /// @dev called before rebalance by poolsNFT
+    /// @dev called before rebalance by gateway
     /// @return baseTokenAmount base token amount that take part in rebalance
     /// @return price base token price scaled by price multuplier
     function beforeRebalance()
@@ -833,14 +840,14 @@ contract URUSCore is IURUSCore {
         if (long.number == 0) {
             return type(uint256).max;
         } else {
-            return long.price - long.price * config.priceVolatilityPercent  / helper.percentMultiplier;
+            return long.price - (long.price * config.priceVolatilityPercent) / helper.percentMultiplier;
         }
     }
 
     /// @notice calculate max liquidity that can be used for buying
     /// @dev q_n = q_1 * investCoef / coefMultiplier
     function calcMaxLiquidity() public view override returns (uint256) {
-        return helper.initLiquidity * helper.investCoef / helper.coefMultiplier;
+        return (helper.initLiquidity * helper.investCoef) / helper.coefMultiplier;
     }
 
     /// @notice calculates invest coeficient
@@ -849,7 +856,7 @@ contract URUSCore is IURUSCore {
         uint8 exponent = config.longNumberMax - 1;
         uint256 multiplier = helper.coefMultiplier;
         if (exponent >= 2) {
-            investCoef = (config.extraCoef + multiplier) ** exponent / (multiplier ** (exponent - 1));
+            investCoef = ((config.extraCoef + multiplier) ** exponent) / (multiplier ** (exponent - 1));
         } else if (exponent == 1) {
             investCoef = config.extraCoef + multiplier;
         } else {
@@ -1150,23 +1157,6 @@ contract URUSCore is IURUSCore {
         }
     }
 
-    /// @notice return total profits of strategy pool
-    function getTotalProfits()
-        public
-        view
-        returns (
-            uint256 quoteTokenYieldProfit,
-            uint256 baseTokenYieldProfit,
-            uint256 quoteTokenTradeProfit,
-            uint256 baseTokenTradeProfit
-        )
-    {
-        quoteTokenYieldProfit = totalProfits.quoteTokenYieldProfit;
-        baseTokenYieldProfit = totalProfits.baseTokenYieldProfit;
-        quoteTokenTradeProfit = totalProfits.quoteTokenTradeProfit;
-        baseTokenTradeProfit = totalProfits.baseTokenTradeProfit;
-    }
-
     /// @notice return long position
     function getLong()
         external
@@ -1258,7 +1248,7 @@ contract URUSCore is IURUSCore {
     }
 
     receive() external payable {
-        // able to receive ETH
+        // able to receive ETH. May be inherrited and reimplemented
     }
 
 }

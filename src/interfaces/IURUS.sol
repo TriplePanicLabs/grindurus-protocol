@@ -4,27 +4,25 @@ pragma solidity ^0.8.0;
 import {IToken} from "src/interfaces/IToken.sol";
 import {IERC5313} from "lib/openzeppelin-contracts/contracts/interfaces/IERC5313.sol";
 
-interface IURUSCore is IERC5313 {
+interface IURUS is IERC5313 {
 
-    error URUSCoreInitialized();
+    error URUSInitialized();
     error InvalidConfig();
     error InvalidLongNumberMax();
     error InvalidHedgeNumberMax();
     error InvalidExtraCoef();
-    error InvalidStrategyOpForFeeCoef();
     error InvalidInitHedgeSellPercent();
+    error InvalidStrategyOpForFeeCoef();
     error InvalidStrategyOpForReturn();
     error InvalidReturnOfInvestment();
     error InvalidLength();
     error InvalidPriceVolatility();
-    error NotQuoteToken();
     error NotOwner();
-    error NotPoolsNFT();
     error NotAgent();
     error QuoteTokenInvested();
     error LongNumberMax();
     error BuyUpperPriceMin(uint256 swapPrice, uint256 priceMin);
-    error NoBuy();
+    error NoLong();
     error NotProfitableLongSell();
     error HedgeSellOutOfBound(uint256 swapPrice, uint256 thresholdHigh, uint256 thresholdLow);
     error NotLongNumberMax();
@@ -34,10 +32,7 @@ interface IURUSCore is IERC5313 {
     error Hedged();
     error NoHedge();
     error NotProfitableRebuy();
-    error CantSweepYieldToken();
-    error ZeroETH();
-    error FailETHTransfer();
-    error FailTokenTransfer();
+
 
     event LongBuy(
         address pool,
@@ -271,16 +266,6 @@ interface IURUSCore is IERC5313 {
     function quoteToken() external view returns (IToken);
 
     function baseToken() external view returns (IToken);
-
-    function getTotalProfits()
-        external
-        view
-        returns (
-            uint256 quoteTokenYieldProfit,
-            uint256 baseTokenYieldProfit,
-            uint256 quoteTokenTradeProfit,
-            uint256 baseTokenTradeProfit
-        );
 
     function getLong()
         external

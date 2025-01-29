@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IGRETH} from "src/interfaces/IGRETH.sol";
 import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol"; // NFT
 import {IERC2981} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
-import {IURUSCore} from "src/interfaces/IURUSCore.sol";
+import {IURUS} from "src/interfaces/IURUS.sol";
 
 interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
@@ -94,7 +94,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     struct PoolNFTInfo {
         uint256 poolId;
-        IURUSCore.Config config;
+        IURUS.Config config;
         uint256 strategyId;
         address quoteToken;
         address baseToken;

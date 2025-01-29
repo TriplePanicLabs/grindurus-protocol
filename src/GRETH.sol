@@ -26,6 +26,8 @@ contract GRETH is IGRETH, ERC20 {
     /// @dev account address => amount grETH minted
     mapping (address account => uint256) public totalMintedBy;
 
+    /// @param _poolsNFT address of poolsNFT
+    /// @param _weth address of WETH
     constructor(address _poolsNFT, address _weth) ERC20("GrindURUS ETH", "grETH") {
         if (_poolsNFT != address(0)) {
             poolsNFT = IPoolsNFT(_poolsNFT);
@@ -49,8 +51,38 @@ contract GRETH is IGRETH, ERC20 {
         }
     }
 
+    /// @notice mint GRETH based on ETH amount to `msg.sender`
+    function mint() public payable override returns (uint256 mintedAmount) {
+        mintedAmount = _mintTo(msg.sender);
+    }
+
+    /// @notice mint GRETH based on ETH amount to `receiver` 
+    /// @param receiver address of account that receive grETH
+    function mintTo(address receiver) public payable override returns (uint256 mintedAmount) {
+        mintedAmount = _mintTo(receiver);
+    }
+
+    /// @notice mint GRETH
+    /// @param receiver address of receiver
+    function _mintTo(address receiver) internal returns (uint256 mintedAmount) {
+        mintedAmount = msg.value;
+        try weth.deposit{value: mintedAmount}() {
+            address _owner = owner();
+            if (receiver == _owner){
+                _mint(address(this), mintedAmount);
+            } else {
+                _mint(receiver, mintedAmount);
+            }
+        } catch {
+            mintedAmount = 0;
+            revert FailMint();
+        }
+    }
+
     /// @notice mint GRETH to actors.
     /// @dev callable only by `poolsNFT`
+    /// @param actors array of actors
+    /// @param amounts array of amounts that should be minted to amounts
     function mint(
         address[] memory actors,
         uint256[] memory amounts
@@ -59,10 +91,15 @@ contract GRETH is IGRETH, ERC20 {
         if (actors.length != amounts.length) {
             return 0;
         }
+        address _owner = owner();
         uint256 len = actors.length;
         for (uint256 i; i < len; ) {
             if (amounts[i] > 0) {
-                _mint(actors[i], amounts[i]);
+                if (actors[i] == _owner) {
+                    _mint(address(this), amounts[i]);
+                } else {
+                    _mint(actors[i], amounts[i]);
+                }
                 totalMintedBy[actors[i]] += amounts[i];
                 totalGrinded += amounts[i];
                 totalShares += amounts[i];
@@ -74,19 +111,26 @@ contract GRETH is IGRETH, ERC20 {
 
     /// @notice burns grETH and get token
     /// @param amount amount of grETH
+    function burn(uint256 amount) public override returns (uint256 tokenAmount) {
+        tokenAmount = burn(amount, address(weth));
+    }
+
+    /// @notice burns grETH and get token
+    /// @param amount amount of grETH
     /// @param token address of token to earn instead
     function burn(
         uint256 amount,
         address token
     ) public payable override returns (uint256 tokenAmount) {
-        address payable burner = payable(msg.sender);
-        uint256 balance;
-        if (burner == owner()) {
-            /// owner dont hold grETH, so it is internal mechanism
-            balance = balanceOf(address(this));
+        address payable burner;
+        if (msg.sender == owner()) {
+            /// owner dont hold grETH. It is internal mechanism for sharing profit to owner
+            burner = payable(address(this));
         } else {
-            balance = balanceOf(burner);
+            burner = payable(msg.sender);
         }
+        uint256 balance = balanceOf(burner);
+        amount = (amount == type(uint256).max) ? balance : amount;
         if (amount == 0 || amount > balance) {
             revert InvalidAmount();
         }
@@ -94,8 +138,8 @@ contract GRETH is IGRETH, ERC20 {
         if (tokenAmount == 0) {
             revert ZeroTokenAmount();
         }
-        _burn(msg.sender, amount);
-        emit Burn(msg.sender, amount, token, tokenAmount);
+        _burn(burner, amount);
+        emit Burn(burner, amount, token, tokenAmount);
         if (token == address(0)) {
             (bool success,) = burner.call{value: tokenAmount}("");
             if (!success) {
@@ -120,37 +164,6 @@ contract GRETH is IGRETH, ERC20 {
         for (uint256 i; i < len; ) {
             tokenAmount += burn(amounts[i], tokens[i]);
             unchecked { ++i; }
-        }
-    }
-
-    /// @notice calculates the calcShare of token
-    /// @param amount grETH amount
-    /// @param token address of token to calculate the calcShare
-    function calcShare(
-        uint256 amount,
-        address token
-    ) public view override returns (uint256 share) {
-        uint256 totalLiquidity;
-        if (token == address(0)) {
-            totalLiquidity = address(this).balance;
-        } else {
-            totalLiquidity = IToken(token).balanceOf(address(this));
-        }
-        uint256 supply = totalSupply();
-        if (amount > supply) {
-            revert AmountExceededSupply();
-        }
-        if (supply > 0) {
-            share = totalLiquidity * amount / supply;
-        }
-    }
-
-    /// @notice returns address of owner
-    function owner() public view override returns (address) {
-        try poolsNFT.owner() returns (address payable _owner) {
-            return _owner;
-        } catch {
-            return address(poolsNFT);
         }
     }
 
@@ -199,6 +212,66 @@ contract GRETH is IGRETH, ERC20 {
 
         require(tokenBalanceBefore - tokenBalanceAfter >= amountIn, "Insufficient amountIn");
         require(wethBalanceAfter - wethBalanceBefore >= amountOut, "Insufficient amountOut");
+    }
+
+    /// @notice picks token on owner determination. Forbid to withdraw WETH
+    /// @param token address of token to pick
+    /// @param amount amount of token to pick
+    function pick(address token, uint256 amount) public override {
+        _onlyOwner();
+        if (token == address(weth)) {
+            revert Forbid();
+        }
+        if (amount == type(uint256).max) {
+            amount = (token == address(0)) 
+                ? address(this).balance 
+                : IToken(token).balanceOf(address(this));
+        }
+        if (token == address(0)) {
+            (bool success, ) = payable(msg.sender).call{value: amount}("");
+            if (!success) {
+                revert FailTransferETH();
+            }
+        } else {
+            IToken(token).safeTransfer(msg.sender, amount);
+        }
+    }
+
+    /// @notice calculates the calcShare of weth
+    /// @param amount grETH amount
+    function calcShareWeth(uint256 amount) public view override returns (uint256 share) {
+        share = calcShare(amount, address(weth));
+    }
+
+    /// @notice calculates the calcShare of token
+    /// @param amount grETH amount
+    /// @param token address of token to calculate the calcShare
+    function calcShare(
+        uint256 amount,
+        address token
+    ) public view override returns (uint256 share) {
+        uint256 totalLiquidity;
+        if (token == address(0)) {
+            totalLiquidity = address(this).balance;
+        } else {
+            totalLiquidity = IToken(token).balanceOf(address(this));
+        }
+        uint256 supply = totalSupply();
+        if (amount > supply) {
+            revert AmountExceededSupply();
+        }
+        if (supply > 0) {
+            share = totalLiquidity * amount / supply;
+        }
+    }
+
+    /// @notice returns address of owner
+    function owner() public view override returns (address) {
+        try poolsNFT.owner() returns (address payable _owner) {
+            return _owner;
+        } catch {
+            return address(poolsNFT);
+        }
     }
 
     receive() external payable {

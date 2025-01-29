@@ -3,11 +3,12 @@ pragma solidity ^0.8.0;
 
 import {IToken} from "./IToken.sol";
 import {IPoolsNFT} from "./IPoolsNFT.sol";
-import {IURUSCore} from "src/interfaces/IURUSCore.sol";
+import {IURUS} from "src/interfaces/IURUS.sol";
 
 /// @notice the interface for Strategy Pool
-interface IStrategy is IURUSCore {
+interface IStrategy is IURUS {
     error StrategyInitialized(uint256 strategyId);
+    error NotPoolsNFT();
 
     function poolsNFT() external view returns (IPoolsNFT);
 
@@ -28,5 +29,15 @@ interface IStrategy is IURUSCore {
     function getQuoteTokenAmount() external view returns (uint256);
 
     function getBaseTokenAmount() external view returns (uint256);
+
+    function getTotalProfits()
+        external
+        view
+        returns (
+            uint256 quoteTokenYieldProfit,
+            uint256 baseTokenYieldProfit,
+            uint256 quoteTokenTradeProfit,
+            uint256 baseTokenTradeProfit
+        );
 
 }

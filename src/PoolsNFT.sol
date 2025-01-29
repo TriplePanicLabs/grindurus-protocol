@@ -4,7 +4,7 @@ pragma solidity =0.8.28;
 import {IToken} from "src/interfaces/IToken.sol";
 import {IGRETH} from "src/interfaces/IGRETH.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {IStrategy, IURUSCore} from "src/interfaces/IStrategy.sol";
+import {IStrategy, IURUS} from "src/interfaces/IStrategy.sol";
 import {IPoolsNFTImage} from "src/interfaces/IPoolsNFTImage.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
 import {IStrategyFactory} from "src/interfaces/IStrategyFactory.sol";
@@ -1073,7 +1073,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     /// @notice forms config structure for `getPoolNFTInfos`
     /// @param poolId id of pool
-    function _formConfig(uint256 poolId) private view returns (IURUSCore.Config memory) {
+    function _formConfig(uint256 poolId) private view returns (IURUS.Config memory) {
         (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
@@ -1084,7 +1084,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             uint256 returnPercentHedgeSell,
             uint256 returnPercentHedgeRebuy
         ) = getConfig(poolId);
-        return IURUSCore.Config({
+        return IURUS.Config({
             longNumberMax: longNumberMax,
             hedgeNumberMax: hedgeNumberMax,
             priceVolatilityPercent: priceVolatilityPercent,

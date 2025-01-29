@@ -10,6 +10,8 @@ interface IGRETH is IToken {
     error InvalidLength();
     error InvalidAmount();
     error AmountExceededSupply();
+    error FailMint();
+    error Forbid();
     error ZeroTokenAmount();
     error FailTransferETH();
 
@@ -21,18 +23,20 @@ interface IGRETH is IToken {
 
     function totalGrinded() external view returns (uint256);
 
+    function mint() external payable returns (uint256 mintedAmount);
+
+    function mintTo(address receiver) external payable returns (uint256 mintedAmount);
+
     function mint(
         address[] memory actors,
         uint256[] memory shares
     ) external returns (uint256 totalShares);
 
+    function burn(uint256 amount) external returns (uint256 tokenAmount);
+
     function burn(uint256 amount, address token) external payable returns (uint256 tokenAmount);
 
     function batchBurn(uint256[] memory amounts, address[] memory tokens) external payable returns (uint256 tokenAmount);
-
-    function calcShare(uint256 amount, address token) external view returns (uint256 share);
-
-    function owner() external view returns (address);
 
     function swap(
         address token,
@@ -41,6 +45,15 @@ interface IGRETH is IToken {
         address target,
         bytes calldata data
     ) external;
+
+    function pick(address token, uint256 amount) external;
+
+    function calcShareWeth(uint256 amount) external view returns (uint256 share);
+
+    function calcShare(uint256 amount, address token) external view returns (uint256 share);
+
+    function owner() external view returns (address);
+
 
 
 }

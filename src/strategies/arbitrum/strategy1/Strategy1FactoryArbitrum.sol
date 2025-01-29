@@ -4,7 +4,7 @@ pragma solidity =0.8.28;
 import {IStrategyFactory} from "src/interfaces/IStrategyFactory.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {Strategy1Arbitrum, IStrategy, IToken} from "./Strategy1Arbitrum.sol";
-import {IURUSCore} from "src/interfaces/IURUSCore.sol";
+import {IURUS} from "src/interfaces/IURUS.sol";
 import {IRegistry} from "src/interfaces/IRegistry.sol";
 
 /// @title GrindURUS Factory Pool Strategy 1
@@ -15,7 +15,7 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
     IPoolsNFT public poolsNFT;
 
     /// @dev default config for strategyV1
-    IURUSCore.Config public defaultConfig;
+    IURUS.Config public defaultConfig;
 
     address public oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612; // chainlink WETH/USD oracle;
     address public wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
@@ -43,7 +43,7 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
             poolsNFT = IPoolsNFT(msg.sender);
         }
         registry = IRegistry(_registry);
-        defaultConfig = IURUSCore.Config({
+        defaultConfig = IURUS.Config({
             // maxLiquidity = initLiquidity * (extraCoef + 1) ** (longNumberMax - 1)
             longNumberMax: 4,
             hedgeNumberMax: 4,
@@ -76,7 +76,7 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
 
     /// @notice sets default config
     /// @param config new filled config
-    function setDefaultConfig(IURUSCore.Config memory config) external {
+    function setDefaultConfig(IURUS.Config memory config) external {
         _onlyOwner();
         defaultConfig = config;
     }

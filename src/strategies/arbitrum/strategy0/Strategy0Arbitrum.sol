@@ -4,7 +4,7 @@ pragma solidity =0.8.28;
 import {IToken} from "src/interfaces/IToken.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
-import {URUSCore, IERC5313} from "src/URUSCore.sol";
+import {URUS, IERC5313} from "src/URUS.sol";
 import {IStrategy} from "src/interfaces/IStrategy.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IDexAdapter} from "src/interfaces/IDexAdapter.sol";
@@ -15,7 +15,7 @@ import {UniswapV3AdapterArbitrum} from "src/adapters/dexes/UniswapV3AdapterArbit
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice strategy pool, that implements pure URUS algorithm
 /// @dev Pure URUS algorithm on UniswapV3. Stores tokens on Strategy0 and hadles tokens swaps
-contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3AdapterArbitrum {
+contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3AdapterArbitrum {
     using SafeERC20 for IToken;
 
     /// @dev address of NFT collection of pools
@@ -44,7 +44,7 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
         if (address(poolsNFT) != address(0)) {
             revert StrategyInitialized(strategyId());
         }
-        initCore(
+        initURUS(
             _oracleQuoteTokenPerFeeToken,
             _oracleQuoteTokenPerBaseToken,
             _feeToken,
@@ -60,21 +60,21 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
     }
 
     /// @dev checks that msg.sender is owner
-    function _onlyOwner() internal view override(UniswapV3AdapterArbitrum, NoLendingAdapter, URUSCore) {
+    function _onlyOwner() internal view override(UniswapV3AdapterArbitrum, NoLendingAdapter, URUS) {
         if (msg.sender != owner()) {
             revert NotOwner();
         }
     }
 
     /// @dev checks that msg.sender is gateway
-    function _onlyGateway() internal view override(URUSCore) {
+    function _onlyGateway() internal view override(URUS) {
         if (msg.sender != address(poolsNFT)) {
             revert NotPoolsNFT();
         }
     }
 
     /// @dev checks that msg.sender is agent
-    function _onlyAgent() internal view override(URUSCore) {
+    function _onlyAgent() internal view override(URUS) {
         try poolsNFT.isAgentOf(owner(), msg.sender) returns (bool isAgent) {
             if (!isAgent) {
                 revert NotAgent();
@@ -86,33 +86,33 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
         }
     }
 
-    function _put(IToken token, uint256 amount) internal override(NoLendingAdapter, URUSCore) returns (uint256){
+    function _put(IToken token, uint256 amount) internal override(NoLendingAdapter, URUS) returns (uint256){
         return NoLendingAdapter._put(token, amount);
     }
 
-    function _take(IToken token, uint256 amount) internal override(NoLendingAdapter, URUSCore) returns (uint256) {
+    function _take(IToken token, uint256 amount) internal override(NoLendingAdapter, URUS) returns (uint256) {
         return NoLendingAdapter._take(token, amount);
     }
 
-    function _swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) internal override(UniswapV3AdapterArbitrum, URUSCore) returns (uint256) {
+    function _swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) internal override(UniswapV3AdapterArbitrum, URUS) returns (uint256) {
         return UniswapV3AdapterArbitrum._swap(tokenIn, tokenOut, amountIn);
     }
 
     function _distributeYieldProfit(
         IToken token,
         uint256 profit
-    ) internal override (URUSCore, NoLendingAdapter) {
-        URUSCore._distributeYieldProfit(token, profit);
+    ) internal override (URUS, NoLendingAdapter) {
+        URUS._distributeYieldProfit(token, profit);
     } 
 
     function _distributeTradeProfit(
         IToken token,
         uint256 profit
-    ) internal override (URUSCore) {
-        URUSCore._distributeTradeProfit(token, profit);
+    ) internal override (URUS) {
+        URUS._distributeTradeProfit(token, profit);
     }
 
-    function _distributeProfit(IToken token, uint256 profit) internal override (URUSCore) {
+    function _distributeProfit(IToken token, uint256 profit) internal override (URUS) {
         (
             address[] memory receivers,
             uint256[] memory amounts
@@ -136,6 +136,24 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
         bool success;
         (success, result) = target.call{value: value}(data);
         require(success);
+    }
+
+    /// @notice return total profits of strategy pool
+    function getTotalProfits()
+        public
+        view
+        override
+        returns (
+            uint256 quoteTokenYieldProfit,
+            uint256 baseTokenYieldProfit,
+            uint256 quoteTokenTradeProfit,
+            uint256 baseTokenTradeProfit
+        )
+    {
+        quoteTokenYieldProfit = totalProfits.quoteTokenYieldProfit + getPendingYield(quoteToken);
+        baseTokenYieldProfit = totalProfits.baseTokenYieldProfit + getPendingYield(baseToken);
+        quoteTokenTradeProfit = totalProfits.quoteTokenTradeProfit;
+        baseTokenTradeProfit = totalProfits.baseTokenTradeProfit;
     }
 
     /// @notice calculates return of investment of strategy pool.
@@ -173,7 +191,6 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
         ROIPeriod = block.timestamp - deploymentTimestamp;
     }
 
-
     /// @notice calculates annual percentage rate (APR) of strategy pool
     /// @dev returns the numerator and denominator of APR. APR = APRNumerator / APRDenominator
     function APR()
@@ -191,7 +208,7 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
         APRNumerator = ROINumerator * ROIPeriod * 365;
         APRDenominator = ROIDenominator * oneDayInSeconds;
     }
-    
+
     /// @notice return pool total active capital based on positions
     /// @dev [activeCapital] = quoteToken
     function getActiveCapital() external view returns (uint256) {
@@ -207,7 +224,7 @@ contract Strategy0Arbitrum is IStrategy, URUSCore, NoLendingAdapter, UniswapV3Ad
     }
 
     /// @notice returns the owner of strategy
-    function owner() public view override(URUSCore, IERC5313) returns (address) {
+    function owner() public view override(URUS, IERC5313) returns (address) {
         try poolsNFT.ownerOf(poolId) returns (address _owner) {
             return _owner;
         } catch {
