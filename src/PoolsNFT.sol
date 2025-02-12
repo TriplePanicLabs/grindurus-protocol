@@ -30,10 +30,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     //// ROYALTY PRICE SHARES //////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /// @notice the init royalty price numerator
-    /// @dev converts initial `quoteToken` to `feeToken` and multiply to numerator and divide by DENOMINATOR
-    uint16 public royaltyPriceInitNumerator;
-
     /// require CompensationShareNumerator + TreasuryShareNumerator + PoolOwnerShareNumerator + LastGrinderShareNumerator > 100%
     /// @dev numerator of royalty price compensation to previous owner share
     uint16 public royaltyPriceCompensationShareNumerator;
@@ -187,7 +183,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         // total greth share = 80% + 15% + 2% + 3% = 100%
         require(grethGrinderShareNumerator + grethReserveShareNumerator + grethPoolOwnerShareNumerator + grethRoyaltyReceiverShareNumerator == DENOMINATOR);
         
-        royaltyPriceInitNumerator = 10_00; // 10%
         // poolOwnerShareNumerator + royaltyReserveShareNumerator + royaltyReceiverShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR
         royaltyNumerator = 20_00; // 20%
         poolOwnerShareNumerator = 80_00; // 80%
@@ -289,16 +284,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         _onlyOwner();
         tokenCap[token] = _tokenCap;
         emit SetTokenCap(token, _tokenCap);
-    }
-
-    /// @notice sets start royalty price
-    /// @dev callable only by owner
-    function setRoyaltyPriceInitNumerator(
-        uint16 _royaltyPriceInitNumerator
-    ) external override {
-        _onlyOwner();
-        royaltyPriceInitNumerator = _royaltyPriceInitNumerator;
-        emit SetRoyaltyPriceInitNumerator(_royaltyPriceInitNumerator);
     }
 
     /// @notice sets royalty price share to actors
@@ -448,10 +433,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         poolIds[pool] = poolId;
         _mint(to, poolId);
         totalPools++;
-        royaltyPrice[poolId] = calcInitialRoyaltyPrice(
-            poolId,
-            quoteTokenAmount
-        );
 
         emit Mint(
             poolId,
@@ -464,11 +445,21 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         );
     }
 
+    /// @notice set royalty price. Sets once
+    /// @dev callable only by owner of `poolId`
+    /// @param poolId id of pool
+    /// @param _royaltyPrice amount of ETH
+    function setRoyaltyPrice(uint256 poolId, uint256 _royaltyPrice) external override {
+        _onlyOwnerOf(poolId);
+        require(royaltyPrice[poolId] == 0 && _royaltyPrice > 0);
+        royaltyPrice[poolId] = _royaltyPrice;
+    }
+
     /// @notice approve depositor of pool
     /// @param poolId id of pool in array `pools`
     /// @param depositor address of depositor
     /// @param _depositorApproval true - depositor approved, false depositor not approved
-    function setDepositor(uint256 poolId, address depositor, bool _depositorApproval) external {
+    function setDepositor(uint256 poolId, address depositor, bool _depositorApproval) external override {
         _onlyOwnerOf(poolId);
         _depositorApprovals[poolId][ownerOf(poolId)][depositor] = _depositorApproval;
     }
@@ -727,6 +718,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             /**uint256 oldRoyaltyPrice */,
             uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + reserveShare + lastGrinderShare
         ) = calcRoyaltyPriceShares(poolId);
+        if (newRoyaltyPrice == 0) {
+            revert ZeroNewRoyaltyPrice();
+        }
         if (msg.value < newRoyaltyPrice) {
             revert InsufficientRoyaltyPrice();
         }
@@ -735,72 +729,38 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         royaltyReceiver[poolId] = to;
         royaltyPrice[poolId] = newRoyaltyPrice; // newRoyaltyPrice always increase!
 
-        bool success;
         if (compensationShare > 0) {
-            (success, ) = oldRoyaltyReceiver.call{value: compensationShare}("");
-            if (!success) {
-                (success, ) = address(grETH).call{value: compensationShare}(
-                    ""
-                );
-                if (!success) {
-                    (success, ) = owner.call{value: compensationShare}("");
-                    if (!success) {
-                        revert FailCompensationShare();
-                    }
-                }
-            }
+            _sendETH(oldRoyaltyReceiver, compensationShare);
             royaltyPricePaid += compensationShare;
         }
         if (poolOwnerShare > 0) {
-            (success, ) = payable(ownerOf(poolId)).call{value: poolOwnerShare}("");
-            if (!success) {
-                (success, ) = address(grETH).call{value: poolOwnerShare}("");
-                if (!success) {
-                    (success, ) = owner.call{value: compensationShare}("");
-                    if (!success) {
-                        revert FailPoolOwnerShare();
-                    }
-                }
-            }
+            _sendETH(payable(ownerOf(poolId)), poolOwnerShare);
             royaltyPricePaid += poolOwnerShare;
         }
         if (reserveShare > 0) {
-            (success, ) = address(grETH).call{value: reserveShare}("");
-            if (!success) {
-                (success, ) = owner.call{value: reserveShare}("");
-                if (!success) {
-                    revert FailPrimaryReceiverShare();
-                }
-            }
+            _sendETH(payable(address(grETH)), reserveShare);
             royaltyPricePaid += reserveShare;
         }
         if (lastGrinderShare > 0) {
-            (success, ) = lastGrinder.call{value: lastGrinderShare}("");
-            if (!success) {
-                (success, ) = address(grETH).call{value: lastGrinderShare}("");
-                if (!success) {
-                    (success, ) = owner.call{value: compensationShare}("");
-                    if (!success) {
-                        revert FailLastGrinderShare();
-                    }
-                }
-            }
+            _sendETH(lastGrinder, lastGrinderShare);
             royaltyPricePaid += lastGrinderShare;
         }
         refund = msg.value - royaltyPricePaid;
         if (refund > 0) {
-            (success, ) = payable(msg.sender).call{value: refund}("");
-            if (!success) {
-                (success, ) = address(grETH).call{value: refund}("");
-                if (!success) {
-                    (success, ) = owner.call{value: compensationShare}("");
-                    if (!success) {
-                        revert FailRefund();
-                    }
-                }
-            }
+            _sendETH(payable(msg.sender), refund);
         }
         emit BuyRoyalty(poolId, to, royaltyPricePaid);
+    }
+
+    /// @notice sends ETH
+    /// @param receiver address of receiver
+    /// @param amount amount of ETH
+    function _sendETH(address payable receiver, uint256 amount) internal {
+        bool success;
+        (success, ) = receiver.call{value: amount}("");
+        if (!success) {
+            (success, ) = owner.call{value: amount}("");
+        }
     }
 
     /// @notice implementation of royalty standart ERC2981
@@ -914,18 +874,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         grethShares[3] = grethReward - (grethShares[0] + grethShares[1] + grethShares[2]);
     }
 
-    /// @notice calc initial royalty price
-    /// @param poolId pool id of pool in array `pools`
-    /// @param quoteTokenAmount amount of `quoteToken`
-    /// @return initRoyaltyPrice fee token amount
-    function calcInitialRoyaltyPrice(
-        uint256 poolId,
-        uint256 quoteTokenAmount
-    ) public view returns (uint256 initRoyaltyPrice) {
-        uint256 feeTokenAmount = IStrategy(pools[poolId]).calcFeeTokenByQuoteToken(quoteTokenAmount);
-        initRoyaltyPrice = (feeTokenAmount * royaltyPriceInitNumerator) / DENOMINATOR;
-    }
-
     /// @notice returns tokenURI of `tokenId`
     /// @param poolId pool id of pool in array `pools`
     /// @return uri unified reference indentificator for `tokenId`
@@ -998,9 +946,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         poolIdsOwnedByPoolOwner = new uint256[](totalPoolIds);
         for (; i < totalPoolIds; ) {
             poolIdsOwnedByPoolOwner[i] = tokenOfOwnerByIndex(poolOwner, i);
-            unchecked {
-                ++i;
-            }
+            unchecked { ++i; }
         }
         return (totalPoolIds, poolIdsOwnedByPoolOwner);
     }

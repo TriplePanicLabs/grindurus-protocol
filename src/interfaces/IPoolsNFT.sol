@@ -24,23 +24,14 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error DifferentOwnersOfPools();
     error DifferentQuoteTokens();
     error DifferentBaseTokens();
+    error ZeroNewRoyaltyPrice();
     error InsufficientRoyaltyPrice();
-    error FailCompensationShare();
-    error FailPoolOwnerShare();
-    error FailPrimaryReceiverShare();
-    error FailLastGrinderShare();
-    error FailRefund();
-    error FailBuyOwnership();
-    error ZeroETH();
-    error FailETHTransfer();
-    error FailTokenTransfer(address token);
 
     event SetStrategiest(address strategiest, bool isStrategiest);
     event SetBaseURI(string baseURI);
     event SetPoolsNFTImage(address poolsNFTImage);
     event SetMinDeposit(address token, uint256 minDeposit);
     event SetTokenCap(address token, uint256 _tokenCap);
-    event SetRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator);
     event SetRoyaltyPriceShares(
         uint16 _royaltyPriceCompensationShareNumerator,
         uint16 _royaltyPriceReserveShareNumerator,
@@ -116,8 +107,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     }
 
     //// ROYALTY PRICE SHARES
-
-    function royaltyPriceInitNumerator() external view returns (uint16);
 
     function royaltyPriceCompensationShareNumerator() external view returns (uint16);
 
@@ -205,8 +194,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function setPoolsNFTImage(address _poolsNFTImage) external;
 
-    function setRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator) external;
-
     function setRoyaltyShares(
         uint16 _poolOwnerRoyaltyShareNumerator,
         uint16 _treasuryRoyaltyShareNumerator,
@@ -244,6 +231,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
         address quoteToken,
         uint256 quoteTokenAmount
     ) external returns (uint256 poolId);
+
+    function setRoyaltyPrice(uint256 poolId, uint256 _royaltyPrice) external;
 
     function setDepositor(uint256 poolId, address depositor, bool _depositorApproval) external;
 
@@ -316,11 +305,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 grethReward,
         address grinder
     ) external view returns (address[] memory actors, uint256[] memory shares);
-
-    function calcInitialRoyaltyPrice(
-        uint256 poolId,
-        uint256 quoteTokenAmount
-    ) external view returns (uint256 initRoyaltyPrice);
 
     function tokenURI(uint256 poolId) external view returns (string memory uri);
 

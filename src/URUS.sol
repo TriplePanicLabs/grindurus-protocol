@@ -126,8 +126,8 @@ contract URUS is IURUS {
 
     /// @dev 
     function _initHelperOracle() private {
-        helper.oracleQuoteTokenPerFeeTokenDecimals = oracleQuoteTokenPerFeeToken.decimals();
-        helper.oracleQuoteTokenPerBaseTokenDecimals = oracleQuoteTokenPerBaseToken.decimals();
+        helper.oracleQuoteTokenPerFeeTokenDecimals = (address(oracleQuoteTokenPerFeeToken) != address(0)) ? oracleQuoteTokenPerFeeToken.decimals() : 8;
+        helper.oracleQuoteTokenPerBaseTokenDecimals = (address(oracleQuoteTokenPerBaseToken) != address(0)) ? oracleQuoteTokenPerBaseToken.decimals() : 8;
         helper.oracleQuoteTokenPerFeeTokenMultiplier = 10 ** helper.oracleQuoteTokenPerFeeTokenDecimals;
         helper.oracleQuoteTokenPerBaseTokenMultiplier = 10 ** helper.oracleQuoteTokenPerBaseTokenDecimals;
     }
@@ -482,7 +482,7 @@ contract URUS is IURUS {
         // 5.1. Accumulate fees
         uint256 feePrice = getPriceQuoteTokensPerFeeToken(); // [long.feePrice] = quoteToken/feeToken
         uint256 txGasPrice = tx.gasprice;
-        if (txGasPrice > 0) {
+        if (feePrice > 0 && txGasPrice > 0) {
             uint256 feeQty = (gasStart - gasleft() + 50) * txGasPrice; // gas * feeToken / gas = feeToken
             long.feePrice = (long.feeQty * long.feePrice + feeQty * feePrice) / (long.feeQty + feeQty);
             long.feeQty += feeQty;
@@ -611,7 +611,7 @@ contract URUS is IURUS {
 
             uint256 feePrice = getPriceBaseTokensPerFeeToken(swapPrice); // [feePrice] = baseToken/feeToken
             uint256 txGasPrice = tx.gasprice;
-            if (txGasPrice > 0) {
+            if (feePrice > 0 && txGasPrice > 0) {
                 // gasStart always bigger than gasleft()
                 uint256 feeQty = (gasStart - gasleft() + 50) * txGasPrice; // [feeQty] = gas * feeToken / gas = feeToken
                 // [hedge.feePrice] = (feeToken * (baseToken/feeToken) + feeToken * (baseToken/feeToken)) / (feeToken + feeToken) =
@@ -809,8 +809,10 @@ contract URUS is IURUS {
         view
         returns (uint256 price)
     {
-        (, int256 answer, , , ) = oracleQuoteTokenPerBaseToken.latestRoundData();
-        price = uint256(answer);
+        if (address(oracleQuoteTokenPerBaseToken) != address(0)) {
+            (, int256 answer, , , ) = oracleQuoteTokenPerBaseToken.latestRoundData();
+            price = uint256(answer);
+        }
     }
 
     /// @notice returns price of `feeToken` in terms of `quoteToken`
@@ -820,8 +822,10 @@ contract URUS is IURUS {
         view
         returns (uint256 price)
     {
-        (, int256 answer, , , ) = oracleQuoteTokenPerFeeToken.latestRoundData();
-        price = uint256(answer);
+        if (address(oracleQuoteTokenPerFeeToken) != address(0)) {
+            (, int256 answer, , , ) = oracleQuoteTokenPerFeeToken.latestRoundData();
+            price = uint256(answer);
+        }
     }
 
     /// @notice returns price of `feeToken` in terms of `baseToken`
@@ -829,9 +833,11 @@ contract URUS is IURUS {
     function getPriceBaseTokensPerFeeToken(
         uint256 quoteTokenPerBaseTokenPrice
     ) public view returns (uint256 price) {
-        (, int256 answer, , , ) = oracleQuoteTokenPerFeeToken.latestRoundData();
-        // [price] = quoteToken / feeToken * (1 / (quoteToken / baseToken)) = baseToken / feeToken
-        price = (uint256(answer) * helper.oracleQuoteTokenPerBaseTokenMultiplier) / quoteTokenPerBaseTokenPrice;
+        if (address(oracleQuoteTokenPerFeeToken) != address(0)) {
+            (, int256 answer, , , ) = oracleQuoteTokenPerFeeToken.latestRoundData();
+            // [price] = quoteToken / feeToken * (1 / (quoteToken / baseToken)) = baseToken / feeToken
+            price = (uint256(answer) * helper.oracleQuoteTokenPerBaseTokenMultiplier) / quoteTokenPerBaseTokenPrice;
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1152,10 +1158,12 @@ contract URUS is IURUS {
         uint8 qd = helper.quoteTokenDecimals;
         uint8 fd = helper.feeTokenDecimals;
         uint256 quoteTokenPerFeeTokenPrice = getPriceQuoteTokensPerFeeToken(); // [feeTokenPrice] = quoteToken / feeToken
-        if (fd >= qd) {
-            feeTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - qd))) / quoteTokenPerFeeTokenPrice;
-        } else {
-            feeTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerFeeTokenMultiplier) / (quoteTokenPerFeeTokenPrice * (10 ** (qd - fd)));
+        if (quoteTokenPerFeeTokenPrice > 0) {
+            if (fd >= qd) {
+                feeTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - qd))) / quoteTokenPerFeeTokenPrice;
+            } else {
+                feeTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerFeeTokenMultiplier) / (quoteTokenPerFeeTokenPrice * (10 ** (qd - fd)));
+            }
         }
     }
 

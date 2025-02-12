@@ -164,7 +164,7 @@ contract PoolsNFTTest is Test {
             baseToken,
             quoteTokenAmount
         );
-
+        poolsNFT.setRoyaltyPrice(poolId, 0.0001 ether);
         uint256 royaltyPriceBefore = poolsNFT.royaltyPrice(poolId);
         (
             uint256 compensationShare,
