@@ -568,7 +568,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param quoteToken address of quoteToken
     /// @param quoteTokenAmount amount of quote token
     function _checkCap(address quoteToken, uint256 quoteTokenAmount) private view {
-        if ((tokenCap[address(quoteToken)] > 0) && (tokenCap[address(quoteToken)] + quoteTokenAmount > tokenCap[address(quoteToken)])) {
+        if ((tokenCap[quoteToken] > 0) && (tokenCap[quoteToken] + quoteTokenAmount > tokenCap[quoteToken])) {
             revert ExceededDepositCap();
         }
     }
