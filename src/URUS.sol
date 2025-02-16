@@ -56,6 +56,7 @@ contract URUS is IURUS {
 
     /// @notice constructor of URUS core
     /// @dev config of URUS can be catched from structure `Config`
+    /// @dev _oracleQuoteTokenPerFeeToken and _oracleQuoteTokenPerBaseToken may be address(0). And will not calculate fees
     /// @param _oracleQuoteTokenPerFeeToken address of price oracle of `feeToken` in terms of `quoteToken`
     /// @param _oracleQuoteTokenPerBaseToken address of price oracle of `baseToken` in terms of `quoteToken`
     /// @param _feeToken address of `feeToken`
