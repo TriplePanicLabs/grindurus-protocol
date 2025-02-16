@@ -827,24 +827,12 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     {
         uint256 _royaltyPrice = royaltyPrice[poolId];
         uint256 _denominator = DENOMINATOR;
-        compensationShare =
-            (_royaltyPrice * royaltyPriceCompensationShareNumerator) /
-            _denominator;
-        poolOwnerShare =
-            (_royaltyPrice * royaltyPricePoolOwnerShareNumerator) /
-            _denominator;
-        reserveShare =
-            (_royaltyPrice * royaltyPriceReserveShareNumerator) /
-            _denominator;
-        lastGrinderShare =
-            (_royaltyPrice * royaltyPriceGrinderShareNumerator) /
-            _denominator;
+        compensationShare = (_royaltyPrice * royaltyPriceCompensationShareNumerator) / _denominator;
+        poolOwnerShare = (_royaltyPrice * royaltyPricePoolOwnerShareNumerator) / _denominator;
+        reserveShare = (_royaltyPrice * royaltyPriceReserveShareNumerator) / _denominator;
+        lastGrinderShare = (_royaltyPrice * royaltyPriceGrinderShareNumerator) / _denominator;
         oldRoyaltyPrice = _royaltyPrice;
-        newRoyaltyPrice =
-            compensationShare +
-            poolOwnerShare +
-            reserveShare +
-            lastGrinderShare;
+        newRoyaltyPrice = compensationShare + poolOwnerShare + reserveShare + lastGrinderShare;
     }
 
     /// @notice calculates shares of grETH for actors
