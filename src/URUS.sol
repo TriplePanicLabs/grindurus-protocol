@@ -238,38 +238,38 @@ contract URUS is IURUS {
         config.initHedgeSellPercent = initHedgeSellPercent;
     }
 
-    /// @notice set retunr for StrategyOp
+    /// @notice set retunr for Op
     /// @dev if realRoi == 100.5%=1.005, than returnPercent == realRoi * helper.percentMultiplier
     /// @param op operation to apply return
     /// @param returnPercent return scaled by helper.percentMultiplier
-    function setOpReturnPercent(StrategyOp op, uint256 returnPercent) public override {
+    function setOpReturnPercent(Op op, uint256 returnPercent) public override {
         _onlyAgent();
         if (returnPercent < 100 * helper.percentMultiplier)
             revert InvalidReturnOfInvestment();
-        if (op == StrategyOp.LONG_SELL) {
+        if (op == Op.LONG_SELL) {
             config.returnPercentLongSell = returnPercent;
-        } else if (op == StrategyOp.HEDGE_SELL) {
+        } else if (op == Op.HEDGE_SELL) {
             config.returnPercentHedgeSell = returnPercent;
-        } else if (op == StrategyOp.HEDGE_REBUY) {
+        } else if (op == Op.HEDGE_REBUY) {
             config.returnPercentHedgeRebuy = returnPercent;
         } else {
-            revert InvalidStrategyOpForReturn();
+            revert InvalidOp();
         }
     }
 
-    /// @notice set fee coeficient for StrategyOp
+    /// @notice set fee coeficient for Op
     /// @dev if realFeeCoef = 1.61, than feeConfig = realFeeCoef * helper.feeCoeficientMultiplier
     /// @param _feeCoef fee coeficient scaled by helper.feeCoeficientMultiplier
-    function setOpFeeCoef(StrategyOp op, uint256 _feeCoef) public override {
+    function setOpFeeCoef(Op op, uint256 _feeCoef) public override {
         _onlyAgent();
-        if (op == StrategyOp.LONG_SELL) {
+        if (op == Op.LONG_SELL) {
             feeConfig.longSellFeeCoef = _feeCoef;
-        } else if (op == StrategyOp.HEDGE_SELL) {
+        } else if (op == Op.HEDGE_SELL) {
             feeConfig.hedgeSellFeeCoef = _feeCoef;
-        } else if (op == StrategyOp.HEDGE_REBUY) {
+        } else if (op == Op.HEDGE_REBUY) {
             feeConfig.hedgeRebuyFeeCoef = _feeCoef;
         } else {
-            revert InvalidStrategyOpForFeeCoef();
+            revert InvalidOp();
         }
     }
 

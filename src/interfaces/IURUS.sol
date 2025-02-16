@@ -12,8 +12,7 @@ interface IURUS is IERC5313 {
     error InvalidHedgeNumberMax();
     error InvalidExtraCoef();
     error InvalidInitHedgeSellPercent();
-    error InvalidStrategyOpForFeeCoef();
-    error InvalidStrategyOpForReturn();
+    error InvalidOp();
     error InvalidReturnOfInvestment();
     error InvalidLength();
     error InvalidPriceVolatility();
@@ -32,7 +31,6 @@ interface IURUS is IERC5313 {
     error Hedged();
     error NoHedge();
     error NotProfitableRebuy();
-
 
     event LongBuy(
         address pool,
@@ -63,7 +61,7 @@ interface IURUS is IERC5313 {
     ///     REBALANCE ==  4
     ///     INVEST ==  5
     ///     DIVEST ==  6
-    enum StrategyOp {
+    enum Op {
         LONG_BUY, // 0
         LONG_SELL, // 1
         HEDGE_SELL, // 2
@@ -147,9 +145,9 @@ interface IURUS is IERC5313 {
 
     function setInitHedgeSellPercent(uint256 initHedgeSellPercent) external;
 
-    function setOpReturnPercent(StrategyOp op, uint256 returnPercent) external;
+    function setOpReturnPercent(Op op, uint256 returnPercent) external;
 
-    function setOpFeeCoef(StrategyOp op, uint256 _feeCoef) external;
+    function setOpFeeCoef(Op op, uint256 _feeCoef) external;
 
     function deposit(
         uint256 quoteTokenAmount
