@@ -653,7 +653,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev grETH == fee spend on iterate
     /// @param poolId pool id of pool in array `pools`
     function grind(uint256 poolId) external override returns (bool isGrinded) {
-        return grindTo(poolId, msg.sender);
+        isGrinded = grindTo(poolId, msg.sender);
     }
 
     /// @notice grind the pool with `poolId` and grinder is `to`
@@ -670,16 +670,66 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         }
         if (isGrinded) {
             uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
-            (address[] memory actors, uint256[] memory grethShares) = calcGRETHShares(
-                poolId,
-                grethReward,
-                grinder
-            );
-            try grETH.mint(actors, grethShares) {} catch {}
+            _reward(poolId, grethReward, grinder);
         }
         lastGrinder = payable(grinder);
         emit Grind(poolId, grinder, isGrinded);
     }
+
+    /// @notice grind the exact operation on the pool with `poolId`
+    /// @param poolId pool id of pool in array `pools`
+    /// @param op operation on strategy pool
+    function grindOp(uint256 poolId, IURUS.Op op) public returns (bool isGrinded) {
+        isGrinded = grindOpTo(poolId, op, msg.sender);
+    }
+
+    /// @notice grind the exact operation on the pool with `poolId`
+    /// @param poolId pool id of pool in array `pools`
+    /// @param op operation on strategy pool
+    /// @param grinder address of grinder, that will receive grind reward
+    function grindOpTo(uint256 poolId, IURUS.Op op, address grinder) public override returns (bool isGrinded) {
+        uint256 gasStart = gasleft();
+        IStrategy pool = IStrategy(pools[poolId]);
+        if (op == IURUS.Op.LONG_BUY) {
+            try pool.long_buy() {
+                isGrinded = true;
+            }
+            catch {}
+        } else if (op == IURUS.Op.LONG_SELL) {
+            try pool.long_sell() {
+                isGrinded = true;
+            }
+            catch {}
+        } else if (op == IURUS.Op.HEDGE_SELL) {
+            try pool.hedge_sell() {
+                isGrinded = true;
+            }
+            catch {}
+        } else if (op == IURUS.Op.HEDGE_REBUY) {
+            try pool.hedge_rebuy() {
+                isGrinded = true;
+            }
+            catch {}
+        } else {
+            revert InvalidOp();
+        }
+        if (isGrinded) {
+            uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
+            _reward(poolId, grethReward, grinder);
+        }
+        lastGrinder = payable(grinder);
+        emit Grind(poolId, grinder, isGrinded);
+    }
+
+    /// @notice rewards the grinder
+    function _reward(uint256 poolId, uint256 grethReward, address grinder) internal {
+        (address[] memory actors, uint256[] memory grethShares) = calcGRETHShares(
+            poolId,
+            grethReward,
+            grinder
+        );
+        try grETH.mint(actors, grethShares) {} catch {}
+    } 
 
     /// @notice buy royalty for pool with `poolId`
     /// @param poolId pool id of pool in array `pools`
@@ -1058,7 +1108,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     /// @notice returns long position of poolId
     /// @param poolId pool id of pool in array `pools`
-    function getLong(uint256 poolId) external view override
+    function getLong(uint256 poolId) public view override
         returns (
             uint8 number,
             uint8 numberMax,
@@ -1084,7 +1134,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     /// @notice returns hedge position of poolId
     /// @param poolId pool id of pool in array `pools`
-    function getHedge(uint256 poolId) external view override
+    function getHedge(uint256 poolId) public view override
         returns (
             uint8 number,
             uint8 numberMax,
@@ -1106,6 +1156,58 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             feeQty,
             feePrice
         ) = IStrategy(pools[poolId]).getHedge();
+    }
+
+    /// @notice returns positions of strategy
+    function getPositions(uint256 poolId) public view override returns(IURUS.Position memory long, IURUS.Position memory hedge) {
+        uint8 number;
+        uint8 numberMax;
+        uint256 priceMin;
+        uint256 liquidity;
+        uint256 qty;
+        uint256 price;
+        uint256 feeQty;
+        uint256 feePrice; 
+        (
+            number,
+            numberMax,
+            priceMin,
+            liquidity,
+            qty,
+            price,
+            feeQty,
+            feePrice
+        ) = getLong(poolId);
+        long = IURUS.Position({
+            number: number,
+            numberMax: numberMax,
+            priceMin: priceMin,
+            liquidity: liquidity,
+            qty: qty,
+            price: price,
+            feeQty: feeQty,
+            feePrice: feePrice
+        });
+        (
+            number,
+            numberMax,
+            priceMin,
+            liquidity,
+            qty,
+            price,
+            feeQty,
+            feePrice
+        ) = getHedge(poolId);
+        hedge = IURUS.Position({
+            number: number,
+            numberMax: numberMax,
+            priceMin: priceMin,
+            liquidity: liquidity,
+            qty: qty,
+            price: price,
+            feeQty: feeQty,
+            feePrice: feePrice
+        });
     }
 
     /// @notice execute any transaction on target smart contract

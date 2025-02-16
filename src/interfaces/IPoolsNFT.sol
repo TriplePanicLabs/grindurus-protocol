@@ -13,6 +13,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error NotStrategiest();
     error NotDepositor();
     error NotAgent();
+    error InvalidOp();
     error InvalidRoyaltyNumerator();
     error InvalidGRETHShares();
     error InvalidRoyaltyShares();
@@ -264,6 +265,10 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function grindTo(uint256 poolId, address grinder) external returns (bool isGrinded);
 
+    function grindOp(uint256 poolId, IURUS.Op op) external returns (bool isGrinded);
+
+    function grindOpTo(uint256 poolId, IURUS.Op op, address grinder) external returns (bool isGrinded);
+
     function buyRoyalty(
         uint256 poolId
     ) external payable returns (uint256 royaltyPricePaid, uint256 refund);
@@ -368,6 +373,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
             uint256 feeQty,
             uint256 feePrice
         );
+
+    function getPositions(uint256 poolId) external view returns(IURUS.Position memory long, IURUS.Position memory hedge);
 
     function execute(address target, uint256 value, bytes memory data) external;
 
