@@ -214,7 +214,8 @@ contract GRETH is IGRETH, ERC20 {
         require(wethBalanceAfter - wethBalanceBefore >= amountOut, "Insufficient amountOut");
     }
 
-    /// @notice withdraw token on owner determination. Forbid to withdraw WETH
+    /// @notice withdraw token on owner determination. Forbid to withdraw WETH. 
+    /// @dev practical usecase, that token withdrawn and transfered WETH to GRETH
     /// @param token address of token to pick
     /// @param amount amount of token to pick
     function withdraw(address token, uint256 amount) public override returns (uint256 withdrawnAmount) {
