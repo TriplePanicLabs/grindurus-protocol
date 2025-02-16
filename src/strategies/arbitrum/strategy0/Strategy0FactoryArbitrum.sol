@@ -112,14 +112,8 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
         address baseToken
     ) public override returns (address) {
         _onlyPoolsNFT();
-        address oracleQuoteTokenPerFeeToken = registry.getOracle(quoteToken, feeToken);
-        if (oracleQuoteTokenPerFeeToken == address(0)) {
-            revert InvalidOracleFeeToken();
-        }
-        address oracleQuoteTokenPerBaseToken = registry.getOracle(quoteToken, baseToken);
-        if (oracleQuoteTokenPerBaseToken == address(0)) {
-            revert InvalidOracleBaseToken();
-        }
+        address oracleQuoteTokenPerFeeToken = registry.getOracle(quoteToken, feeToken); // may be address(0)
+        address oracleQuoteTokenPerBaseToken = registry.getOracle(quoteToken, baseToken); //  may be address(0)
         Strategy0Arbitrum pool = new Strategy0Arbitrum();
         uint24 uniswapV3Fee = uniswapV3PoolFee[quoteToken][baseToken];
         bytes memory dexArgs = abi.encode(uniswapV3SwapRouterArbitrum, uniswapV3Fee, quoteToken, baseToken);

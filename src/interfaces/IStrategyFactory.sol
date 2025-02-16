@@ -7,8 +7,6 @@ import {IStrategy} from "./IStrategy.sol";
 interface IStrategyFactory {
     error NotPoolsNFT();
     error InvalidStrategyId();
-    error InvalidOracleFeeToken();
-    error InvalidOracleBaseToken();
     error NotOwner();
 
     function poolsNFT() external view returns (IPoolsNFT);
