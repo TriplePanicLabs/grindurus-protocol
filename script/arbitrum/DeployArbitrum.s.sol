@@ -7,6 +7,7 @@ import {GRETH} from "src/GRETH.sol";
 import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
+import {IntentNFT} from "src/IntentNFT.sol";
 
 
 // Test purposes:
@@ -26,7 +27,7 @@ import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 
 // $ curl "https://api.arbiscan.io/api?module=contract&action=checkverifystatus&guid=qx5xfggkwzkzqyiv76wlw6benfhfmkdnuqi1ycn6bblwzhebfm&apikey=$ARBITRUMSCAN_API_KEY"
 
-// $ forge verify-contract 0x614494E35a752B9a91aBf6F3f88CE5Fc230Ea62c src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol:Strategy1Arbitrum --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge verify-contract 0xE88dd8CD613A0A8462cb244e916ddf60bc4aE9dF src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol:Strategy1Arbitrum --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 
 contract DeployArbitrumScript is Script {
@@ -39,6 +40,8 @@ contract DeployArbitrumScript is Script {
     RegistryArbitrum public registry;
 
     Strategy1FactoryArbitrum public factory1;
+
+    IntentNFT public intentNFT;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -59,10 +62,13 @@ contract DeployArbitrumScript is Script {
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry));
         poolsNFT.setStrategyFactory(address(factory1));
 
+        intentNFT = new IntentNFT(address(poolsNFT));
+
         console.log("PoolsNFT: ", address(poolsNFT));
         console.log("GRETH: ", address(grETH));
         console.log("Registry: ", address(registry));
-        console.log("Factory1: ",address(factory1));
+        console.log("Factory1: ", address(factory1));
+        console.log("IntentNFT: ", address(intentNFT));
 
         vm.stopBroadcast();
     }
