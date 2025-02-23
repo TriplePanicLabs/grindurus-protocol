@@ -115,12 +115,24 @@ contract GRETH is IGRETH, ERC20 {
         tokenAmount = burn(amount, address(weth));
     }
 
-    /// @notice burns grETH and get token
+    /// @notice burns grETH and get token `msg.sender`
     /// @param amount amount of grETH
     /// @param token address of token to earn instead
     function burn(
         uint256 amount,
         address token
+    ) public payable override returns (uint256 tokenAmount) {
+        tokenAmount = burnTo(amount, token, msg.sender);
+    }
+
+    /// @notice burns grETH and get token to `to`
+    /// @param amount amount of grETH
+    /// @param token address of token to earn instead
+    /// @param to recipient of funds
+    function burnTo(
+        uint256 amount,
+        address token,
+        address to
     ) public payable override returns (uint256 tokenAmount) {
         address payable burner;
         if (msg.sender == owner()) {
@@ -141,12 +153,12 @@ contract GRETH is IGRETH, ERC20 {
         _burn(burner, amount);
         emit Burn(burner, amount, token, tokenAmount);
         if (token == address(0)) {
-            (bool success,) = burner.call{value: tokenAmount}("");
+            (bool success,) = payable(to).call{value: tokenAmount}("");
             if (!success) {
                 revert FailTransferETH();
             }
         } else {
-            IToken(token).safeTransfer(burner, tokenAmount);
+            IToken(token).safeTransfer(to, tokenAmount);
         }
     }
 
