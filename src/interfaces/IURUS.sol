@@ -33,24 +33,24 @@ interface IURUS is IERC5313 {
     error NotProfitableRebuy();
 
     event LongBuy(
-        address pool,
         uint256 quoteTokenAmount,
-        uint256 baseTokenAmount
+        uint256 baseTokenAmount,
+        uint256 swapPrice
     );
     event LongSell(
-        address pool,
         uint256 quoteTokenAmount,
-        uint256 baseTokenAmount
+        uint256 baseTokenAmount,
+        uint256 swapPrice
     );
     event HedgeSell(
-        address pool,
         uint256 quoteTokenAmount,
-        uint256 baseTokenAmount
+        uint256 baseTokenAmount,
+        uint256 swapPrice
     );
     event HedgeRebuy(
-        address pool,
         uint256 quoteTokenAmount,
-        uint256 baseTokenAmount
+        uint256 baseTokenAmount,
+        uint256 swapPrice
     );
 
     /// @dev OPeration to number:
@@ -264,6 +264,19 @@ interface IURUS is IERC5313 {
     function quoteToken() external view returns (IToken);
 
     function baseToken() external view returns (IToken);
+
+    function getThresholds() external view 
+        returns (
+            uint256 longBuyPriceMin,
+            uint256 longSellQuoteTokenAmountThreshold,
+            uint256 longSellSwapPriceThreshold,
+            uint256 hedgeSellLiquidity,
+            uint256 hedgeSellQuoteTokenAmountThreshold,
+            uint256 hedgeSellTargetPrice,
+            uint256 hedgeSellSwapPriceThreshold,
+            uint256 hedgeRebuyBaseTokenAmountThreshold,
+            uint256 hedgeRebuySwapPriceThreshold
+        );
 
     function getLong()
         external

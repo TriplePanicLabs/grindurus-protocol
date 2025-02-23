@@ -459,12 +459,12 @@ contract URUS is IURUS {
         (quoteTokenAmount) = _take(quoteToken, quoteTokenAmount);
         // 2.0 Swap quoteTokenAmount to baseTokenAmount on DEX
         baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
-        uint256 baseTokenPrice = calcSwapPrice(
+        uint256 swapPrice = calcSwapPrice(
             quoteTokenAmount,
             baseTokenAmount
         ); // [baseTokenPrice] = quoteToken/baseToken
-        if (baseTokenPrice > calcLongPriceMin()) {
-            revert BuyUpperPriceMin(baseTokenPrice, calcLongPriceMin());
+        if (swapPrice > calcLongPriceMin()) {
+            revert BuyUpperPriceMin(swapPrice, calcLongPriceMin());
         }
 
         // 3.1. Update position
@@ -472,7 +472,7 @@ contract URUS is IURUS {
             long.numberMax = config.longNumberMax;
         }
         long.number += 1;
-        long.price = (long.qty * long.price + baseTokenAmount * baseTokenPrice) / (long.qty + baseTokenAmount);
+        long.price = (long.qty * long.price + baseTokenAmount * swapPrice) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
         long.liquidity += quoteTokenAmount;
         long.priceMin = calcLongPriceMin();
@@ -488,6 +488,8 @@ contract URUS is IURUS {
             long.feePrice = (long.feeQty * long.feePrice + feeQty * feePrice) / (long.feeQty + feeQty);
             long.feeQty += feeQty;
         }
+        // 6.1 Emit Long Buy
+        emit LongBuy(quoteTokenAmount, baseTokenAmount, swapPrice);
     }
 
     /// @notice makes long_sell
@@ -534,6 +536,7 @@ contract URUS is IURUS {
             feeQty: 0,
             feePrice: 0
         });
+        emit LongSell(quoteTokenAmount, baseTokenAmount, calcSwapPrice(quoteTokenAmount, baseTokenAmount));
     }
 
     /// @notice makes hedge_sell
@@ -642,6 +645,7 @@ contract URUS is IURUS {
                 feePrice: 0
             });
         }
+        emit HedgeSell(quoteTokenAmount, baseTokenAmount, swapPrice);
     }
 
     /// @notice makes hedge_rebuy
@@ -688,6 +692,7 @@ contract URUS is IURUS {
             feeQty: 0,
             feePrice: 0
         });
+        emit HedgeRebuy(quoteTokenAmount, baseTokenAmount, swapPrice);
     }
 
     /// @notice iteration of URUS algorithm
@@ -697,68 +702,40 @@ contract URUS is IURUS {
         IURUS strategy = IURUS(address(this));
         if (long.number == 0) {
             // BUY
-            try strategy.long_buy() returns (
-                uint256 quoteTokenAmount,
-                uint256 baseTokenAmount
-            ) {
+            try strategy.long_buy() {
                 iterated = true;
-                emit LongBuy(address(this), quoteTokenAmount, baseTokenAmount);
             } catch {}
         } else if (long.number < long.numberMax) {
             // SELL
-            try strategy.long_sell() returns (
-                uint256 quoteTokenAmount,
-                uint256 baseTokenAmount
-            ) {
+            try strategy.long_sell() {
                 iterated = true;
-                emit LongSell(address(this), quoteTokenAmount, baseTokenAmount);
             } catch {
                 // EXTRA BUY
-                try strategy.long_buy() returns (
-                    uint256 quoteTokenAmount,
-                    uint256 baseTokenAmount
-                ) {
+                try strategy.long_buy() {
                     iterated = true;
-                    emit LongBuy(address(this), quoteTokenAmount, baseTokenAmount);
                 } catch {}
             }
         } else {
             // long.number == long.numberMax
             if (hedge.number == 0) {
                 // TRY SELL
-                try strategy.long_sell() returns (
-                    uint256 quoteTokenAmount,
-                    uint256 baseTokenAmount
-                ) {
+                try strategy.long_sell() {
                     iterated = true;
-                    emit LongSell(address(this), quoteTokenAmount, baseTokenAmount);
                 } catch {
                     // INIT HEDGE SELL
-                    try strategy.hedge_sell() returns (
-                        uint256 quoteTokenAmount,
-                        uint256 baseTokenAmount
-                    ) {
+                    try strategy.hedge_sell() {
                         iterated = true;
-                        emit HedgeSell(address(this), quoteTokenAmount, baseTokenAmount);
                     } catch {}
                 }
             } else {
                 // hedge.number > 0
                 // REBUY
-                try strategy.hedge_rebuy() returns (
-                    uint256 quoteTokenAmount,
-                    uint256 baseTokenAmount
-                ) {
+                try strategy.hedge_rebuy() {
                     iterated = true;
-                    emit HedgeRebuy(address(this), quoteTokenAmount, baseTokenAmount);
                 } catch {
                     // TRY HEDGE SELL
-                    try strategy.hedge_sell() returns (
-                        uint256 quoteTokenAmount,
-                        uint256 baseTokenAmount
-                    ) {
+                    try strategy.hedge_sell() {
                         iterated = true;
-                        emit HedgeSell(address(this), quoteTokenAmount, baseTokenAmount);
                     } catch {}
                 }
             }
@@ -1165,6 +1142,37 @@ contract URUS is IURUS {
             } else {
                 feeTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerFeeTokenMultiplier) / (quoteTokenPerFeeTokenPrice * (10 ** (qd - fd)));
             }
+        }
+    }
+
+    /// @notice return thresholds
+    function getThresholds() 
+        external
+        view 
+        returns (
+            uint256 longBuyPriceMin,
+            uint256 longSellQuoteTokenAmountThreshold,
+            uint256 longSellSwapPriceThreshold,
+            uint256 hedgeSellLiquidity,
+            uint256 hedgeSellQuoteTokenAmountThreshold,
+            uint256 hedgeSellTargetPrice,
+            uint256 hedgeSellSwapPriceThreshold,
+            uint256 hedgeRebuyBaseTokenAmountThreshold,
+            uint256 hedgeRebuySwapPriceThreshold
+        ) {
+        longBuyPriceMin = calcLongPriceMin();
+        (longSellQuoteTokenAmountThreshold, longSellSwapPriceThreshold) =  calcLongSellThreshold();
+        if (hedge.number > 0) {
+            (
+                hedgeSellLiquidity,
+                hedgeSellQuoteTokenAmountThreshold,
+                hedgeSellTargetPrice,
+                hedgeSellSwapPriceThreshold
+            ) = calcHedgeSellThreshold();
+            (
+                hedgeRebuyBaseTokenAmountThreshold,
+                hedgeRebuySwapPriceThreshold
+            ) = calcHedgeRebuyThreshold();
         }
     }
 
