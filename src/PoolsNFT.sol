@@ -673,13 +673,13 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             _reward(poolId, grethReward, grinder);
         }
         lastGrinder = payable(grinder);
-        emit Grind(poolId, grinder, isGrinded);
+        emit Grind(poolId, type(uint8).max, grinder, isGrinded);
     }
 
     /// @notice grind the exact operation on the pool with `poolId`
     /// @param poolId pool id of pool in array `pools`
     /// @param op operation on strategy pool
-    function grindOp(uint256 poolId, IURUS.Op op) public returns (bool isGrinded) {
+    function grindOp(uint256 poolId, uint8 op) public returns (bool isGrinded) {
         isGrinded = grindOpTo(poolId, op, msg.sender);
     }
 
@@ -687,25 +687,25 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param poolId pool id of pool in array `pools`
     /// @param op operation on strategy pool
     /// @param grinder address of grinder, that will receive grind reward
-    function grindOpTo(uint256 poolId, IURUS.Op op, address grinder) public override returns (bool isGrinded) {
+    function grindOpTo(uint256 poolId, uint8 op, address grinder) public override returns (bool isGrinded) {
         uint256 gasStart = gasleft();
         IStrategy pool = IStrategy(pools[poolId]);
-        if (op == IURUS.Op.LONG_BUY) {
+        if (op == uint8(IURUS.Op.LONG_BUY)) {
             try pool.long_buy() {
                 isGrinded = true;
             }
             catch {}
-        } else if (op == IURUS.Op.LONG_SELL) {
+        } else if (op == uint8(IURUS.Op.LONG_SELL)) {
             try pool.long_sell() {
                 isGrinded = true;
             }
             catch {}
-        } else if (op == IURUS.Op.HEDGE_SELL) {
+        } else if (op == uint8(IURUS.Op.HEDGE_SELL)) {
             try pool.hedge_sell() {
                 isGrinded = true;
             }
             catch {}
-        } else if (op == IURUS.Op.HEDGE_REBUY) {
+        } else if (op == uint8(IURUS.Op.HEDGE_REBUY)) {
             try pool.hedge_rebuy() {
                 isGrinded = true;
             }
@@ -718,7 +718,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             _reward(poolId, grethReward, grinder);
         }
         lastGrinder = payable(grinder);
-        emit Grind(poolId, grinder, isGrinded);
+        emit Grind(poolId, op, grinder, isGrinded);
     }
 
     /// @notice rewards the grinder
