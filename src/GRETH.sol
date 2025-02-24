@@ -162,19 +162,30 @@ contract GRETH is IGRETH, ERC20 {
         }
     }
 
-    /// @notice batch burns grETH and get tokens
+    /// @notice batch burns grETH on behalf of `msg.sender`
     /// @param amounts array of amounts of grETH
     /// @param tokens array of addresses of token to earn
     function batchBurn(
         uint256[] memory amounts,
         address[] memory tokens
     ) public payable override returns (uint256 tokenAmount) {
+        tokenAmount = batchBurnTo(amounts, tokens, msg.sender);
+    }
+
+    /// @notice batch burns grETH on behalf of `to`
+    /// @param amounts array of amounts of grETH
+    /// @param tokens array of addresses of token to earn
+    function batchBurnTo(
+        uint256[] memory amounts,
+        address[] memory tokens,
+        address to
+    ) public payable override returns (uint256 tokenAmount) {
         uint256 len = amounts.length;
         if (len > 0 && len != tokens.length) {
             revert InvalidLength();
         }
         for (uint256 i; i < len; ) {
-            tokenAmount += burn(amounts[i], tokens[i]);
+            tokenAmount += burnTo(amounts[i], tokens[i], to);
             unchecked { ++i; }
         }
     }
