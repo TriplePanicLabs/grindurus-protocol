@@ -377,6 +377,18 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function getPositions(uint256 poolId) external view returns(IURUS.Position memory long, IURUS.Position memory hedge);
 
+    function getThresholds(uint256 poolId) external view 
+        returns (
+            uint256 longBuyPriceMin,
+            uint256 longSellQuoteTokenAmountThreshold,
+            uint256 longSellSwapPriceThreshold,
+            uint256 hedgeSellLiquidity,
+            uint256 hedgeSellQuoteTokenAmountThreshold,
+            uint256 hedgeSellTargetPrice,
+            uint256 hedgeSellSwapPriceThreshold,
+            uint256 hedgeRebuyBaseTokenAmountThreshold,
+            uint256 hedgeRebuySwapPriceThreshold
+        );
     function execute(address target, uint256 value, bytes memory data) external;
 
 }

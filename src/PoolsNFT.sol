@@ -1159,6 +1159,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     }
 
     /// @notice returns positions of strategy
+    /// @param poolId pool id of pool in array `pools`
     function getPositions(uint256 poolId) public view override returns(IURUS.Position memory long, IURUS.Position memory hedge) {
         uint8 number;
         uint8 numberMax;
@@ -1208,6 +1209,24 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             feeQty: feeQty,
             feePrice: feePrice
         });
+    }
+
+    /// @notice get thresholds of pool with `poolId`
+    /// @param poolId pool id of pool in array `pools`
+    function getThresholds(uint256 poolId) external view override
+        returns (
+            uint256 /** longBuyPriceMin, */,
+            uint256 /** longSellQuoteTokenAmountThreshold, */,
+            uint256 /** longSellSwapPriceThreshold, */,
+            uint256 /** hedgeSellLiquidity, */,
+            uint256 /** hedgeSellQuoteTokenAmountThreshold, */,
+            uint256 /** hedgeSellTargetPrice, */,
+            uint256 /** hedgeSellSwapPriceThreshold, */,
+            uint256 /** hedgeRebuyBaseTokenAmountThreshold, */,
+            uint256 /** hedgeRebuySwapPriceThreshold */
+        )
+    {
+        return IStrategy(pools[poolId]).getThresholds();
     }
 
     /// @notice execute any transaction on target smart contract
