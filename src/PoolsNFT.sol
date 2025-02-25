@@ -568,7 +568,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param quoteToken address of quoteToken
     /// @param quoteTokenAmount amount of quote token
     function _checkCap(address quoteToken, uint256 quoteTokenAmount) private view {
-        if ((tokenCap[quoteToken] > 0) && (tokenCap[quoteToken] + quoteTokenAmount > tokenCap[quoteToken])) {
+        if ((tokenCap[quoteToken] > 0) && (totalDeposited[quoteToken] + quoteTokenAmount > tokenCap[quoteToken])) {
             revert ExceededDepositCap();
         }
     }
@@ -1034,6 +1034,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             uint256 baseTokenTradeProfit
         ) = pool.getTotalProfits();
         (uint256 APRNumerator, uint256 APRDenominator) = pool.APR();
+        (,,,,,uint256 newRoyaltyPrice) = calcRoyaltyPriceShares(poolId);
         poolInfo = PoolNFTInfo({
             poolId: poolId,
             config: _formConfig(poolId),
@@ -1051,7 +1052,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             APRNumerator: APRNumerator,
             APRDenominator: APRDenominator,
             activeCapital: pool.getActiveCapital(),
-            royaltyPrice: royaltyPrice[poolId]
+            royaltyPrice: newRoyaltyPrice
         });
     }
 
@@ -1106,58 +1107,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         ) = IStrategy(pools[poolId]).getConfig();
     }
 
-    /// @notice returns long position of poolId
-    /// @param poolId pool id of pool in array `pools`
-    function getLong(uint256 poolId) public view override
-        returns (
-            uint8 number,
-            uint8 numberMax,
-            uint256 priceMin,
-            uint256 liquidity,
-            uint256 qty,
-            uint256 price,
-            uint256 feeQty,
-            uint256 feePrice
-        )
-    {
-        (
-            number,
-            numberMax,
-            priceMin,
-            liquidity,
-            qty,
-            price,
-            feeQty,
-            feePrice
-        ) = IStrategy(pools[poolId]).getLong();
-    }
-
-    /// @notice returns hedge position of poolId
-    /// @param poolId pool id of pool in array `pools`
-    function getHedge(uint256 poolId) public view override
-        returns (
-            uint8 number,
-            uint8 numberMax,
-            uint256 priceMin,
-            uint256 liquidity,
-            uint256 qty,
-            uint256 price,
-            uint256 feeQty,
-            uint256 feePrice
-        )
-    {
-        (
-            number,
-            numberMax,
-            priceMin,
-            liquidity,
-            qty,
-            price,
-            feeQty,
-            feePrice
-        ) = IStrategy(pools[poolId]).getHedge();
-    }
-
     /// @notice returns positions of strategy
     /// @param poolId pool id of pool in array `pools`
     function getPositions(uint256 poolId) public view override returns(IURUS.Position memory long, IURUS.Position memory hedge) {
@@ -1178,7 +1127,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             price,
             feeQty,
             feePrice
-        ) = getLong(poolId);
+        ) = IStrategy(pools[poolId]).getLong();
         long = IURUS.Position({
             number: number,
             numberMax: numberMax,
@@ -1198,7 +1147,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             price,
             feeQty,
             feePrice
-        ) = getHedge(poolId);
+        ) = IStrategy(pools[poolId]).getHedge();
         hedge = IURUS.Position({
             number: number,
             numberMax: numberMax,
