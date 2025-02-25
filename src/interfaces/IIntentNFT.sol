@@ -4,7 +4,10 @@ pragma solidity =0.8.28;
 interface IIntentNFT {
 
     error NotOwner();
-    error NothingToMerge();
+    error NotPaymentToken();
+    error BelowMinPeriod();
+
+    event SetRatePerOneDay(address token, uint256 _ratePerOneDay);
 
     function ONE_DAY() external view returns (uint256);
 
@@ -43,5 +46,9 @@ interface IIntentNFT {
     function tokenURI(uint256 poolId) external view returns (string memory uri);
 
     function totalSupply() external view returns (uint256);
+
+    function isPaymentToken(address paymentToken) external view returns (bool);
+
+    function chainId() external view returns (uint256 id);
 
 }

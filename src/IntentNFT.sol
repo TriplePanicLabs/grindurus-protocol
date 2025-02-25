@@ -22,6 +22,9 @@ contract IntentNFT is IIntentNFT, ERC721 {
     /// @dev one day in seconds. Value 86400 seconds
     uint256 public constant ONE_DAY = 1 days;
 
+    /// @dev min period is one day
+    uint256 public constant MIN_PERIOD = 1 days;
+
     /// @dev address of pools NFT, where grab poolIds for intent
     IPoolsNFT public poolsNFT;
 
@@ -42,6 +45,8 @@ contract IntentNFT is IIntentNFT, ERC721 {
 
     /// @dev address of token => rate of token per one day
     /// @dev token is address(0), this is ETH. Else ERC20 token
+    /// @dev if ratePerOneDay==type(uint256).max, than payment if free on `paymentToken`
+    /// @dev if ratePerOneDay==0, than this is not payment token
     mapping (address paymentToken => uint256) public ratePerOneDay;
 
     /// @param _poolsNFT address of poolsNFT
@@ -51,7 +56,7 @@ contract IntentNFT is IIntentNFT, ERC721 {
         uint256 zeroIntentId = 0;
         address deployer = msg.sender;
         _mint(deployer, zeroIntentId);
-        expire[zeroIntentId] = block.timestamp + 999999999999;
+        expire[zeroIntentId] = block.timestamp + 315532800; // 10 years
         totalIntents = 1;
     }
 
@@ -74,6 +79,7 @@ contract IntentNFT is IIntentNFT, ERC721 {
     function setRatePerOneDay(address token, uint256 _ratePerOneDay) public override {
         _onlyOwner();
         ratePerOneDay[token] = _ratePerOneDay;
+        emit SetRatePerOneDay(token, _ratePerOneDay);
     }
 
     /// @notice sets base URI
@@ -143,14 +149,13 @@ contract IntentNFT is IIntentNFT, ERC721 {
     /// @param paymentToken address of payment token
     /// @param receiver address of receiver
     function _pay(address paymentToken, address receiver, uint256 paymentAmount) internal returns (uint256 paid) {
-        if (paymentAmount == type(uint256).max) { // free
-            return 0;
-        }
-        if (paymentToken == address(0)) {
-            (bool success, ) = receiver.call{value: paymentAmount}("");
-            require(success, "fail send ETH");
-        } else {
-            IToken(paymentToken).safeTransferFrom(msg.sender, receiver, paymentAmount);
+        if (paymentAmount > 0) {
+            if (paymentToken == address(0)) {
+                (bool success, ) = receiver.call{value: paymentAmount}("");
+                require(success, "fail send ETH");
+            } else {
+                IToken(paymentToken).safeTransferFrom(msg.sender, receiver, paymentAmount);
+            }
         }
         paid = paymentAmount;
     }
@@ -168,7 +173,17 @@ contract IntentNFT is IIntentNFT, ERC721 {
     /// @param paymentToken address of token
     /// @param period amount of time in seconds
     function calcPayment(address paymentToken, uint256 period) public view override returns (uint256 paymentAmount) {      
-        paymentAmount = ratePerOneDay[paymentToken] * period / ONE_DAY;
+        if (!isPaymentToken(paymentToken)) {
+            revert NotPaymentToken();
+        }
+        if (period < MIN_PERIOD) {
+            revert BelowMinPeriod();
+        }
+        if (ratePerOneDay[paymentToken] == type(uint256).max) { // free
+            paymentAmount = 0;
+        } else {
+            paymentAmount = ratePerOneDay[paymentToken] * period / ONE_DAY;
+        }
     }
 
     /// @notice get intent of `_account`
@@ -209,6 +224,18 @@ contract IntentNFT is IIntentNFT, ERC721 {
     /// @notice return total supply of NFTs
     function totalSupply() public view override returns (uint256) {
         return totalIntents;
+    }
+
+    /// @notice return true if `paymentToken` is payment token 
+    function isPaymentToken(address paymentToken) public view override returns (bool) {
+        return ratePerOneDay[paymentToken] > 0;
+    }
+
+    /// @notice return chain id
+    function chainId() public view override returns (uint256 id) {
+        assembly {
+            id := chainid()
+        }
     }
 
 }
