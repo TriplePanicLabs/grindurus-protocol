@@ -376,6 +376,7 @@ contract URUS is IURUS {
             baseToken.safeTransfer(_owner, baseTokenBalance);
         }
 
+        helper.initLiquidity = 0;
         long = Position({
             number: 0,
             numberMax: 0,
