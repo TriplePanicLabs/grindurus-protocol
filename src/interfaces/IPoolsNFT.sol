@@ -13,6 +13,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error NotStrategiest();
     error NotDepositor();
     error NotAgent();
+    error NoCapital();
     error InvalidOp();
     error InvalidRoyaltyNumerator();
     error InvalidGRETHShares();
@@ -64,6 +65,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 poolId;
         IURUS.Config config;
         uint256 strategyId;
+        address pool;
         address oracleQuoteTokenPerFeeToken;
         address oracleQuoteTokenPerBaseToken;
         address quoteToken;

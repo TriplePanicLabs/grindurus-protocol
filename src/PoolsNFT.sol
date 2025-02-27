@@ -543,6 +543,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         }
     }
 
+    /// @notice checks capital on pool
+    /// @param pool address of pool
+    function _checkCapital(IStrategy pool) private view {
+        if (pool.getActiveCapital() == 0) {
+            revert NoCapital();
+        }
+    }
+
     /// @notice increase Total Value Locked
     /// @param quoteToken address of quote token
     /// @param increaseAmount amount of quote token to increase TVL
@@ -633,6 +641,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function grindTo(uint256 poolId, address grinder) public override returns (bool isGrinded) {
         uint256 gasStart = gasleft();
         IStrategy pool = IStrategy(pools[poolId]);
+        _checkCapital(pool);
         try pool.iterate() returns (bool iterated) {
             isGrinded = iterated;
         } catch {
@@ -659,6 +668,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function grindOpTo(uint256 poolId, uint8 op, address grinder) public override returns (bool isGrinded) {
         uint256 gasStart = gasleft();
         IStrategy pool = IStrategy(pools[poolId]);
+        _checkCapital(pool);
         if (op == uint8(IURUS.Op.LONG_BUY)) {
             try pool.long_buy() {
                 isGrinded = true;
@@ -994,6 +1004,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             poolId: poolId,
             config: _formConfig(poolId),
             strategyId: pool.strategyId(),
+            pool: address(pool),
             oracleQuoteTokenPerFeeToken: address(pool.oracleQuoteTokenPerFeeToken()),
             oracleQuoteTokenPerBaseToken: address(pool.oracleQuoteTokenPerBaseToken()),
             quoteToken: address(pool.getQuoteToken()),
