@@ -1153,6 +1153,8 @@ contract URUS is IURUS {
             uint256 longBuyPriceMin,
             uint256 longSellQuoteTokenAmountThreshold,
             uint256 longSellSwapPriceThreshold,
+            uint256 hedgeSellInitPriceThresholdHigh,
+            uint256 hedgeSellInitPriceThresholdLow,
             uint256 hedgeSellLiquidity,
             uint256 hedgeSellQuoteTokenAmountThreshold,
             uint256 hedgeSellTargetPrice,
@@ -1162,6 +1164,9 @@ contract URUS is IURUS {
         ) {
         longBuyPriceMin = calcLongPriceMin();
         (longSellQuoteTokenAmountThreshold, longSellSwapPriceThreshold) =  calcLongSellThreshold();
+        if (long.number == long.numberMax) {
+            (hedgeSellInitPriceThresholdHigh, hedgeSellInitPriceThresholdLow) = calcHedgeSellInitBounds();
+        }
         if (hedge.number > 0) {
             (
                 hedgeSellLiquidity,

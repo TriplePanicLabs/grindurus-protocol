@@ -20,7 +20,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error InvalidRoyaltyPriceShare();
     error StrategyStopped();
     error InsufficientDeposit();
-    error ExceededDeposit();
     error ExceededDepositCap();
     error DifferentOwnersOfPools();
     error DifferentQuoteTokens();
@@ -28,30 +27,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error ZeroNewRoyaltyPrice();
     error InsufficientRoyaltyPrice();
 
-    event SetStrategiest(address strategiest, bool isStrategiest);
-    event SetBaseURI(string baseURI);
-    event SetPoolsNFTImage(address poolsNFTImage);
-    event SetMinDeposit(address token, uint256 minDeposit);
-    event SetTokenCap(address token, uint256 _tokenCap);
-    event SetRoyaltyPriceShares(
-        uint16 _royaltyPriceCompensationShareNumerator,
-        uint16 _royaltyPriceReserveShareNumerator,
-        uint16 _royaltyPricePoolOwnerShareNumerator,
-        uint16 _royaltyPriceGrinderShareNumerator
-    );
-    event SetGRETHShares(
-        uint16 _grethGrinderShareNumerator,
-        uint16 _grethReserveShareNumerator,
-        uint16 _grethPoolOwnerShareNumerator,
-        uint16 _grethRoyaltyReceiverShareNumerator
-    );
-    event SetRoyaltyShares(
-        uint16 _poolOwnerRoyaltyShareNumerator,
-        uint16 _royaltyReceiverShareNumerator,
-        uint16 _royaltyReserveShareNumerator,
-        uint16 _royaltyGrinderShareNumerator
-    );
-    event SetFactoryStrategy(uint256 strategyId, address factoryStrategy);
     event Mint(
         uint256 poolId,
         address baseToken,
@@ -89,6 +64,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 poolId;
         IURUS.Config config;
         uint256 strategyId;
+        address oracleQuoteTokenPerFeeToken;
+        address oracleQuoteTokenPerBaseToken;
         address quoteToken;
         address baseToken;
         string quoteTokenSymbol;
@@ -116,7 +93,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     
     function royaltyPricePoolOwnerShareNumerator() external view returns (uint16);
 
-    function royaltyPriceGrinderShareNumerator() external view returns (uint16);
+    function royaltyPriceOwnerShareNumerator() external view returns (uint16);
 
     //// GRETH SHARES
 
@@ -138,13 +115,11 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function royaltyReserveShareNumerator() external view returns (uint16);
 
-    function royaltyGrinderShareNumerator() external view returns (uint16);
+    function royaltyOwnerShareNumerator() external view returns (uint16);
 
     function pendingOwner() external view returns (address payable);
 
     function owner() external view returns (address payable);
-
-    function lastGrinder() external view returns (address payable);
 
     function isStrategyStopped(uint16 stratrgyId) external view returns (bool);
 
@@ -332,11 +307,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
             uint256[] memory poolIdsOwnedByPoolOwner
         );
 
-    // function getPoolNFTInfos(
-    //     uint256 fromPoolId,
-    //     uint256 toPoolId
-    // ) external view returns (PoolNFTInfo[] memory poolsInfo);
-
     function getPoolNFTInfosBy(uint256[] memory _poolIds) external view returns (PoolNFTInfo[] memory poolInfos);
 
     function getConfig(uint256 poolId) external view 
@@ -358,6 +328,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
             uint256 longBuyPriceMin,
             uint256 longSellQuoteTokenAmountThreshold,
             uint256 longSellSwapPriceThreshold,
+            uint256 hedgeSellInitPriceThresholdHigh,
+            uint256 hedgeSellInitPriceThresholdLow ,
             uint256 hedgeSellLiquidity,
             uint256 hedgeSellQuoteTokenAmountThreshold,
             uint256 hedgeSellTargetPrice,

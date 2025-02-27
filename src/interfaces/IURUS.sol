@@ -279,6 +279,8 @@ interface IURUS is IERC5313 {
             uint256 longBuyPriceMin,
             uint256 longSellQuoteTokenAmountThreshold,
             uint256 longSellSwapPriceThreshold,
+            uint256 hedgeSellInitPriceThresholdHigh,
+            uint256 hedgeSellInitPriceThresholdLow,
             uint256 hedgeSellLiquidity,
             uint256 hedgeSellQuoteTokenAmountThreshold,
             uint256 hedgeSellTargetPrice,

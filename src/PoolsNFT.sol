@@ -40,8 +40,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev numerator of royalty price pool owner share
     uint16 public royaltyPricePoolOwnerShareNumerator;
 
-    /// @dev numerator of royalty price last grinder share
-    uint16 public royaltyPriceGrinderShareNumerator;
+    /// @dev numerator of royalty price owner share
+    uint16 public royaltyPriceOwnerShareNumerator;
 
     //// GRETH SHARES //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -81,9 +81,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev example: poolOwnerShareNumerator == 5_00 == 5%
     uint16 public royaltyReserveShareNumerator;
 
-    /// @notice royalty share of last grinder
-    /// @dev example: royaltyGrinderShareNumerator == 5_00 == 5%
-    uint16 public royaltyGrinderShareNumerator;
+    /// @notice royalty share of owner
+    /// @dev example: royaltyOwnerShareNumerator == 5_00 == 5%
+    uint16 public royaltyOwnerShareNumerator;
 
     //// PoolsNFT OWNERSHIP DATA ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -92,11 +92,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     /// @dev address of grindurus protocol owner. For DAO
     address payable public owner;
-
-    /// @notice address,that last called grind()
-    /// @dev address of last grinder
-    /// The last of magician blyat
-    address payable public lastGrinder;
 
     //// POOLSNFT DATA /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -166,15 +161,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         totalPools = 0;
         pendingOwner = payable(address(0));
         owner = payable(msg.sender);
-        lastGrinder = payable(msg.sender);
         isStrategiest[msg.sender] = true;
 
         royaltyPriceCompensationShareNumerator = 101_00; // 101%
         royaltyPriceReserveShareNumerator = 1_00; // 1%
         royaltyPricePoolOwnerShareNumerator = 5_00; // 5%
-        royaltyPriceGrinderShareNumerator = 1_00; // 1%
+        royaltyPriceOwnerShareNumerator = 1_00; // 1%
         // total royalty price = 101% + 1% + 5% + 1% = 108% > 100%
-        require(royaltyPriceCompensationShareNumerator + royaltyPriceReserveShareNumerator + royaltyPricePoolOwnerShareNumerator + royaltyPriceGrinderShareNumerator > DENOMINATOR);
+        require(royaltyPriceCompensationShareNumerator + royaltyPriceReserveShareNumerator + royaltyPricePoolOwnerShareNumerator + royaltyPriceOwnerShareNumerator > DENOMINATOR);
 
         grethGrinderShareNumerator = 80_00; // 80%
         grethReserveShareNumerator = 15_00; // 15%
@@ -183,16 +177,16 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         // total greth share = 80% + 15% + 2% + 3% = 100%
         require(grethGrinderShareNumerator + grethReserveShareNumerator + grethPoolOwnerShareNumerator + grethRoyaltyReceiverShareNumerator == DENOMINATOR);
         
-        // poolOwnerShareNumerator + royaltyReserveShareNumerator + royaltyReceiverShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR
+        // poolOwnerShareNumerator + royaltyReserveShareNumerator + royaltyReceiverShareNumerator + royaltyOwnerShareNumerator == DENOMINATOR
         royaltyNumerator = 20_00; // 20%
         poolOwnerShareNumerator = 80_00; // 80%
         royaltyReceiverShareNumerator = 10_00; // 10%
         royaltyReserveShareNumerator = 5_00; // 5%
-        royaltyGrinderShareNumerator = 5_00; // 5%
+        royaltyOwnerShareNumerator = 5_00; // 5%
         // total royalty + owner share = 20% + 80% = 100%
         // total royalty share = 80% + 10% + 5% + 5% = 100%
         require(royaltyNumerator + poolOwnerShareNumerator == DENOMINATOR);
-        require(poolOwnerShareNumerator + royaltyReceiverShareNumerator + royaltyReserveShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR);
+        require(poolOwnerShareNumerator + royaltyReceiverShareNumerator + royaltyReserveShareNumerator + royaltyOwnerShareNumerator == DENOMINATOR);
         //  profit = 1 USDT
         //  profit to pool owner = 1 * (80%) = 0.8 USDT
         //  royalty = 1 * 20% = 0.2 USDT
@@ -248,7 +242,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setStrategiest(address strategiest, bool _isStrategiest) public override {
         _onlyOwner();
         isStrategiest[strategiest] = _isStrategiest;
-        emit SetStrategiest(strategiest, _isStrategiest);
     }
 
     /// @notice sets base URI
@@ -256,7 +249,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setBaseURI(string memory _baseURI) external override {
         _onlyOwner();
         baseURI = _baseURI;
-        emit SetBaseURI(_baseURI);
     }
 
     /// @notice sets pools NFT Image
@@ -264,7 +256,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setPoolsNFTImage(address _poolsNFTImage) external override {
         _onlyOwner();
         poolsNFTImage = IPoolsNFTImage(_poolsNFTImage);
-        emit SetPoolsNFTImage(_poolsNFTImage);
     }
 
     /// @notice sets minimum deposit
@@ -273,7 +264,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setMinDeposit(address token, uint256 _minDeposit) external override {
         _onlyOwner();
         minDeposit[token] = _minDeposit;
-        emit SetMinDeposit(token, _minDeposit);
     }
 
     /// @notice sets cap tvl
@@ -283,7 +273,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setTokenCap(address token, uint256 _tokenCap) external override {
         _onlyOwner();
         tokenCap[token] = _tokenCap;
-        emit SetTokenCap(token, _tokenCap);
     }
 
     /// @notice sets royalty price share to actors
@@ -292,7 +281,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         uint16 _royaltyPriceCompensationShareNumerator,
         uint16 _royaltyPriceReserveShareNumerator,
         uint16 _royaltyPricePoolOwnerShareNumerator,
-        uint16 _royaltyPriceGrinderShareNumerator
+        uint16 _royaltyPriceOwnerShareNumerator
     ) external override {
         _onlyOwner();
         if (_royaltyPriceCompensationShareNumerator <= DENOMINATOR) {
@@ -301,13 +290,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         royaltyPriceCompensationShareNumerator = _royaltyPriceCompensationShareNumerator;
         royaltyPriceReserveShareNumerator = _royaltyPriceReserveShareNumerator;
         royaltyPricePoolOwnerShareNumerator = _royaltyPricePoolOwnerShareNumerator;
-        royaltyPriceGrinderShareNumerator = _royaltyPriceGrinderShareNumerator;
-        emit SetRoyaltyPriceShares(        
-            _royaltyPriceCompensationShareNumerator,
-            _royaltyPriceReserveShareNumerator,
-            _royaltyPricePoolOwnerShareNumerator,
-            _royaltyPriceGrinderShareNumerator
-        );
+        royaltyPriceOwnerShareNumerator = _royaltyPriceOwnerShareNumerator;
     }
 
     /// @notice sets greth shares
@@ -322,16 +305,10 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         if (_grethGrinderShareNumerator + _grethReserveShareNumerator + _grethPoolOwnerShareNumerator + _grethRoyaltyReceiverShareNumerator != DENOMINATOR) {
             revert InvalidGRETHShares();
         }
-        grethGrinderShareNumerator = _grethGrinderShareNumerator; // 80%
-        grethReserveShareNumerator = _grethReserveShareNumerator; // 10%
-        grethPoolOwnerShareNumerator = _grethPoolOwnerShareNumerator; // 5%
-        grethRoyaltyReceiverShareNumerator = _grethRoyaltyReceiverShareNumerator; // 5%
-        emit SetGRETHShares(        
-            _grethGrinderShareNumerator,
-            _grethReserveShareNumerator,
-            _grethPoolOwnerShareNumerator,
-            _grethRoyaltyReceiverShareNumerator
-        );
+        grethGrinderShareNumerator = _grethGrinderShareNumerator;
+        grethReserveShareNumerator = _grethReserveShareNumerator;
+        grethPoolOwnerShareNumerator = _grethPoolOwnerShareNumerator;
+        grethRoyaltyReceiverShareNumerator = _grethRoyaltyReceiverShareNumerator;
     }
 
     /// @notice sets primary receiver royalty share
@@ -340,23 +317,17 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         uint16 _poolOwnerRoyaltyShareNumerator,
         uint16 _royaltyReceiverShareNumerator,
         uint16 _royaltyReserveShareNumerator,
-        uint16 _royaltyGrinderShareNumerator
+        uint16 _royaltyOwnerShareNumerator
     ) external override {
         _onlyOwner();
-        if (_poolOwnerRoyaltyShareNumerator + _royaltyReceiverShareNumerator + _royaltyReserveShareNumerator + _royaltyGrinderShareNumerator != DENOMINATOR) {
+        if (_poolOwnerRoyaltyShareNumerator + _royaltyReceiverShareNumerator + _royaltyReserveShareNumerator + _royaltyOwnerShareNumerator != DENOMINATOR) {
             revert InvalidRoyaltyShares();
         }
         royaltyNumerator = DENOMINATOR - _poolOwnerRoyaltyShareNumerator;
         poolOwnerShareNumerator = _poolOwnerRoyaltyShareNumerator;
         royaltyReceiverShareNumerator = _royaltyReceiverShareNumerator;
         royaltyReserveShareNumerator = _royaltyReserveShareNumerator;
-        royaltyGrinderShareNumerator = _royaltyGrinderShareNumerator;
-        emit SetRoyaltyShares(
-            _poolOwnerRoyaltyShareNumerator,
-            _royaltyReceiverShareNumerator,
-            _royaltyReserveShareNumerator,
-            _royaltyGrinderShareNumerator
-        );
+        royaltyOwnerShareNumerator = _royaltyOwnerShareNumerator;
     }
 
     /// @notice First step - transfering ownership to `newOwner`
@@ -380,7 +351,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         uint16 strategyId = IStrategyFactory(_strategyFactory).strategyId();
         strategyFactory[strategyId] = _strategyFactory;
         isStrategyStopped[strategyId] = false;
-        emit SetFactoryStrategy(strategyId, _strategyFactory);
     }
 
     /////// PUBLIC FUNCTIONS
@@ -396,8 +366,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         address quoteToken,
         address baseToken,
         uint256 quoteTokenAmount
-    ) external override returns (uint256 poolId) {
-        poolId = mintTo(
+    ) external override returns (uint256) {
+        return mintTo(
             msg.sender,
             strategyId,
             quoteToken,
@@ -472,11 +442,11 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function deposit(
         uint256 poolId,
         uint256 quoteTokenAmount
-    ) external override returns (uint256 depositedAmount) {
+    ) external override returns (uint256) {
         if (!isDepositorOf(poolId, msg.sender)) {
             revert NotDepositor();
         }
-        depositedAmount = _deposit(poolId, quoteTokenAmount);
+        return _deposit(poolId, quoteTokenAmount);
     }
 
     /// @dev make transfer from msg.sender, approve to pool, call deposit on pool
@@ -510,8 +480,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function withdraw(
         uint256 poolId,
         uint256 quoteTokenAmount
-    ) external override returns (uint256 withdrawn) {
-        withdrawn = withdrawTo(poolId, msg.sender, quoteTokenAmount);
+    ) external override returns (uint256) {
+        return withdrawTo(poolId, msg.sender, quoteTokenAmount);
     }
 
     /// @notice withdraw `quoteToken` from poolId to `to`
@@ -652,8 +622,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @notice grind the pool with `poolId`
     /// @dev grETH == fee spend on iterate
     /// @param poolId pool id of pool in array `pools`
-    function grind(uint256 poolId) external override returns (bool isGrinded) {
-        isGrinded = grindTo(poolId, msg.sender);
+    function grind(uint256 poolId) external override returns (bool) {
+        return grindTo(poolId, msg.sender);
     }
 
     /// @notice grind the pool with `poolId` and grinder is `to`
@@ -672,15 +642,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
             _reward(poolId, grethReward, grinder);
         }
-        lastGrinder = payable(grinder);
         emit Grind(poolId, type(uint8).max, grinder, isGrinded);
     }
 
     /// @notice grind the exact operation on the pool with `poolId`
     /// @param poolId pool id of pool in array `pools`
     /// @param op operation on strategy pool
-    function grindOp(uint256 poolId, uint8 op) public returns (bool isGrinded) {
-        isGrinded = grindOpTo(poolId, op, msg.sender);
+    function grindOp(uint256 poolId, uint8 op) public returns (bool) {
+        return grindOpTo(poolId, op, msg.sender);
     }
 
     /// @notice grind the exact operation on the pool with `poolId`
@@ -717,7 +686,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
             _reward(poolId, grethReward, grinder);
         }
-        lastGrinder = payable(grinder);
         emit Grind(poolId, op, grinder, isGrinded);
     }
 
@@ -748,9 +716,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         external
         payable
         override
-        returns (uint256 royaltyPricePaid, uint256 refund)
+        returns (uint256, uint256)
     {
-        (royaltyPricePaid, refund) = buyRoyaltyTo(poolId, payable(msg.sender));
+        return buyRoyaltyTo(poolId, payable(msg.sender));
     }
 
     /// @notice buy royalty for pool with `poolId`
@@ -771,9 +739,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             uint256 compensationShare, // oldRoyaltyPrice + compensation
             uint256 poolOwnerShare,
             uint256 reserveShare,
-            uint256 lastGrinderShare,
+            uint256 ownerShare,
             /**uint256 oldRoyaltyPrice */,
-            uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + reserveShare + lastGrinderShare
+            uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + reserveShare + ownerShare
         ) = calcRoyaltyPriceShares(poolId);
         if (newRoyaltyPrice == 0) {
             revert ZeroNewRoyaltyPrice();
@@ -798,9 +766,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             _sendETH(payable(address(grETH)), reserveShare);
             royaltyPricePaid += reserveShare;
         }
-        if (lastGrinderShare > 0) {
-            _sendETH(lastGrinder, lastGrinderShare);
-            royaltyPricePaid += lastGrinderShare;
+        if (ownerShare > 0) {
+            _sendETH(owner, ownerShare);
+            royaltyPricePaid += ownerShare;
         }
         refund = msg.value - royaltyPricePaid;
         if (refund > 0) {
@@ -851,8 +819,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         amounts = new uint256[](4);
         receivers[0] = ownerOf(poolId); // pool owner
         receivers[1] = getRoyaltyReceiver(poolId); // royalty receiver
-        receivers[2] = address(grETH) != address(0) ? address(grETH) : owner;
-        receivers[3] = lastGrinder; // last grinder
+        receivers[2] = (address(grETH) != address(0)) ? address(grETH) : owner; // reserve
+        receivers[3] = owner; // owner
         uint256 denominator = DENOMINATOR;
         amounts[0] = (profit * poolOwnerShareNumerator) / denominator;
         amounts[1] = (profit * royaltyReceiverShareNumerator) / denominator;
@@ -865,7 +833,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @return compensationShare feeToken amount to be received to old owner as compensation
     /// @return poolOwnerShare feeToken amount to be received by pool owner
     /// @return reserveShare feeToken amount to be received by primary royalty receiver
-    /// @return lastGrinderShare feeToken amount to be received to last grinder
+    /// @return ownerShare feeToken amount to be received to last grinder
     /// @return oldRoyaltyPrice feeToken amount of old royalty price
     /// @return newRoyaltyPrice feeToken amount of new royalty price
     function calcRoyaltyPriceShares(
@@ -877,7 +845,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             uint256 compensationShare,
             uint256 poolOwnerShare,
             uint256 reserveShare,
-            uint256 lastGrinderShare,
+            uint256 ownerShare,
             uint256 oldRoyaltyPrice,
             uint256 newRoyaltyPrice
         )
@@ -887,9 +855,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         compensationShare = (_royaltyPrice * royaltyPriceCompensationShareNumerator) / _denominator;
         poolOwnerShare = (_royaltyPrice * royaltyPricePoolOwnerShareNumerator) / _denominator;
         reserveShare = (_royaltyPrice * royaltyPriceReserveShareNumerator) / _denominator;
-        lastGrinderShare = (_royaltyPrice * royaltyPriceGrinderShareNumerator) / _denominator;
+        ownerShare = (_royaltyPrice * royaltyPriceOwnerShareNumerator) / _denominator;
         oldRoyaltyPrice = _royaltyPrice;
-        newRoyaltyPrice = compensationShare + poolOwnerShare + reserveShare + lastGrinderShare;
+        newRoyaltyPrice = compensationShare + poolOwnerShare + reserveShare + ownerShare;
     }
 
     /// @notice calculates shares of grETH for actors
@@ -913,7 +881,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         actors[2] = getRoyaltyReceiver(poolId); // royalty receiver
         actors[3] = grinder; // grinder
 
-        grethShares[0] = (grethReward * grethPoolOwnerShareNumerator) / denominator; // (grethReward * (denominator - poolOwnerShareNumerator)) / denominator;
+        grethShares[0] = (grethReward * grethPoolOwnerShareNumerator) / denominator;
         grethShares[1] = (grethReward * grethReserveShareNumerator) / denominator;
         grethShares[2] = (grethReward * grethRoyaltyReceiverShareNumerator) / denominator;
         grethShares[3] = grethReward - (grethShares[0] + grethShares[1] + grethShares[2]);
@@ -1026,6 +994,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             poolId: poolId,
             config: _formConfig(poolId),
             strategyId: pool.strategyId(),
+            oracleQuoteTokenPerFeeToken: address(pool.oracleQuoteTokenPerFeeToken()),
+            oracleQuoteTokenPerBaseToken: address(pool.oracleQuoteTokenPerBaseToken()),
             quoteToken: address(pool.getQuoteToken()),
             baseToken: address(pool.getBaseToken()),
             quoteTokenSymbol: pool.getQuoteToken().symbol(),
@@ -1154,6 +1124,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             uint256 /** longBuyPriceMin, */,
             uint256 /** longSellQuoteTokenAmountThreshold, */,
             uint256 /** longSellSwapPriceThreshold, */,
+            uint256 /** hedgeSellInitPriceThresholdHigh */,
+            uint256 /** hedgeSellInitPriceThresholdLow */,
             uint256 /** hedgeSellLiquidity, */,
             uint256 /** hedgeSellQuoteTokenAmountThreshold, */,
             uint256 /** hedgeSellTargetPrice, */,
@@ -1172,8 +1144,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param data data to execute on target contract
     function execute(address target, uint256 value, bytes memory data) public override {
         _onlyOwner();
-        (bool success,) = target.call{value: value}(data);
-        success;
+        (bool success, ) = target.call{value: value}(data);
     }
 
     receive() external payable {
