@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {IURUS, IToken, IERC5313} from "src/interfaces/IURUS.sol";
-import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
+import {IURUS, IToken, IERC5313, AggregatorV3Interface} from "src/interfaces/IURUS.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title URUS

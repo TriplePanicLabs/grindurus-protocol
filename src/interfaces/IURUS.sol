@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IToken} from "src/interfaces/IToken.sol";
 import {IERC5313} from "lib/openzeppelin-contracts/contracts/interfaces/IERC5313.sol";
+import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
 
 interface IURUS is IERC5313 {
 
@@ -133,6 +134,20 @@ interface IURUS is IERC5313 {
         uint256 baseTokenTradeProfit; // [baseTokenTradeProfit] = baseToken
     }
 
+    function MIN_LONG_NUMBER_MAX() external view returns (uint8);
+
+    function MIN_HEDGE_NUMBER_MAX() external view returns (uint8);
+
+    function oracleQuoteTokenPerFeeToken() external view returns (AggregatorV3Interface);
+
+    function oracleQuoteTokenPerBaseToken() external view returns (AggregatorV3Interface);
+
+    function feeToken() external view returns (IToken);
+
+    function quoteToken() external view returns(IToken);
+
+    function baseToken() external view returns (IToken);
+
     function setConfig(Config memory conf) external;
 
     function setLongNumberMax(uint8 longNumberMax) external;
@@ -258,12 +273,6 @@ interface IURUS is IERC5313 {
         returns (uint256 baseTokenAmount);
 
     function calcFeeTokenByQuoteToken(uint256 quoteTokenAmount) external view returns (uint256 feeTokenAmount);
-
-    function feeToken() external view returns (IToken);
-
-    function quoteToken() external view returns (IToken);
-
-    function baseToken() external view returns (IToken);
 
     function getThresholds() external view 
         returns (
