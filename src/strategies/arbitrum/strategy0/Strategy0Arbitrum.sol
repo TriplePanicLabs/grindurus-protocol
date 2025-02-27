@@ -133,9 +133,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     /// @notice execute any transaction
     function execute(address target, uint256 value, bytes calldata data) public returns (bytes memory result) {
         _onlyOwner();
-        bool success;
-        (success, result) = target.call{value: value}(data);
-        require(success);
+        (, result) = target.call{value: value}(data);
     }
 
     /// @notice return total profits of strategy pool
