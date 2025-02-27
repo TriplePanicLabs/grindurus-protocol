@@ -729,7 +729,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             grinder
         );
         try grETH.mint(actors, grethShares) {} catch {}
-    } 
+    }
+
+    /// @notice transfert poolId from `msg.sender` to `to`
+    /// @param to address of pool receiver
+    /// @param poolId pool id of pool in array `pools`
+    function transfer(address to, uint256 poolId) public {
+        _transfer(msg.sender, to, poolId);
+    }
 
     /// @notice buy royalty for pool with `poolId`
     /// @param poolId pool id of pool in array `pools`
@@ -987,26 +994,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             unchecked { ++i; }
         }
         return (totalPoolIds, poolIdsOwnedByPoolOwner);
-    }
-
-    /// @notice pagination for table on dashboard with poolNFT info
-    /// @param fromPoolId pool id from
-    /// @param toPoolId pool id to
-    function getPoolNFTInfos(
-        uint256 fromPoolId,
-        uint256 toPoolId
-    ) external view returns (PoolNFTInfo[] memory poolInfos) {
-        require(fromPoolId <= toPoolId);
-        poolInfos = new PoolNFTInfo[](toPoolId - fromPoolId + 1);
-        uint256 poolId = fromPoolId;
-        uint256 poolInfosId = 0;
-        for (; poolId <= toPoolId; ) {
-            poolInfos[poolInfosId] = _formPoolInfo(poolId);
-            unchecked {
-                ++poolId;
-                ++poolInfosId;
-            }
-        }
     }
 
     /// @notice get pool nft info by pool ids

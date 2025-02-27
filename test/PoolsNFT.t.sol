@@ -187,5 +187,24 @@ contract PoolsNFTTest is Test {
         assert(royaltyPriceAfter > royaltyPriceBefore);
     }
 
+    function test_transfer() public {
+        uint16 strategyId = 1;
+        address baseToken = wethArbitrum;
+        address quoteToken = usdtArbitrum;
+        uint256 quoteTokenAmount = 270e6;
+        deal(quoteToken, address(this), quoteTokenAmount);
+        IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
+        uint256 poolId = poolsNFT.mint(
+            strategyId,
+            quoteToken,
+            baseToken,
+            quoteTokenAmount
+        );
+        address receiver = address(777);
+        poolsNFT.transfer(receiver, poolId);
+        address owner = poolsNFT.ownerOf(poolId);
+        assert(owner == receiver);
+    }
+
     receive() external payable {}
 }

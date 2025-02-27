@@ -332,10 +332,10 @@ interface IPoolsNFT is IERC721, IERC2981 {
             uint256[] memory poolIdsOwnedByPoolOwner
         );
 
-    function getPoolNFTInfos(
-        uint256 fromPoolId,
-        uint256 toPoolId
-    ) external view returns (PoolNFTInfo[] memory poolsInfo);
+    // function getPoolNFTInfos(
+    //     uint256 fromPoolId,
+    //     uint256 toPoolId
+    // ) external view returns (PoolNFTInfo[] memory poolsInfo);
 
     function getPoolNFTInfosBy(uint256[] memory _poolIds) external view returns (PoolNFTInfo[] memory poolInfos);
 
