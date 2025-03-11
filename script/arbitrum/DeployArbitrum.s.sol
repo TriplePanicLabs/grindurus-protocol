@@ -8,6 +8,8 @@ import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/stra
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 import {IntentNFT} from "src/IntentNFT.sol";
+import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
+import {GrinderAI} from "src/GrinderAI.sol";
 
 
 // Test purposes:
@@ -27,7 +29,7 @@ import {IntentNFT} from "src/IntentNFT.sol";
 
 // $ curl "https://api.arbiscan.io/api?module=contract&action=checkverifystatus&guid=qx5xfggkwzkzqyiv76wlw6benfhfmkdnuqi1ycn6bblwzhebfm&apikey=$ARBITRUMSCAN_API_KEY"
 
-// $ forge verify-contract 0xE88dd8CD613A0A8462cb244e916ddf60bc4aE9dF src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol:Strategy1Arbitrum --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge verify-contract 0x6a42A8E467B66ed7B20dE114A5Bb8f53524ee342 src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol:Strategy1Arbitrum --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 
 contract DeployArbitrumScript is Script {
@@ -35,13 +37,17 @@ contract DeployArbitrumScript is Script {
 
     address public weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
+    PoolsNFTLens public poolsNFTLens;
+    
     GRETH public grETH;
 
-    RegistryArbitrum public registry;
+    GrinderAI public grinderAI;
+
+    RegistryArbitrum public registry = RegistryArbitrum(0x21b111fd6a43C72Ce946A2C9fD7D7ECbc313fbDC);
 
     Strategy1FactoryArbitrum public factory1;
 
-    IntentNFT public intentNFT;
+    IntentNFT public intentNFT = IntentNFT(0x6F5A522C76fA20717a2edA165eE47D9F7Df9f0D4);
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -54,15 +60,20 @@ contract DeployArbitrumScript is Script {
 
         poolsNFT = new PoolsNFT();
 
+        poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
+        
         grETH = new GRETH(address(poolsNFT), weth);
-        poolsNFT.init(address(grETH));
 
-        registry = new RegistryArbitrum(address(poolsNFT));
+        grinderAI = new GrinderAI(address(poolsNFT));
+
+        poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
+
+        // registry = new RegistryArbitrum(address(poolsNFT));
 
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry));
         poolsNFT.setStrategyFactory(address(factory1));
 
-        intentNFT = new IntentNFT(address(poolsNFT));
+        // intentNFT = new IntentNFT(address(poolsNFT));
 
         console.log("PoolsNFT: ", address(poolsNFT));
         console.log("GRETH: ", address(grETH));
