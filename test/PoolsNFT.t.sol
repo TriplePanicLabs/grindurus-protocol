@@ -7,6 +7,8 @@ import {GRETH} from "src/GRETH.sol";
 import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
+import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
+import {GrinderAI} from "src/GrinderAI.sol";
 
 // $ forge test --match-path test/PoolsNFT.t.sol
 contract PoolsNFTTest is Test {
@@ -22,7 +24,11 @@ contract PoolsNFTTest is Test {
 
     PoolsNFT public poolsNFT;
 
-    GRETH public grindToken;
+    PoolsNFTLens public poolsNFTLens;
+
+    GRETH public greth;
+
+    GrinderAI public grinderAI;
 
     Strategy1Arbitrum public pool;
 
@@ -38,13 +44,17 @@ contract PoolsNFTTest is Test {
 
         poolsNFT = new PoolsNFT();
 
-        grindToken = new GRETH(address(poolsNFT), wethArbitrum);
+        poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
+        
+        greth = new GRETH(address(poolsNFT), wethArbitrum);
+
+        grinderAI = new GrinderAI(address(poolsNFT));
 
         oracleRegistry = new RegistryArbitrum(address(poolsNFT));
 
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
 
-        poolsNFT.init(address(grindToken));
+        poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
         poolsNFT.setStrategyFactory(address(factory1));
     }
 
@@ -72,13 +82,12 @@ contract PoolsNFTTest is Test {
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
             uint256 priceVolatility,
-            uint256 initHedgeSellPercent,
             uint256 extraCoef,
             uint256 returnPercentLongSell,
             uint256 returnPercentHedgeSell,
             uint256 returnPercentHedgeRebuy
         ) = pool.config();
-        priceVolatility; initHedgeSellPercent;
+        priceVolatility;
         assert(longNumberMax > 0);
         assert(hedgeNumberMax > 0);
         assert(extraCoef > 0);

@@ -5,6 +5,8 @@ import {Test, console} from "forge-std/Test.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
 import {IWETH9} from "src/interfaces/IWETH9.sol";
+import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
+import {GrinderAI} from "src/GrinderAI.sol";
 
 // $ forge test --match-path test/GRETH.t.sol -vvv
 contract GRETHTest is Test {
@@ -14,7 +16,11 @@ contract GRETHTest is Test {
 
     PoolsNFT public poolsNFT;
 
+    PoolsNFTLens public poolsNFTLens;
+    
     GRETH public greth;
+
+    GrinderAI public grinderAI;
 
     function setUp() public {
         vm.createSelectFork("arbitrum");
@@ -24,8 +30,11 @@ contract GRETHTest is Test {
       
         poolsNFT = new PoolsNFT();
 
+        poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
         greth = new GRETH(address(poolsNFT), wethArbitrum);
-        poolsNFT.init(address(greth));
+        grinderAI = new GrinderAI(address(poolsNFT));
+
+        poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
 
         vm.stopPrank();
     }

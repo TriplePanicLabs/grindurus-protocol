@@ -72,4 +72,18 @@ contract AAVEV3AdapterArbitrumTest is Test {
         (uint256 takeAmount) = adapter.take(baseToken, baseTokenAmount);
         assertEq(takeAmount, baseTokenAmount);
     }
+
+    function test_unlistedToken_put_and_take() public {
+        IToken unlistedToken = IToken(0x306fD3e7b169Aa4ee19412323e1a5995B8c1a1f4); // Black Agnus
+        uint256 unlistedTokenAmount = 2e18;
+        deal(address(unlistedToken), address(adapter), unlistedTokenAmount);
+
+        (uint256 putAmount) = adapter.put(unlistedToken, unlistedTokenAmount);
+        uint256 balance = IToken(unlistedToken).balanceOf(address(adapter));
+        assertEq(balance, putAmount);
+
+        (uint256 takeAmount) = adapter.take(unlistedToken, unlistedTokenAmount);
+        balance = IToken(unlistedToken).balanceOf(address(adapter));
+        assertEq(takeAmount, balance);
+    }
 }

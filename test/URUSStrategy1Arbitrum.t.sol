@@ -9,6 +9,8 @@ import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strate
 import {MockToken} from "test/mock/MockToken.sol";
 import {MockSwapRouterArbitrum} from "test/mock/MockSwapRouterArbitrum.sol";
 import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
+import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
+import {GrinderAI} from "src/GrinderAI.sol";
 
 // $ forge test --match-path test/URUSStrategy1Arbitrum.t.sol -vvv
 contract URUSStrategy1ArbitrumTest is Test {
@@ -27,7 +29,11 @@ contract URUSStrategy1ArbitrumTest is Test {
 
     PoolsNFT public poolsNFT;
 
+    PoolsNFTLens public poolsNFTLens;
+    
     GRETH public grETH;
+
+    GrinderAI public grinderAI;
 
     Strategy1Arbitrum public pool0;
 
@@ -47,13 +53,17 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         poolsNFT = new PoolsNFT();
 
+        poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
+        
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
+
+        grinderAI = new GrinderAI(address(poolsNFT));
 
         oracleRegistry = new RegistryArbitrum(address(poolsNFT));
 
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
 
-        poolsNFT.init(address(grETH));
+        poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
         poolsNFT.setStrategyFactory(address(factory1));
 
         mockSwapRouter = new MockSwapRouterArbitrum();
@@ -117,7 +127,6 @@ contract URUSStrategy1ArbitrumTest is Test {
         pool0.setLongNumberMax(4);
         pool0.setHedgeNumberMax(4);
         pool0.setExtraCoef(2_00); // x2.00
-        pool0.setInitHedgeSellPercent(50); // 0.5%
         pool0.setPriceVolatilityPercent(1_00); // 1%
         
         (uint256 qty0, uint256 price0) = printLongPosition(poolId0);
@@ -158,7 +167,12 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         mockSwapRouter.setRate(2190 * 10 ** 8); // increase a little bit for initialize hedge sell bounds
         console.log("8) Price decreased by another 10%.");
-
+        (uint256 thresholdHigh, uint256 thresholdLow) = pool0.calcHedgeSellInitBounds();
+        
+        console.log();
+        console.log("HedgeSell High: ", uintToDecimal(thresholdHigh,8));
+        console.log("HedgeSell Low:  ", uintToDecimal(thresholdLow,8));
+        
         poolsNFT.grind(poolId0);
         console.log();
         console.log("9) Hedge sell executed.");
@@ -256,7 +270,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         poolsNFT.grind(poolId2);
         printLongPosition(poolId2);
 
-        poolsNFT.rebalance(poolId1, poolId2);
+        poolsNFT.rebalance(poolId1, poolId2, 1, 1);
         printLongPosition(poolId1);
         printLongPosition(poolId2);
 
