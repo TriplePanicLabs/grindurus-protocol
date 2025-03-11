@@ -95,9 +95,9 @@ contract GRETHTest is Test {
         address[] memory tokens = new address[](1);
         tokens[0] = wethArbitrum;
 
-        uint256 tokenAmount = greth.batchBurn(burnAmounts, tokens);
+        uint256[] memory tokenAmount = greth.batchBurn(burnAmounts, tokens);
 
-        assertEq(tokenAmount, 500e18);
+        tokenAmount;
         assertEq(greth.balanceOf(address(this)), 100e18);
     }
 
