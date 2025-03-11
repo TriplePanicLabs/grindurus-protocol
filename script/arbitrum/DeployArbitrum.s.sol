@@ -38,16 +38,16 @@ contract DeployArbitrumScript is Script {
     address public weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     PoolsNFTLens public poolsNFTLens;
-    
+
     GRETH public grETH;
 
     GrinderAI public grinderAI;
 
-    RegistryArbitrum public registry = RegistryArbitrum(0x21b111fd6a43C72Ce946A2C9fD7D7ECbc313fbDC);
+    RegistryArbitrum public registry;
 
     Strategy1FactoryArbitrum public factory1;
 
-    IntentNFT public intentNFT = IntentNFT(0x6F5A522C76fA20717a2edA165eE47D9F7Df9f0D4);
+    IntentNFT public intentNFT;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -68,16 +68,19 @@ contract DeployArbitrumScript is Script {
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
 
-        // registry = new RegistryArbitrum(address(poolsNFT));
+        registry = new RegistryArbitrum(address(poolsNFT));
 
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry));
+
         poolsNFT.setStrategyFactory(address(factory1));
 
-        // intentNFT = new IntentNFT(address(poolsNFT));
+        intentNFT = new IntentNFT(address(poolsNFT));
 
         console.log("PoolsNFT: ", address(poolsNFT));
+        console.log("PoolsNFTLens: ", address(poolsNFTLens));
         console.log("GRETH: ", address(grETH));
-        console.log("Registry: ", address(registry));
+        console.log("GrinderAI: ", address(grinderAI));
+        console.log("RegistryArbitrum: ", address(registry));
         console.log("Factory1: ", address(factory1));
         console.log("IntentNFT: ", address(intentNFT));
 
