@@ -895,6 +895,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         grethShares[3] = grethReward - (grethShares[0] + grethShares[1] + grethShares[2]);
     }
 
+    /// @notice return base URI
+    /// @dev base URI holds on poolsNFTLens
     function baseURI() public view returns (string memory) {
         return poolsNFTLens.baseURI();
     }
@@ -998,13 +1000,13 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param poolId pool id of pool in array `pools`
     function getConfig(uint256 poolId) public view override
         returns (
-            uint8 /** longNumberMax,*/,
-            uint8 /** hedgeNumberMax,*/,
-            uint256 /** extraCoef,*/,
-            uint256 /** priceVolatility,*/,
-            uint256 /** returnPercentLongSell,*/,
-            uint256 /** returnPercentHedgeSell,*/,
-            uint256 /** returnPercentHedgeRebuy*/
+            uint8 longNumberMax,
+            uint8 hedgeNumberMax,
+            uint256 extraCoef,
+            uint256 priceVolatility,
+            uint256 returnPercentLongSell,
+            uint256 returnPercentHedgeSell,
+            uint256 returnPercentHedgeRebuy  
         )
     {
         return poolsNFTLens.getConfig(poolId);
@@ -1014,9 +1016,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param poolId pool id of pool in array `pools`
     function getFeeConfig(uint256 poolId) external view 
         returns (
-            uint256 /** longSellFeeCoef */,
-            uint256 /** hedgeSellFeeCoef */,
-            uint256 /** hedgeRebuyFeeCoef */
+            uint256 longSellFeeCoef,
+            uint256 hedgeSellFeeCoef,
+            uint256 hedgeRebuyFeeCoef
         ) 
     {
         return poolsNFTLens.getFeeConfig(poolId);
@@ -1037,17 +1039,17 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param poolId pool id of pool in array `pools`
     function getThresholds(uint256 poolId) public view override
         returns (
-            uint256 /**longBuyPriceMin */,
-            uint256 /**longSellQuoteTokenAmountThreshold */,
-            uint256 /**longSellSwapPriceThreshold */,
-            uint256 /**hedgeSellInitPriceThresholdHigh */,
-            uint256 /**hedgeSellInitPriceThresholdLow */,
-            uint256 /**hedgeSellLiquidity */,
-            uint256 /**hedgeSellQuoteTokenAmountThreshold */,
-            uint256 /**hedgeSellTargetPrice */,
-            uint256 /**hedgeSellSwapPriceThreshold */,
-            uint256 /**hedgeRebuyBaseTokenAmountThreshold */,
-            uint256 /**hedgeRebuySwapPriceThreshold */
+            uint256 longBuyPriceMin,
+            uint256 longSellQuoteTokenAmountThreshold,
+            uint256 longSellSwapPriceThreshold,
+            uint256 hedgeSellInitPriceThresholdHigh,
+            uint256 hedgeSellInitPriceThresholdLow,
+            uint256 hedgeSellLiquidity,
+            uint256 hedgeSellQuoteTokenAmountThreshold,
+            uint256 hedgeSellTargetPrice,
+            uint256 hedgeSellSwapPriceThreshold,
+            uint256 hedgeRebuyBaseTokenAmountThreshold,
+            uint256 hedgeRebuySwapPriceThreshold
         )
     {
         return poolsNFTLens.getThresholds(poolId);

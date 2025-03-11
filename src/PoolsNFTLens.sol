@@ -65,6 +65,8 @@ contract PoolsNFTLens is IPoolsNFTLens {
         }
     }
 
+    /// @notice gets config of pool with poolId
+    /// @param poolId pool id of pool in array `pools`
     function getConfig(uint256 poolId) external view override returns(
         uint8 longNumberMax,
         uint8 hedgeNumberMax,
@@ -85,6 +87,8 @@ contract PoolsNFTLens is IPoolsNFTLens {
         ) = IStrategy(poolsNFT.pools(poolId)).getConfig();
     }
 
+    /// @notice gets config of pool with poolId
+    /// @param poolId pool id of pool in array `pools` on PoolsNFT
     function getFeeConfig(uint256 poolId) external view override 
         returns (
             uint256 longSellFeeCoef,
@@ -100,7 +104,7 @@ contract PoolsNFTLens is IPoolsNFTLens {
     }
 
     /// @notice returns positions of strategy
-    /// @param poolId pool id of pool in array `pools`
+    /// @param poolId pool id of pool in array `pools` on PoolsNFT
     function getPositions(uint256 poolId) public view override returns(IURUS.Position memory long, IURUS.Position memory hedge) {
         uint8 number;
         uint8 numberMax;
@@ -153,7 +157,7 @@ contract PoolsNFTLens is IPoolsNFTLens {
     }
 
     /// @notice get thresholds of pool with `poolId`
-    /// @param poolId pool id of pool in array `pools`
+    /// @param poolId pool id of pool in array `pools` on PoolsNFT
     function getThresholds(uint256 poolId) external view override
         returns (
             uint256 longBuyPriceMin,
@@ -174,7 +178,7 @@ contract PoolsNFTLens is IPoolsNFTLens {
     }
 
     /// @notice forms pool info
-    /// @param poolId id of pool
+    /// @param poolId pool id of pool in array `pools` on PoolsNFT
     function _formPoolInfo(uint256 poolId) private view returns (PoolNFTInfo memory poolInfo) {
         IStrategy pool = IStrategy(poolsNFT.pools(poolId));
         (
@@ -234,7 +238,7 @@ contract PoolsNFTLens is IPoolsNFTLens {
         });
     }
 
-    /// @notice forms config structure for `getPoolNFTInfos`
+    /// @notice forms config structure for `getPoolNFTInfosBy`
     /// @param poolId id of pool
     function _formConfig(uint256 poolId) private view returns (IURUS.Config memory) {
         (
@@ -257,6 +261,7 @@ contract PoolsNFTLens is IPoolsNFTLens {
         });
     }
 
+    /// @notice forms fee config structure for `getPoolNFTInfosBy`
     function _formFeeConfig(uint256 poolId) private view returns (IURUS.FeeConfig memory) {
         (
             uint256 longSellFeeCoef,

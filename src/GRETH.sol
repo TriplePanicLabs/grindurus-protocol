@@ -168,8 +168,8 @@ contract GRETH is IGRETH, ERC20 {
     function batchBurn(
         uint256[] memory amounts,
         address[] memory tokens
-    ) public payable override returns (uint256 tokenAmount) {
-        tokenAmount = batchBurnTo(amounts, tokens, msg.sender);
+    ) public payable override returns (uint256[] memory) {
+        return batchBurnTo(amounts, tokens, msg.sender);
     }
 
     /// @notice batch burns grETH on behalf of `to`
@@ -179,13 +179,14 @@ contract GRETH is IGRETH, ERC20 {
         uint256[] memory amounts,
         address[] memory tokens,
         address to
-    ) public payable override returns (uint256 tokenAmount) {
+    ) public payable override returns (uint256[] memory tokenAmount) {
         uint256 len = amounts.length;
         if (len > 0 && len != tokens.length) {
             revert InvalidLength();
         }
+        tokenAmount = new uint256[](len);
         for (uint256 i; i < len; ) {
-            tokenAmount += burnTo(amounts[i], tokens[i], to);
+            tokenAmount[i] = burnTo(amounts[i], tokens[i], to);
             unchecked { ++i; }
         }
     }

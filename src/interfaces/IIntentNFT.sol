@@ -21,8 +21,6 @@ interface IIntentNFT {
 
     function ratePerOneDay(address paymentToken) external view returns (uint256);
 
-    function setIntentsNFTImage(address _intentsNFTImage) external;
-
     function setRatePerOneDay(address token, uint256 _ratePerOneDay) external;
 
     function setBaseURI(string memory _baseURI) external;
@@ -37,7 +35,13 @@ interface IIntentNFT {
 
     function calcPayment(address paymentToken, uint256 period) external view returns (uint256 paymentAmount); 
 
-    function getIntent(address account) external view returns ( 
+    function getIntentBy(uint256 poolId) external view returns ( 
+        address _account,
+        uint256 _expire, 
+        uint256[] memory _poolIds
+    );
+
+    function getIntentOf(address account) external view returns ( 
         address _account,
         uint256 _expire, 
         uint256[] memory _poolIds

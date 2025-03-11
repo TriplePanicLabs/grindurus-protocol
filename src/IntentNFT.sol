@@ -8,8 +8,7 @@ import {IIntentsNFTImage} from "src/interfaces/IIntentsNFTImage.sol";
 import {Base64} from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
 import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC721, ERC721Enumerable} from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "lib/forge-std/src/console.sol";
+import {ERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 
 /// @title IntentNFT
 /// @notice pseudoSoulBoundToken
@@ -27,9 +26,6 @@ contract IntentNFT is IIntentNFT, ERC721 {
 
     /// @dev address of pools NFT, where grab poolIds for intent
     IPoolsNFT public poolsNFT;
-
-    /// @dev address of intents NFT image 
-    IIntentsNFTImage public intentsNFTImage;
 
     /// @dev total supply
     uint256 public totalIntents;
@@ -65,13 +61,6 @@ contract IntentNFT is IIntentNFT, ERC721 {
         if (msg.sender != owner()) {
             revert NotOwner();
         }
-    }
-
-    /// @notice set the intent nft image
-    /// @param _intentsNFTImage address of intents nft image
-    function setIntentsNFTImage(address _intentsNFTImage) public override {
-        _onlyOwner();
-        intentsNFTImage = IIntentsNFTImage(_intentsNFTImage);
     }
 
     /// @param token address of token
@@ -193,18 +182,31 @@ contract IntentNFT is IIntentNFT, ERC721 {
         }
     }
 
+    /// @notice get intent by poolId
+    /// @param poolId id of pool on poolsNFT
+    function getIntentBy(uint256 poolId) public view override 
+        returns (
+            address _account,
+            uint256 _expire, 
+            uint256[] memory _poolIds
+        )
+    {
+        _account = poolsNFT.ownerOf(poolId);
+        _expire = expire[intentIdOf[_account]];
+        (, _poolIds) = poolsNFT.getPoolIdsOf(_account);
+    }
+
     /// @notice get intent of `_account`
     /// @param _account address of account
-    function getIntent(address account) public view override returns (
+    function getIntentOf(address account) public view override returns (
         address _account,
         uint256 _expire, 
         uint256[] memory _poolIds
     ) {
-        uint256 poolIdsLen;
         uint256 intentId = intentIdOf[account];
         _account = ownerOf(intentId);
         _expire = expire[intentId];
-        (poolIdsLen, _poolIds) = poolsNFT.getPoolIdsOf(_account);
+        (, _poolIds) = poolsNFT.getPoolIdsOf(_account);
     }
 
     /// @notice returns tokenURI of `tokenId`
@@ -219,13 +221,8 @@ contract IntentNFT is IIntentNFT, ERC721 {
         returns (string memory uri)
     {
         _requireOwned(poolId);
-        if (address(intentsNFTImage) == address(0)) {
-            // https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/{poolId}.json
-            string memory path = string.concat(baseURI, poolId.toString());
-            uri = string.concat(path, ".json");
-        } else {
-            uri = intentsNFTImage.URI(poolId);
-        }
+        string memory path = string.concat(baseURI, poolId.toString());
+        uri = string.concat(path, ".json");
     }
 
     /// @notice return total supply of NFTs
@@ -242,6 +239,13 @@ contract IntentNFT is IIntentNFT, ERC721 {
     function chainId() public view override returns (uint256 id) {
         assembly {
             id := chainid()
+        }
+    }
+
+    receive() external payable {
+        if (msg.value > 0) {
+            (bool success, ) = address(poolsNFT).call{value: msg.value}("");
+            success;
         }
     }
 

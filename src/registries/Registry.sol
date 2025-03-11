@@ -93,6 +93,14 @@ contract Registry is IRegistry {
         }
     }
 
+    /// @notice sets poolsNFT
+    /// @param _poolsNFT address of poolsNFT
+    function setPoolsNFT(address _poolsNFT) public {
+        _onlyOwner();
+        poolsNFT = IPoolsNFT(_poolsNFT);
+
+    }
+
     /// @notice sets oracle and deploy inverse oracle
     /// @param quoteToken address of quote token
     /// @param baseToken address of base token

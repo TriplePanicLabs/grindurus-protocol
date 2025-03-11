@@ -30,6 +30,7 @@ contract GrinderAI is IGrinderAI {
         isAgent[owner()] = true;
     }
 
+    /// @notice return owner of grinderAI
     function owner() public view returns (address) {
         try poolsNFT.owner() returns(address payable _owner){
             return _owner;
@@ -117,7 +118,7 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
-    /// @notice AI grind 
+    /// @notice AI grind
     /// @dev can be called by anyone
     /// @param poolIds array of pool ids
     function batchGrind(uint256[] memory poolIds) public override {
@@ -125,7 +126,7 @@ contract GrinderAI is IGrinderAI {
         address grinder = owner();
         for (uint256 i = 0; i < len; ) {
             try poolsNFT.grindTo(poolIds[i], grinder) returns (bool isGrinded) {
-                
+                isGrinded;
             } catch {
 
             }
@@ -145,7 +146,7 @@ contract GrinderAI is IGrinderAI {
         uint256 i;
         for (i = 0; i < len;) {
             try poolsNFT.grindOpTo(poolIds[i], ops[i], grinder) returns (bool isGrinded) {
-                
+                isGrinded;
             } catch {
 
             }
@@ -153,42 +154,72 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
+    /// @notice sets long number max
+    /// @param poolId id of pool on poolsNFT
+    /// @param longNumberMax param longNumberMax on IURUS.Config
     function setLongNumberMax(uint256 poolId, uint8 longNumberMax) public override {
         _onlyAgent();
         IStrategy(poolsNFT.pools(poolId)).setLongNumberMax(longNumberMax);
     }
 
+    /// @notice sets hedge number max
+    /// @dev callable only by agent
+    /// @param poolId id of pool on poolsNFT
+    /// @param hedgeNumberMax param hedgeNumberMax on IURUS.Config
     function setHedgeNumberMax(uint256 poolId, uint8 hedgeNumberMax) public override {
         _onlyAgent();
         IStrategy(poolsNFT.pools(poolId)).setHedgeNumberMax(hedgeNumberMax);
     }
 
+    /// @notice sets extra coef
+    /// @dev callable only by agent
+    /// @param poolId id of pool on poolsNFT
+    /// @param extraCoef param extraCoef on IURUS.Config
     function setExtraCoef(uint256 poolId, uint256 extraCoef) public override {
         _onlyAgent();
         IStrategy(poolsNFT.pools(poolId)).setExtraCoef(extraCoef);
     }
 
+    /// @notice sets price volatility percent
+    /// @dev callable only by agent
+    /// @param poolId id of pool on poolsNFT
+    /// @param priceVolatilityPercent param priceVolatilityPercent on IURUS.Config
     function setPriceVolatilityPercent(uint256 poolId, uint256 priceVolatilityPercent) public override {
         _onlyAgent();
         IStrategy(poolsNFT.pools(poolId)).setPriceVolatilityPercent(priceVolatilityPercent);
     }
 
+    /// @notice sets return percent
+    /// @dev callable only by agent
+    /// @param poolId id of pool on poolsNFT
+    /// @param op operation on IURUS.Op enumeration
+    /// @param returnPercent param returnPercent on IURUS.Config 
     function setOpReturnPercent(uint256 poolId, uint8 op, uint256 returnPercent) public override {
         _onlyAgent();
         IStrategy(poolsNFT.pools(poolId)).setOpReturnPercent(op, returnPercent);
     }
 
-    function setOpFeeCoef(uint256 poolId, uint8 op, uint256 _feeCoef) public override {
+    /// @notice sets fee coef
+    /// @dev callable only by agent
+    /// @param poolId id of pool on poolsNFT
+    /// @param op operation on IURUS.Op enumeration
+    /// @param feeCoef param feeCoef on IURUS.FeeConfig 
+    function setOpFeeCoef(uint256 poolId, uint8 op, uint256 feeCoef) public override {
         _onlyAgent();
-        IStrategy(poolsNFT.pools(poolId)).setOpFeeCoef(op, _feeCoef);
+        IStrategy(poolsNFT.pools(poolId)).setOpFeeCoef(op, feeCoef);
     }
 
+    /// @notice execute any transaction
+    /// @param target address of target
+    /// @param value amount of ETH
+    /// @param data calldata to target
     function execute(address target, uint256 value, bytes calldata data) public override {
         _onlyAgent();
         (bool success, ) = target.call{value: value}(data);
         success;
     }
 
+    /// @notice return version of GrinderAI
     function version() public pure returns (uint256) {
         return 0;
     }
