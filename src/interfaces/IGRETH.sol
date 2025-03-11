@@ -46,13 +46,7 @@ interface IGRETH is IToken {
         address to
     ) external payable returns (uint256 tokenAmount);
 
-    function swap(
-        address token,
-        uint256 amountIn,
-        uint256 amountOut,
-        address target,
-        bytes calldata data
-    ) external;
+    function execute(address target, uint256 value, bytes memory data) external;
 
     function withdraw(address token, uint256 amount) external returns (uint256 withdrawnAmount);
 
@@ -61,7 +55,5 @@ interface IGRETH is IToken {
     function calcShare(uint256 amount, address token) external view returns (uint256 share);
 
     function owner() external view returns (address);
-
-
 
 }

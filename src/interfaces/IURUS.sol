@@ -84,7 +84,6 @@ interface IURUS is IERC5313 {
         hedgeNumberMax = 4
         extraCoef = 2_00 // x2.00
         priceVolatilityPercent = 1_00 // 1%
-        initHedgeSellPercent = 50 // 0.5%
         returnPercentLongSell = 100_50 // 100.5%
         returnPercentHedgeSell = 100_50 // 100.5%
         returnPercentHedgeRebuy = 100_50 // 100.5%
@@ -94,7 +93,6 @@ interface IURUS is IERC5313 {
         uint8 hedgeNumberMax; // [hedgeNumberMax] = (no dimension)
         uint256 extraCoef; // [extraCoef] = (no dimension)
         uint256 priceVolatilityPercent; // [priceVolatilityPercent] = %
-        uint256 initHedgeSellPercent; // [initHedgePercent] = %
         uint256 returnPercentLongSell; // [returnPercentLongSell] = %
         uint256 returnPercentHedgeSell; // [returnPercentHedgeSell] = %
         uint256 returnPercentHedgeRebuy; // [returnPercentHedgeRebuy] = %
@@ -158,11 +156,9 @@ interface IURUS is IERC5313 {
 
     function setPriceVolatilityPercent(uint256 priceVolatilityPercent) external;
 
-    function setInitHedgeSellPercent(uint256 initHedgeSellPercent) external;
+    function setOpReturnPercent(uint8 op, uint256 returnPercent) external;
 
-    function setOpReturnPercent(Op op, uint256 returnPercent) external;
-
-    function setOpFeeCoef(Op op, uint256 _feeCoef) external;
+    function setOpFeeCoef(uint8 op, uint256 _feeCoef) external;
 
     function deposit(
         uint256 quoteTokenAmount
@@ -325,11 +321,18 @@ interface IURUS is IERC5313 {
             uint8 hedgeNumberMax,
             uint256 extraCoef,
             uint256 priceVolatilityPercent,
-            uint256 initHedgeSellPercent,
             uint256 returnPercentLongSell,
             uint256 returnPercentHedgeSell,
             uint256 returnPercentHedgeRebuy
         );
 
+    function getFeeConfig()
+        external
+        view 
+        returns(
+            uint256 longSellFeeCoef,
+            uint256 hedgeSellFeeCoef,
+            uint256 hedgeRebuyFeeCoef
+        );
     
 }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.28;
 
-import {IDexAdapter, IToken} from "../../interfaces/IDexAdapter.sol";
-import {ISwapRouterArbitrum} from "../../interfaces/uniswapV3/ISwapRouterArbitrum.sol";
+import {IDexAdapter, IToken} from "src/interfaces/IDexAdapter.sol";
+import {ISwapRouterArbitrum} from "src/interfaces/uniswapV3/ISwapRouterArbitrum.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title UniswapV3AdapterArbitrum
@@ -15,7 +15,7 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
     ISwapRouterArbitrum public swapRouter;
 
     /// @notice fee of uniswapV3 pool
-    uint24 public fee;
+    uint24 public uniswapV3PoolFee;
 
     constructor() {}
 
@@ -27,36 +27,36 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         if (address(swapRouter) != address(0)) {
             revert DexInitialized();
         }
-        (address _swapRouter, uint24 _fee, address _quoteToken, address _baseToken) = decodeDexConstructorArgs(args);
+        (address _swapRouter, uint24 _uniswapV3PoolFee, address _quoteToken, address _baseToken) = decodeDexConstructorArgs(args);
 
         // infinite approve for transferFrom Uniswap
         IToken(_quoteToken).forceApprove(_swapRouter, type(uint256).max);
         IToken(_baseToken).forceApprove(_swapRouter, type(uint256).max);
 
         swapRouter = ISwapRouterArbitrum(_swapRouter);
-        fee = _fee;
+        uniswapV3PoolFee = _uniswapV3PoolFee;
     }
 
     /// @notice encode dex constructor args
     /// @param _swapRouter address of UniswapV3 swap routers
-    /// @param _fee address of UniswapV3 pool fee
+    /// @param _uniswapV3PoolFee address of UniswapV3 pool fee
     /// @param _quoteToken address of quoteToken
     /// @param _baseToken address of baseToken
     function encodeDexConstructorArgs(
         address _swapRouter,
-        uint24 _fee,
+        uint24 _uniswapV3PoolFee,
         address _quoteToken,
         address _baseToken
     ) public pure returns (bytes memory) {
-        return abi.encode(_swapRouter, _fee, _quoteToken, _baseToken);
+        return abi.encode(_swapRouter, _uniswapV3PoolFee, _quoteToken, _baseToken);
     }
 
     /// @notice decode dex constructor args
     /// @param args encoded args of constructor via `encodeDexConstructorArgs`
     function decodeDexConstructorArgs(
         bytes memory args
-    ) public pure returns (address _swapRouter, uint24 _fee, address _quoteToken, address _baseToken) {
-        (_swapRouter, _fee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
+    ) public pure returns (address _swapRouter, uint24 _uniswapV3PoolFee, address _quoteToken, address _baseToken) {
+        (_swapRouter, _uniswapV3PoolFee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
     }
 
     function _onlyOwner() internal view virtual {}
@@ -72,10 +72,10 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
     }
 
     /// @notice set fee
-    /// @param _fee fee for uniswapV3 pool
-    function setFee(uint24 _fee) public {
+    /// @param _uniswapV3PoolFee fee for uniswapV3 pool
+    function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public {
         _onlyOwner();
-        fee = _fee;
+        uniswapV3PoolFee = _uniswapV3PoolFee;
     }
 
     /// @notice swap
@@ -108,7 +108,7 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
             memory params = ISwapRouterArbitrum.ExactInputSingleParams({
                 tokenIn: address(tokenIn),
                 tokenOut: address(tokenOut),
-                fee: fee,
+                fee: uniswapV3PoolFee,
                 recipient: address(this),
                 amountIn: amountIn,
                 amountOutMinimum: 0, // any amount

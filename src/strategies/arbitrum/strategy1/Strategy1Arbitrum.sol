@@ -25,7 +25,7 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     uint256 public poolId;
 
     /// @dev timestamp of deployment
-    uint256 public deploymentTimestamp;
+    uint256 public startTimestamp;
 
     constructor () {}
 
@@ -99,7 +99,7 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
 
         poolsNFT = IPoolsNFT(_poolsNFT);
         poolId = _poolId;
-        deploymentTimestamp = block.timestamp;
+        startTimestamp = block.timestamp;
     }
 
     /// @notice puts token to yield protocol
@@ -218,7 +218,7 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
             );
         ROINumerator = profits;
         ROIDenominator = investment;
-        ROIPeriod = block.timestamp - deploymentTimestamp;
+        ROIPeriod = block.timestamp - startTimestamp;
     }
 
     /// @notice calculates annual percentage rate (APR) of strategy pool

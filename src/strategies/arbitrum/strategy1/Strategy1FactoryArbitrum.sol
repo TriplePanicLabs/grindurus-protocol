@@ -48,7 +48,6 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
             longNumberMax: 4,
             hedgeNumberMax: 4,
             priceVolatilityPercent: 1_00, // 1%
-            initHedgeSellPercent: 50, // 0.5%
             extraCoef: 2_00, // x2.00
             returnPercentLongSell: 100_50, // 100.50% // returnPercent = (amountInvested + profit) * 100 / amountInvested
             returnPercentHedgeSell: 100_50, // 100.50%

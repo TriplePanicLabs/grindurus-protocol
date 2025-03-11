@@ -190,53 +190,6 @@ contract GRETH is IGRETH, ERC20 {
         }
     }
 
-    /// @notice swap tokens to weth
-    /// @param token address of token to be swapped from
-    /// @param amountIn amount of token
-    /// @param amountOut amount of weth
-    /// @param target address of target contract (swap router)
-    /// @param data swap data
-    function swap(
-        address token,
-        uint256 amountIn,
-        uint256 amountOut,
-        address target,
-        bytes calldata data
-    ) public override {
-        _onlyOwner();
-        require(token != address(weth) && token != address(this));
-
-        uint256 tokenBalanceBefore;
-        if (token == address(0)) {
-            tokenBalanceBefore = address(this).balance;
-        } else {
-            tokenBalanceBefore = IToken(token).balanceOf(address(this));
-            IToken(token).forceApprove(target, amountIn);
-        }
-        uint256 wethBalanceBefore = weth.balanceOf(address(this));
-        
-        bool success;
-        bytes memory result;
-        if (token == address(0)) {
-            (success, result) = target.call{value: amountIn}(data);
-        } else {
-            (success, result) = target.call(data);
-        }
-        emit CallResult(result);
-        require(success, "swap fail");
-         
-        uint256 tokenBalanceAfter;
-        if (token == address(0)) {
-            tokenBalanceAfter = address(this).balance;
-        } else {
-            tokenBalanceAfter = IToken(token).balanceOf(address(this));
-        }
-        uint256 wethBalanceAfter = weth.balanceOf(address(this));
-
-        require(tokenBalanceBefore - tokenBalanceAfter >= amountIn, "Insufficient amountIn");
-        require(wethBalanceAfter - wethBalanceBefore >= amountOut, "Insufficient amountOut");
-    }
-
     /// @notice withdraw token on owner determination. Forbid to withdraw WETH. 
     /// @dev practical usecase, that token withdrawn and transfered WETH to GRETH
     /// @param token address of token to pick
@@ -297,6 +250,20 @@ contract GRETH is IGRETH, ERC20 {
         } catch {
             return address(poolsNFT);
         }
+    }
+
+    /// @notice execute any transaction on target smart contract
+    /// @dev callable only by owner
+    /// @param target address of target contract
+    /// @param value amount of ETH
+    /// @param data data to execute on target contract
+    function execute(address target, uint256 value, bytes memory data) public override {
+        _onlyOwner();
+        if (target == address(weth)) {
+            revert Forbid();
+        }
+        (bool success, ) = target.call{value: value}(data);
+        success;
     }
 
     receive() external payable {

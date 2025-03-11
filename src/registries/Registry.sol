@@ -93,18 +93,6 @@ contract Registry is IRegistry {
         }
     }
 
-    function _onlyStrategiest() internal view {
-        if (address(poolsNFT) == address(0)) {
-            if (msg.sender != owner()) {
-                revert NotOwner();
-            }
-        } else {
-            if(!poolsNFT.isStrategiest(msg.sender)) {
-                revert NotStrategiest();
-            }
-        }
-    }
-
     /// @notice sets oracle and deploy inverse oracle
     /// @param quoteToken address of quote token
     /// @param baseToken address of base token
@@ -153,7 +141,7 @@ contract Registry is IRegistry {
     /// @param baseToken address of base token
     /// @param _isStrategyPair true - strategy pair, false - not strategy pair
     function setStrategyPair(uint16 strategyId, address quoteToken, address baseToken, bool _isStrategyPair) public override {
-        _onlyStrategiest();
+        _onlyOwner();
         if (quoteTokenCoherence[quoteToken] == 0) {
             revert QuoteTokenNotListed();
         }
@@ -167,7 +155,7 @@ contract Registry is IRegistry {
     /// @param strategyId id of strategy
     /// @param _strategyDescription description of strategy
     function addStrategyId(uint16 strategyId, string memory _strategyDescription) public {
-        _onlyStrategiest();
+        _onlyOwner();
         if (strategyIds[strategyIdIndex[strategyId]] == strategyId) {
             revert StrategyIdExist();
         }
@@ -180,7 +168,7 @@ contract Registry is IRegistry {
     /// @param strategyId id of strategy
     /// @param _strategyDescription description of strategy
     function modifyStrategyDescription(uint16 strategyId, string memory _strategyDescription) public {
-        _onlyStrategiest();
+        _onlyOwner();
         if (strategyIds[strategyIdIndex[strategyId]] != strategyId) {
             revert StrategyIdNotExist();
         }
@@ -190,7 +178,7 @@ contract Registry is IRegistry {
     /// @notice remove strategy id from `strategyIds`
     /// @param strategyId id of strategy
     function removeStrategyId(uint16 strategyId) public override {
-        _onlyStrategiest();
+        _onlyOwner();
         uint256 _strategyIdIndex = strategyIdIndex[strategyId];
         if (strategyIds[_strategyIdIndex] != strategyId) {
             revert StrategyIdNotExist();

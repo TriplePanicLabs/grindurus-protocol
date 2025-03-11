@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {ILendingAdapter, IToken} from "../../interfaces/ILendingAdapter.sol";
-import {IAAVEV3PoolArbitrum} from "../../interfaces/aaveV3/IAAVEV3PoolArbitrum.sol";
-import {IAAVEV3AToken} from "../../interfaces/aaveV3/IAAVEV3AToken.sol";
+import {ILendingAdapter, IToken} from "src/interfaces/ILendingAdapter.sol";
+import {IAAVEV3PoolArbitrum} from "src/interfaces/aaveV3/IAAVEV3PoolArbitrum.sol";
+import {IAAVEV3AToken} from "src/interfaces/aaveV3/IAAVEV3AToken.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title AAVEV3AdapterArbitrum
@@ -96,13 +96,12 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
 
         try aaveV3Pool.supply(address(token), amount, onBehalfOf, 0) {
             // uint16 refferalCode = 0;
-            _onSuccessfulPut(token, amount, onBehalfOf);
+            uint256 tokenBalanceAfter = token.balanceOf(onBehalfOf);
+            putAmount = tokenBalanceBefore - tokenBalanceAfter;
         } catch {
-            return 0;
+            // no supply, hold token on this smart contract
+            putAmount = amount;
         }
-
-        uint256 tokenBalanceAfter = token.balanceOf(onBehalfOf);
-        putAmount = tokenBalanceBefore - tokenBalanceAfter;
         investedAmount[token] += putAmount;
     }
 
@@ -118,50 +117,37 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         address to = address(this);
         uint256 tokenBalanceBefore = token.balanceOf(to);
 
-        try aaveV3Pool.withdraw(address(token), type(uint256).max, to) returns (
-            uint256 withdrawn
-        ) {
-            _onSuccessfulTake(token, type(uint256).max, to, withdrawn);
+        try aaveV3Pool.withdraw(address(token), type(uint256).max, to) {
+            uint256 tokenBalanceAfter = token.balanceOf(to);
+            uint256 tokenAmount = tokenBalanceAfter - tokenBalanceBefore; // available tokens
+            uint256 investedTokenAmount = investedAmount[token];
+            // distribute yield profit
+            if (tokenAmount > investedTokenAmount) {
+                uint256 yieldProfit = tokenAmount - investedTokenAmount;
+                tokenAmount -= yieldProfit; // made tokenAmount == investmentAmount
+                _distributeYieldProfit(token, yieldProfit);
+            }
+            if (amount > tokenAmount) {
+                amount = tokenAmount;
+            }
+            tokenAmount -= amount;
+            if (tokenAmount > 0) {
+                // put back unused
+                token.forceApprove(address(aaveV3Pool), tokenAmount);
+                try aaveV3Pool.supply(address(token), tokenAmount, to, 0)
+                {} catch {}
+            }
+            takeAmount = amount;
         } catch {
-            return 0;
+            // no withdraw, take token on this smart contract
+            takeAmount = amount;
         }
-
-        uint256 tokenBalanceAfter = token.balanceOf(to);
-        uint256 tokenAmount = tokenBalanceAfter - tokenBalanceBefore; // available tokens
-        uint256 investedTokenAmount = investedAmount[token];
-        // distribute yield profit
-        if (tokenAmount > investedTokenAmount) {
-            uint256 yieldProfit = tokenAmount - investedTokenAmount;
-            tokenAmount -= yieldProfit; // made tokenAmount == investmentAmount
-            _distributeYieldProfit(token, yieldProfit);
+        if (investedAmount[token] >= takeAmount) {
+            investedAmount[token] -= takeAmount;
+        } else {
+            investedAmount[token] = 0;
         }
-        if (amount > tokenAmount) {
-            amount = tokenAmount;
-        }
-        tokenAmount -= amount;
-        if (tokenAmount > 0) {
-            // put back unused
-            token.forceApprove(address(aaveV3Pool), tokenAmount);
-            try
-                aaveV3Pool.supply(address(token), tokenAmount, to, 0)
-            {} catch {}
-        }
-        takeAmount = amount;
-        investedAmount[token] -= takeAmount;
     }
-
-    function _onSuccessfulPut(
-        IToken token,
-        uint256 amount,
-        address onBehalfOf
-    ) internal virtual {}
-
-    function _onSuccessfulTake(
-        IToken token,
-        uint256 amount,
-        address to,
-        uint256 withdrawn
-    ) internal virtual {}
 
     function _distributeYieldProfit(
         IToken token,

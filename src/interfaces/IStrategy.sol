@@ -14,6 +14,8 @@ interface IStrategy is IURUS {
 
     function poolId() external view returns (uint256);
 
+    function startTimestamp() external view returns (uint256);
+
     function ROI() external view returns (uint256 ROINumerator, uint256 ROIDenominator, uint256 ROIPeriod);
 
     function APR() external view returns (uint256 APRNumerator, uint256 APRDenominator);

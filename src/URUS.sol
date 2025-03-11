@@ -3,6 +3,7 @@ pragma solidity =0.8.28;
 
 import {IURUS, IToken, IERC5313, AggregatorV3Interface} from "src/interfaces/IURUS.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "forge-std/console.sol";
 
 /// @title URUS
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
@@ -226,30 +227,19 @@ contract URUS is IURUS {
         config.priceVolatilityPercent = priceVolatilityPercent;
     }
 
-    /// @notice sets init hedge sell percent
-    /// @dev this parameter uses in calculating thresholds of initialization of hedge position.
-    /// @param initHedgeSellPercent percent for initialization of hedge sell. [initHedgeSellPercent]=%.
-    function setInitHedgeSellPercent(uint256 initHedgeSellPercent) public override {
-        _onlyAgent();
-        if (initHedgeSellPercent > helper.percentMultiplier) {
-            revert InvalidInitHedgeSellPercent();
-        }
-        config.initHedgeSellPercent = initHedgeSellPercent;
-    }
-
     /// @notice set retunr for Op
     /// @dev if realRoi == 100.5%=1.005, than returnPercent == realRoi * helper.percentMultiplier
     /// @param op operation to apply return
     /// @param returnPercent return scaled by helper.percentMultiplier
-    function setOpReturnPercent(Op op, uint256 returnPercent) public override {
+    function setOpReturnPercent(uint8 op, uint256 returnPercent) public override {
         _onlyAgent();
         if (returnPercent < 100 * helper.percentMultiplier)
             revert InvalidReturnOfInvestment();
-        if (op == Op.LONG_SELL) {
+        if (op == uint8(Op.LONG_SELL)) {
             config.returnPercentLongSell = returnPercent;
-        } else if (op == Op.HEDGE_SELL) {
+        } else if (op == uint8(Op.HEDGE_SELL)) {
             config.returnPercentHedgeSell = returnPercent;
-        } else if (op == Op.HEDGE_REBUY) {
+        } else if (op == uint8(Op.HEDGE_REBUY)) {
             config.returnPercentHedgeRebuy = returnPercent;
         } else {
             revert InvalidOp();
@@ -259,13 +249,13 @@ contract URUS is IURUS {
     /// @notice set fee coeficient for Op
     /// @dev if realFeeCoef = 1.61, than feeConfig = realFeeCoef * helper.feeCoeficientMultiplier
     /// @param _feeCoef fee coeficient scaled by helper.feeCoeficientMultiplier
-    function setOpFeeCoef(Op op, uint256 _feeCoef) public override {
+    function setOpFeeCoef(uint8 op, uint256 _feeCoef) public override {
         _onlyAgent();
-        if (op == Op.LONG_SELL) {
+        if (op == uint8(Op.LONG_SELL)) {
             feeConfig.longSellFeeCoef = _feeCoef;
-        } else if (op == Op.HEDGE_SELL) {
+        } else if (op == uint8(Op.HEDGE_SELL)) {
             feeConfig.hedgeSellFeeCoef = _feeCoef;
-        } else if (op == Op.HEDGE_REBUY) {
+        } else if (op == uint8(Op.HEDGE_REBUY)) {
             feeConfig.hedgeRebuyFeeCoef = _feeCoef;
         } else {
             revert InvalidOp();
@@ -512,7 +502,7 @@ contract URUS is IURUS {
 
         // 2.1. Swap baseTokenAmount to quoteTokenAmount
         quoteTokenAmount = _swap(baseToken, quoteToken, baseTokenAmount);
-        // 2.2. Calculate threshold and swapPriceThreshold
+        // 2.2. Calculate threshold and longSellPriceThreshold
         (uint256 quoteTokenAmountThreshold, ) = calcLongSellThreshold();
         if (quoteTokenAmount <= quoteTokenAmountThreshold) {
             revert NotProfitableLongSell();
@@ -591,7 +581,7 @@ contract URUS is IURUS {
                 uint256 liquidity,
                 uint256 quoteTokenAmountThreshold,
                 uint256 targetPrice,
-                /** uint256 swapPriceThreshold */
+                /** uint256 hedgeSellPriceThreshold */
             ) = calcHedgeSellThreshold(baseTokenAmount);
             if (quoteTokenAmount <= quoteTokenAmountThreshold) {
                 revert NotProfitableHedgeSell();
@@ -770,11 +760,25 @@ contract URUS is IURUS {
     /// @dev called after rebalance by poolsNFT
     function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public {
         _onlyGateway();
-        baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
-        (baseTokenAmount) = _put(baseToken, baseTokenAmount);
-        long.qty = baseTokenAmount;
-        long.price = newPrice;
-        long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price); // (baseTokenAmount * newPrice) / helper.oracleQuoteTokenPerBaseTokenMultiplier;
+        if (baseTokenAmount > 0) {
+            baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
+            (baseTokenAmount) = _put(baseToken, baseTokenAmount);
+            long.qty = baseTokenAmount;
+            long.price = newPrice;
+            long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price); // (baseTokenAmount * newPrice) / helper.oracleQuoteTokenPerBaseTokenMultiplier;
+        } else {
+            helper.initLiquidity = 0;
+            long = Position({
+                number: 0,
+                numberMax: 0,
+                priceMin: type(uint256).max,
+                liquidity: 0,
+                qty: 0,
+                price: 0,
+                feeQty: 0,
+                feePrice: 0
+            });
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -821,15 +825,6 @@ contract URUS is IURUS {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //// CALCULATE FUNCTIONS
 
-    /// @notice calculate min price for long position
-    function calcLongPriceMin() public view returns (uint256) {
-        if (long.number == 0) {
-            return type(uint256).max;
-        } else {
-            return long.price - (long.price * config.priceVolatilityPercent) / helper.percentMultiplier;
-        }
-    }
-
     /// @notice calculate max liquidity that can be used for buying
     /// @dev q_n = q_1 * investCoef / coefMultiplier
     function calcMaxLiquidity() public view override returns (uint256) {
@@ -869,13 +864,25 @@ contract URUS is IURUS {
         }
     }
 
+    /// @notice calculate min price for long position
+    function calcLongPriceMin() public view returns (uint256) {
+        if (long.number == 0) {
+            return type(uint256).max;
+        } else if (long.number < long.numberMax) {
+            return long.price - (long.price * config.priceVolatilityPercent) / helper.percentMultiplier;
+        } else {
+            (, uint256 longSellPriceThreshold) = calcLongSellThreshold();
+            return (long.price - ((longSellPriceThreshold - long.price) / 2));
+        }
+    }
+
     /// @notice calculates long sell thresholds
     /// @return quoteTokenAmountThreshold threshold amount of `quoteToken`
-    /// @return swapPriceThreshold threshold price to execute swap
+    /// @return longSellPriceThreshold threshold price to execute swap
     function calcLongSellThreshold() public view override
         returns (
             uint256 quoteTokenAmountThreshold,
-            uint256 swapPriceThreshold
+            uint256 longSellPriceThreshold
         )
     {
         uint256 feeQty = (long.feeQty * feeConfig.longSellFeeCoef) / helper.coefMultiplier;
@@ -911,7 +918,7 @@ contract URUS is IURUS {
          *                                   quoteTokenAmountThreshold
          */
         quoteTokenAmountThreshold = ((long.liquidity + fees) * config.returnPercentLongSell) / helper.percentMultiplier;
-        swapPriceThreshold = calcSwapPrice(quoteTokenAmountThreshold, long.qty);
+        longSellPriceThreshold = calcSwapPrice(quoteTokenAmountThreshold, long.qty);
     }
 
     /// @notice calculates target hedge price for undersell
@@ -933,8 +940,22 @@ contract URUS is IURUS {
 
     /// @notice calculates hedge sell thresholds bounds for initialization of hedge position
     function calcHedgeSellInitBounds() public view override returns (uint256 thresholdHigh, uint256 thresholdLow) {
+        /**
+         * Visual of delta with hedgeNumberMax = 3
+         *             hedge.priceMin             long.price  longSellPrice
+         *     |------------|------------|------------|------------|------------> price
+         *                price_1      price_2     price_3    price_3+delta
+         *                   <-----------><-----------><----------->
+         *                       delta        delta        delta
+         * 
+         *  delta = longSellPrice - long.price
+         *  thresholdLow := long.price - 2 * delta 
+         *  Generalize:
+         *      thresholdLow := long.price - (hedgeNumberMax - 1) * delta 
+         *  Let thresholdHigh := long.price - delta / 2 => delta = (long.price - thresholdHigh) * 2
+         */
         thresholdHigh = calcLongPriceMin();
-        thresholdLow = thresholdHigh - (thresholdHigh * config.initHedgeSellPercent) / helper.percentMultiplier;
+        thresholdLow = (long.price - ((config.hedgeNumberMax - 1) * (long.price - thresholdHigh) * 2));
     }
 
     /// @notice calculates hedge sell threshold
@@ -944,7 +965,7 @@ contract URUS is IURUS {
             uint256 liquidity,
             uint256 quoteTokenAmountThreshold,
             uint256 targetPrice,
-            uint256 swapPriceThreshold
+            uint256 hedgeSellPriceThreshold
         )
     {
         /**
@@ -995,7 +1016,7 @@ contract URUS is IURUS {
             calcQuoteTokenByBaseToken(hedgeQty + baseTokenAmount, targetPrice) -
             calcQuoteTokenByBaseToken(hedgeQty, hedge.price);
         quoteTokenAmountThreshold = ((liquidity + fees) * config.returnPercentHedgeSell) / helper.percentMultiplier;
-        swapPriceThreshold = calcSwapPrice(quoteTokenAmountThreshold, baseTokenAmount);
+        hedgeSellPriceThreshold = calcSwapPrice(quoteTokenAmountThreshold, baseTokenAmount);
     }
 
     /// @notice calculates hedge rebuy threshold
@@ -1003,7 +1024,7 @@ contract URUS is IURUS {
     function calcHedgeRebuyThreshold(uint256 quoteTokenAmount) public view override
         returns (
             uint256 baseTokenAmountThreshold,
-            uint256 swapPriceThreshold
+            uint256 hedgeRebuyPriceThreshold
         )
     {
         /**
@@ -1024,7 +1045,7 @@ contract URUS is IURUS {
         }
         uint256 hedgeRebuyFee = hedgeSellFees / hedge.number;
         baseTokenAmountThreshold = ((hedge.qty + hedgeSellFees + hedgeRebuyFee) * config.returnPercentHedgeRebuy) / helper.percentMultiplier;
-        swapPriceThreshold = calcSwapPrice(
+        hedgeRebuyPriceThreshold = calcSwapPrice(
             quoteTokenAmount,
             baseTokenAmountThreshold
         );
@@ -1038,7 +1059,7 @@ contract URUS is IURUS {
             uint256 liquidity,
             uint256 quoteTokenAmountThreshold,
             uint256 targetPrice,
-            uint256 swapPriceThreshold
+            uint256 hedgeSellPriceThreshold
         )
     {
         uint256 baseTokenAmount;
@@ -1069,7 +1090,7 @@ contract URUS is IURUS {
     function calcHedgeRebuyThreshold() public view override
         returns (
             uint256 baseTokenAmountThreshold,
-            uint256 swapPriceThreshold
+            uint256 hedgeRebuyPriceThreshold
         )
     {
         return calcHedgeRebuyThreshold(hedge.liquidity);
@@ -1162,6 +1183,9 @@ contract URUS is IURUS {
             uint256 hedgeRebuyBaseTokenAmountThreshold,
             uint256 hedgeRebuySwapPriceThreshold
         ) {
+        if (long.number == 0) {
+            return (0,0,0,0,0,0,0,0,0,0,0);
+        }
         longBuyPriceMin = calcLongPriceMin();
         (longSellQuoteTokenAmountThreshold, longSellSwapPriceThreshold) =  calcLongSellThreshold();
         if (long.number == long.numberMax) {
@@ -1243,7 +1267,6 @@ contract URUS is IURUS {
             uint8 hedgeNumberMax,
             uint256 extraCoef,
             uint256 priceVolatilityPercent,
-            uint256 initHedgeSellPercent,
             uint256 returnPercentLongSell,
             uint256 returnPercentHedgeSell,
             uint256 returnPercentHedgeRebuy
@@ -1253,11 +1276,27 @@ contract URUS is IURUS {
         hedgeNumberMax = config.hedgeNumberMax;
         extraCoef = config.extraCoef;
         priceVolatilityPercent = config.priceVolatilityPercent;
-        initHedgeSellPercent = config.initHedgeSellPercent;
         returnPercentLongSell = config.returnPercentLongSell;
         returnPercentHedgeSell = config.returnPercentHedgeSell;
         returnPercentHedgeRebuy = config.returnPercentHedgeRebuy;
     }
+
+    /// @notice return fee config of strategy
+    function getFeeConfig()
+        public
+        view
+        override
+        returns (
+            uint256 longSellFeeCoef,
+            uint256 hedgeSellFeeCoef,
+            uint256 hedgeRebuyFeeCoef
+        )
+    {
+        longSellFeeCoef = feeConfig.longSellFeeCoef;
+        hedgeSellFeeCoef = feeConfig.hedgeSellFeeCoef;
+        hedgeRebuyFeeCoef = feeConfig.hedgeRebuyFeeCoef;
+    }
+
 
     /// @notice returns the owner of strategy pool
     /// @dev may be reimplemented in inherrited contracts

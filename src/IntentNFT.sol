@@ -160,6 +160,13 @@ contract IntentNFT is IIntentNFT, ERC721 {
         paid = paymentAmount;
     }
 
+    /// @notice sets poolsNFT
+    /// @param _poolsNFT address of poolsNFT
+    function setPoolsNFT(address _poolsNFT) public {
+        _onlyOwner();
+        poolsNFT = IPoolsNFT(_poolsNFT);
+    }
+
     /// @notice return owner of intent NFT collection
     function owner() public view returns (address) {
         try poolsNFT.owner() returns (address payable _owner) {

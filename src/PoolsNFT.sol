@@ -5,7 +5,8 @@ import {IToken} from "src/interfaces/IToken.sol";
 import {IGRETH} from "src/interfaces/IGRETH.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {IStrategy, IURUS} from "src/interfaces/IStrategy.sol";
-import {IPoolsNFTImage} from "src/interfaces/IPoolsNFTImage.sol";
+import {IPoolsNFTLens} from "src/interfaces/IPoolsNFTLens.sol";
+import {IGrinderAI} from "src/interfaces/IGrinderAI.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
 import {IStrategyFactory} from "src/interfaces/IStrategyFactory.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -19,8 +20,6 @@ import {ERC721, ERC721Enumerable, IERC165} from "lib/openzeppelin-contracts/cont
 /// @notice NFT that represets ownership of every grindurus strategy pools
 contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     using SafeERC20 for IToken;
-    using Base64 for bytes;
-    using Strings for uint256;
 
     //// CONTSTANTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -95,21 +94,18 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     //// POOLSNFT DATA /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /// @notice base URI for this collection
-    string public baseURI;
-
     /// @notice total amount of pools
     uint256 public totalPools;
 
-    /// @notice address of poolsNFTImage
-    IPoolsNFTImage public poolsNFTImage;
+    /// @notice address of poolsNFTLens
+    IPoolsNFTLens public poolsNFTLens;
 
     /// @notice reserve for accumulation of percent of strategy profits
     /// @dev grETH token address
     IGRETH public grETH;
 
-    /// @dev strategiest address => is strategiest
-    mapping (address strategiest => bool) public isStrategiest;
+    /// @dev address of grinderAI smart contract
+    IGrinderAI public grinderAI;
 
     /// @dev strategyId => address of grindurus pool strategy implementation
     mapping (uint16 strategyId => address) public strategyFactory;
@@ -148,6 +144,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev if cap == 0, than cap is unlimited
     mapping (address token => uint256) public tokenCap;
 
+    /// @dev owner of address => is disapproved grinder AI
+    mapping (address _ownerOf => bool) public isDisapprovedGrinderAI;
+
     /// @dev owner of address => agent address => is agent of `_ownerOf`
     /// @dev true - is agent. False - is not agent
     mapping (address _ownerOf => mapping (address _agent => bool)) internal _agentApprovals;
@@ -156,12 +155,10 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev true - is eligible depositor. false - is not eligible depositor
     mapping (uint256 poolId => mapping (address _ownerOf => mapping(address depositor => bool))) internal _depositorApprovals;
 
-    constructor() ERC721("GRINDURUS Pools Collection", "GRINDURUS_POOLS") {
-        baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/grindurus-poolsnft-data/refs/heads/main/arbitrum/";
+    constructor() ERC721("", "") {
         totalPools = 0;
         pendingOwner = payable(address(0));
         owner = payable(msg.sender);
-        isStrategiest[msg.sender] = true;
 
         royaltyPriceCompensationShareNumerator = 101_00; // 101%
         royaltyPriceReserveShareNumerator = 1_00; // 1%
@@ -197,10 +194,11 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     /// @notice sets grETH token
     /// @dev callable only by owner
-    function init(address _grETH) external override {
-        _onlyOwner();
-        require(address(grETH) == address(0));
+    function init(address _poolsNFTLens, address _grETH, address _grinderAI) external override {
+        require(address(poolsNFTLens) == address(0) && address(grETH) == address(0) && address(grinderAI) == address(0));
+        poolsNFTLens = IPoolsNFTLens(_poolsNFTLens);
         grETH = IGRETH(_grETH);
+        grinderAI = IGrinderAI(_grinderAI);
     }
 
     /// @notice checks that msg.sender is owner
@@ -217,45 +215,36 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         }
     }
 
-    /// @notice checks that msg.sender is strategiest
-    function _onlyStrategiest() private view {
-        if (!isStrategiest[msg.sender]) {
-            revert NotStrategiest();
+    /////// ONLY OWNER FUNCTIONS
+
+    /// @notice sets pools NFT Image
+    /// @param _poolsNFTLens address of poolsNFTLens
+    function setPoolsNFTLens(address _poolsNFTLens) external override {
+        _onlyOwner();
+        poolsNFTLens = IPoolsNFTLens(_poolsNFTLens);
+        if (address(poolsNFTLens.poolsNFT()) != address(this)) {
+            revert NotMatchPoolsNFT();
         }
     }
 
-    /////// ONLY STRATEGIEST FUNCTIONS
-
-    /// @notice set stop on strategy with `strategyId`
-    /// @param strategyId id of strategy
-    /// @param _isStrategyStopped is strategy stopped. true - stopped. false - not stopped
-    function setStrategyStopped(uint16 strategyId, bool _isStrategyStopped) public override {
-        _onlyStrategiest();
-        isStrategyStopped[strategyId] = _isStrategyStopped;
-    }
-
-    /////// ONLY OWNER FUNCTIONS
-
-    /// @notice sets strategiest
-    /// @param strategiest address of strategiest
-    /// @param _isStrategiest true if strategiest, false if not strategiest
-    function setStrategiest(address strategiest, bool _isStrategiest) public override {
-        _onlyOwner();
-        isStrategiest[strategiest] = _isStrategiest;
-    }
-
-    /// @notice sets base URI
-    /// @param _baseURI string with baseURI
-    function setBaseURI(string memory _baseURI) external override {
-        _onlyOwner();
-        baseURI = _baseURI;
-    }
-
     /// @notice sets pools NFT Image
-    /// @param _poolsNFTImage address of poolsNFTImage
-    function setPoolsNFTImage(address _poolsNFTImage) external override {
+    /// @param _grETH address of grETH
+    function setGRETH(address _grETH) external override {
         _onlyOwner();
-        poolsNFTImage = IPoolsNFTImage(_poolsNFTImage);
+        grETH = IGRETH(_grETH);
+        if (address(grETH.poolsNFT()) != address(this)) {
+            revert NotMatchPoolsNFT();
+        }
+    }
+
+    /// @notice sets grinder AI
+    /// @param _grinderAI address of grinder AI 
+    function setGrinderAI(address _grinderAI) external override {
+        _onlyOwner();
+        grinderAI = IGrinderAI(_grinderAI);
+        if (address(grinderAI.poolsNFT()) != address(this)) {
+            revert NotMatchPoolsNFT();
+        }
     }
 
     /// @notice sets minimum deposit
@@ -347,10 +336,18 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @notice set factrory strategy
     /// @dev callable only by strategiest
     function setStrategyFactory(address _strategyFactory) external override {
-        _onlyStrategiest();
+        _onlyOwner();
         uint16 strategyId = IStrategyFactory(_strategyFactory).strategyId();
         strategyFactory[strategyId] = _strategyFactory;
         isStrategyStopped[strategyId] = false;
+    }
+
+    /// @notice set stop on strategy with `strategyId`
+    /// @param strategyId id of strategy
+    /// @param _isStrategyStopped is strategy stopped. true - stopped. false - not stopped
+    function setStrategyStopped(uint16 strategyId, bool _isStrategyStopped) public override {
+        _onlyOwner();
+        isStrategyStopped[strategyId] = _isStrategyStopped;
     }
 
     /////// PUBLIC FUNCTIONS
@@ -516,11 +513,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         _onlyOwnerOf(poolId);
         IStrategy pool = IStrategy(pools[poolId]);
         (quoteTokenAmount, baseTokenAmount) = pool.exit();
-        address poolNFTRecipient = getRoyaltyReceiver(poolId);
-        if (poolNFTRecipient == ownerOf(poolId)) {
-            poolNFTRecipient = owner; // tranfer to protocol owner
-        }
-        transferFrom(ownerOf(poolId), poolNFTRecipient, poolId);
         IToken quoteToken = pool.quoteToken();
         _decreaseTotalDeposited(address(quoteToken), deposited[poolId][address(quoteToken)]);
         deposited[poolId][address(quoteToken)] = 0;
@@ -579,9 +571,13 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev only owner or AI-agent of pools can rebalance with equal strategy id
     /// @param poolId0 pool id of pool to rebalance
     /// @param poolId1 pool id of pool to rebalance
+    /// @param rebalance0 left fraction of rebalanced amount
+    /// @param rebalance1 right fraction of rebalanced amount
     function rebalance(
         uint256 poolId0,
-        uint256 poolId1
+        uint256 poolId1,
+        uint8 rebalance0,
+        uint8 rebalance1
     ) external override {
         if (ownerOf(poolId0) != ownerOf(poolId1)) {
             revert DifferentOwnersOfPools();
@@ -591,35 +587,37 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         }
         IStrategy pool0 = IStrategy(pools[poolId0]);
         IStrategy pool1 = IStrategy(pools[poolId1]);
-        IToken pool0BaseToken = pool0.baseToken();
-        IToken pool1BaseToken = pool1.baseToken();
         if (address(pool0.quoteToken()) != address(pool1.quoteToken())) {
             revert DifferentQuoteTokens();
         }
-        if (address(pool0BaseToken) != address(pool1BaseToken)) {
+        if (address(pool0.baseToken()) != address(pool1.baseToken())) {
             revert DifferentBaseTokens();
         }
 
         (uint256 baseTokenAmount0, uint256 price0) = pool0.beforeRebalance();
-        pool0BaseToken.safeTransferFrom(address(pool0), address(this), baseTokenAmount0);
+        pool0.baseToken().safeTransferFrom(address(pool0), address(this), baseTokenAmount0);
         (uint256 baseTokenAmount1, uint256 price1) = pool1.beforeRebalance();
-        pool1BaseToken.safeTransferFrom(address(pool1), address(this), baseTokenAmount1);
+        pool1.baseToken().safeTransferFrom(address(pool1), address(this), baseTokenAmount1);
 
         // second step: rebalance
         uint256 totalBaseTokenAmount = baseTokenAmount0 + baseTokenAmount1;
-        uint256 rebalancedPrice = (baseTokenAmount0 * price0 + baseTokenAmount1 * price1) / totalBaseTokenAmount;
-        uint256 newBaseTokenAmount0 = totalBaseTokenAmount / 2;
+        uint256 rebalancedPrice = ((baseTokenAmount0 * price0) + (baseTokenAmount1 * price1)) / totalBaseTokenAmount;
+        uint256 newBaseTokenAmount0 = (rebalance0 * totalBaseTokenAmount) / (rebalance0 + rebalance1);
         uint256 newBaseTokenAmount1 = totalBaseTokenAmount - newBaseTokenAmount0;
 
-        pool0BaseToken.forceApprove(
-            address(pool0),
-            newBaseTokenAmount0
-        );
-        pool1BaseToken.forceApprove(
-            address(pool1),
-            newBaseTokenAmount1
-        );
+        if (newBaseTokenAmount0 > 0) {
+            pool0.baseToken().forceApprove(
+                address(pool0),
+                newBaseTokenAmount0
+            );
+        }
         pool0.afterRebalance(newBaseTokenAmount0, rebalancedPrice);
+        if (newBaseTokenAmount1 > 0) {
+            pool1.baseToken().forceApprove(
+                address(pool1),
+                newBaseTokenAmount1
+            );
+        }
         pool1.afterRebalance(newBaseTokenAmount1, rebalancedPrice);
         emit Rebalance(
             poolId0,
@@ -897,6 +895,10 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         grethShares[3] = grethReward - (grethShares[0] + grethShares[1] + grethShares[2]);
     }
 
+    function baseURI() public view returns (string memory) {
+        return poolsNFTLens.baseURI();
+    }
+
     /// @notice returns tokenURI of `tokenId`
     /// @param poolId pool id of pool in array `pools`
     /// @return uri unified reference indentificator for `tokenId`
@@ -909,13 +911,17 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         returns (string memory uri)
     {
         _requireOwned(poolId);
-        if (address(poolsNFTImage) == address(0)) {
-            // https://raw.githubusercontent.com/TriplePanicLabs/GrindURUS-PoolsNFTsData/refs/heads/main/arbitrum/{poolId}.json
-            string memory path = string.concat(baseURI, poolId.toString());
-            uri = string.concat(path, ".json");
-        } else {
-            uri = poolsNFTImage.URI(poolId);
-        }
+        uri = poolsNFTLens.tokenURI(poolId);
+    }
+
+    /// @notice return the name of PoolsNFT
+    function name() public pure override returns (string memory) {
+        return "GrindURUS Pools Collection";
+    }
+
+    /// @notice return the symbol of PoolsNFT
+    function symbol() public pure override returns (string memory) {
+        return "GRINDURUS_POOLS";
     }
 
     /// @inheritdoc ERC721
@@ -940,7 +946,15 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @notice return true, if `_agent` is agent of `_ownerOf`. Else false
     /// @dev `_ownerOf` is agent of `_ownerOf`. Approved `_agent` of `_ownerOf` is agent
     function isAgentOf(address _ownerOf, address _agent) public view override returns (bool) {
-        return balanceOf(_ownerOf) > 0 ? (_ownerOf == _agent || _agentApprovals[_ownerOf][_agent]) : false;
+        if (balanceOf(_ownerOf) > 0) {
+            if (_agent == address(grinderAI)) {
+                return !isDisapprovedGrinderAI[_ownerOf]; // by default grinderAI is agent of ownerOf
+            } else {
+                return (_ownerOf == _agent || _agentApprovals[_ownerOf][_agent]); 
+            }
+        } else {
+            return false;
+        }
     }
 
     /// @notice return true if `_depositor` is eligible to deposit to pool
@@ -976,176 +990,67 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     /// @notice get pool nft info by pool ids
     /// @param _poolIds array of poolIds
-    function getPoolNFTInfosBy(uint256[] memory _poolIds) external view override returns (PoolNFTInfo[] memory poolInfos) {
-        uint256 poolIdsLen = _poolIds.length;
-        poolInfos = new PoolNFTInfo[](poolIdsLen);
-        uint256 poolInfosId = 0;
-        for (; poolInfosId < poolIdsLen; ) {
-            poolInfos[poolInfosId] = _formPoolInfo(_poolIds[poolInfosId]);
-            unchecked {
-                ++poolInfosId;
-            }
-        }
+    function getPoolNFTInfosBy(uint256[] memory _poolIds) public view override returns (IPoolsNFTLens.PoolNFTInfo[] memory poolNFTInfos) {
+        return poolsNFTLens.getPoolNFTInfosBy(_poolIds);
     }
 
-    /// @notice forms pool info
-    /// @param poolId id of pool
-    function _formPoolInfo(uint256 poolId) private view returns (PoolNFTInfo memory poolInfo) {
-        IStrategy pool = IStrategy(pools[poolId]);
-        (
-            uint256 quoteTokenYieldProfit,
-            uint256 baseTokenYieldProfit,
-            uint256 quoteTokenTradeProfit,
-            uint256 baseTokenTradeProfit
-        ) = pool.getTotalProfits();
-        (uint256 APRNumerator, uint256 APRDenominator) = pool.APR();
-        (,,,,,uint256 newRoyaltyPrice) = calcRoyaltyPriceShares(poolId);
-        poolInfo = PoolNFTInfo({
-            poolId: poolId,
-            config: _formConfig(poolId),
-            strategyId: pool.strategyId(),
-            pool: address(pool),
-            oracleQuoteTokenPerFeeToken: address(pool.oracleQuoteTokenPerFeeToken()),
-            oracleQuoteTokenPerBaseToken: address(pool.oracleQuoteTokenPerBaseToken()),
-            quoteToken: address(pool.getQuoteToken()),
-            baseToken: address(pool.getBaseToken()),
-            quoteTokenSymbol: pool.getQuoteToken().symbol(),
-            baseTokenSymbol: pool.getBaseToken().symbol(),
-            quoteTokenAmount: pool.getQuoteTokenAmount(),
-            baseTokenAmount: pool.getBaseTokenAmount(),
-            quoteTokenYieldProfit: quoteTokenYieldProfit,
-            baseTokenYieldProfit: baseTokenYieldProfit,
-            quoteTokenTradeProfit: quoteTokenTradeProfit,
-            baseTokenTradeProfit: baseTokenTradeProfit,
-            APRNumerator: APRNumerator,
-            APRDenominator: APRDenominator,
-            activeCapital: pool.getActiveCapital(),
-            royaltyPrice: newRoyaltyPrice
-        });
-    }
-
-    /// @notice forms config structure for `getPoolNFTInfos`
-    /// @param poolId id of pool
-    function _formConfig(uint256 poolId) private view returns (IURUS.Config memory) {
-        (
-            uint8 longNumberMax,
-            uint8 hedgeNumberMax,
-            uint256 extraCoef,
-            uint256 priceVolatilityPercent,
-            uint256 initHedgeSellPercent,
-            uint256 returnPercentLongSell,
-            uint256 returnPercentHedgeSell,
-            uint256 returnPercentHedgeRebuy
-        ) = getConfig(poolId);
-        return IURUS.Config({
-            longNumberMax: longNumberMax,
-            hedgeNumberMax: hedgeNumberMax,
-            extraCoef: extraCoef,
-            priceVolatilityPercent: priceVolatilityPercent,
-            initHedgeSellPercent: initHedgeSellPercent,
-            returnPercentLongSell: returnPercentLongSell,
-            returnPercentHedgeSell: returnPercentHedgeSell,
-            returnPercentHedgeRebuy: returnPercentHedgeRebuy
-        });
-
-    }
-
-    /// @notice returns config
-    /// @param poolId id of pool
-    function getConfig(uint256 poolId) public view override 
-        returns (
-            uint8 longNumberMax,
-            uint8 hedgeNumberMax,
-            uint256 extraCoef,
-            uint256 priceVolatility,
-            uint256 initHedgeSellPercent,
-            uint256 returnPercentLongSell,
-            uint256 returnPercentHedgeSell,
-            uint256 returnPercentHedgeRebuy
-        ) {
-        (
-            longNumberMax,
-            hedgeNumberMax,
-            extraCoef,
-            priceVolatility,
-            initHedgeSellPercent,
-            returnPercentLongSell,
-            returnPercentHedgeSell,
-            returnPercentHedgeRebuy
-        ) = IStrategy(pools[poolId]).getConfig();
-    }
-
-    /// @notice returns positions of strategy
+    /// @notice get pools config
     /// @param poolId pool id of pool in array `pools`
-    function getPositions(uint256 poolId) public view override returns(IURUS.Position memory long, IURUS.Position memory hedge) {
-        uint8 number;
-        uint8 numberMax;
-        uint256 priceMin;
-        uint256 liquidity;
-        uint256 qty;
-        uint256 price;
-        uint256 feeQty;
-        uint256 feePrice; 
-        (
-            number,
-            numberMax,
-            priceMin,
-            liquidity,
-            qty,
-            price,
-            feeQty,
-            feePrice
-        ) = IStrategy(pools[poolId]).getLong();
-        long = IURUS.Position({
-            number: number,
-            numberMax: numberMax,
-            priceMin: priceMin,
-            liquidity: liquidity,
-            qty: qty,
-            price: price,
-            feeQty: feeQty,
-            feePrice: feePrice
-        });
-        (
-            number,
-            numberMax,
-            priceMin,
-            liquidity,
-            qty,
-            price,
-            feeQty,
-            feePrice
-        ) = IStrategy(pools[poolId]).getHedge();
-        hedge = IURUS.Position({
-            number: number,
-            numberMax: numberMax,
-            priceMin: priceMin,
-            liquidity: liquidity,
-            qty: qty,
-            price: price,
-            feeQty: feeQty,
-            feePrice: feePrice
-        });
-    }
-
-    /// @notice get thresholds of pool with `poolId`
-    /// @param poolId pool id of pool in array `pools`
-    function getThresholds(uint256 poolId) external view override
+    function getConfig(uint256 poolId) public view override
         returns (
-            uint256 /** longBuyPriceMin, */,
-            uint256 /** longSellQuoteTokenAmountThreshold, */,
-            uint256 /** longSellSwapPriceThreshold, */,
-            uint256 /** hedgeSellInitPriceThresholdHigh */,
-            uint256 /** hedgeSellInitPriceThresholdLow */,
-            uint256 /** hedgeSellLiquidity, */,
-            uint256 /** hedgeSellQuoteTokenAmountThreshold, */,
-            uint256 /** hedgeSellTargetPrice, */,
-            uint256 /** hedgeSellSwapPriceThreshold, */,
-            uint256 /** hedgeRebuyBaseTokenAmountThreshold, */,
-            uint256 /** hedgeRebuySwapPriceThreshold */
+            uint8 /** longNumberMax,*/,
+            uint8 /** hedgeNumberMax,*/,
+            uint256 /** extraCoef,*/,
+            uint256 /** priceVolatility,*/,
+            uint256 /** returnPercentLongSell,*/,
+            uint256 /** returnPercentHedgeSell,*/,
+            uint256 /** returnPercentHedgeRebuy*/
         )
     {
-        return IStrategy(pools[poolId]).getThresholds();
+        return poolsNFTLens.getConfig(poolId);
+    }
+
+    /// @notice get pools fee config
+    /// @param poolId pool id of pool in array `pools`
+    function getFeeConfig(uint256 poolId) external view 
+        returns (
+            uint256 /** longSellFeeCoef */,
+            uint256 /** hedgeSellFeeCoef */,
+            uint256 /** hedgeRebuyFeeCoef */
+        ) 
+    {
+        return poolsNFTLens.getFeeConfig(poolId);
+    }
+
+    /// @notice get pools positions
+    /// @param poolId pool id of pool in array `pools`
+    function getPositions(uint256 poolId) public view override 
+        returns(
+            IURUS.Position memory long,
+            IURUS.Position memory hedge
+        )
+    {
+        return poolsNFTLens.getPositions(poolId);
+    }
+
+    /// @notice gets pool thresholds
+    /// @param poolId pool id of pool in array `pools`
+    function getThresholds(uint256 poolId) public view override
+        returns (
+            uint256 /**longBuyPriceMin */,
+            uint256 /**longSellQuoteTokenAmountThreshold */,
+            uint256 /**longSellSwapPriceThreshold */,
+            uint256 /**hedgeSellInitPriceThresholdHigh */,
+            uint256 /**hedgeSellInitPriceThresholdLow */,
+            uint256 /**hedgeSellLiquidity */,
+            uint256 /**hedgeSellQuoteTokenAmountThreshold */,
+            uint256 /**hedgeSellTargetPrice */,
+            uint256 /**hedgeSellSwapPriceThreshold */,
+            uint256 /**hedgeRebuyBaseTokenAmountThreshold */,
+            uint256 /**hedgeRebuySwapPriceThreshold */
+        )
+    {
+        return poolsNFTLens.getThresholds(poolId);
     }
 
     /// @notice execute any transaction on target smart contract
@@ -1156,6 +1061,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function execute(address target, uint256 value, bytes memory data) public override {
         _onlyOwner();
         (bool success, ) = target.call{value: value}(data);
+        success;
     }
 
     receive() external payable {

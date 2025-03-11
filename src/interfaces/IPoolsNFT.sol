@@ -5,11 +5,13 @@ import {IGRETH} from "src/interfaces/IGRETH.sol";
 import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol"; // NFT
 import {IERC2981} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
 import {IURUS} from "src/interfaces/IURUS.sol";
+import {IPoolsNFTLens} from "src/interfaces/IPoolsNFTLens.sol";
 
 interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
     error NotOwnerOrPending();
     error NotOwnerOf();
+    error NotMatchPoolsNFT();
     error NotStrategiest();
     error NotDepositor();
     error NotAgent();
@@ -61,32 +63,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     event BuyRoyalty(uint256 poolId, address buyer, uint256 paidPrice);
 
-    struct PoolNFTInfo {
-        uint256 poolId;
-        IURUS.Config config;
-        uint256 strategyId;
-        address pool;
-        address oracleQuoteTokenPerFeeToken;
-        address oracleQuoteTokenPerBaseToken;
-        address quoteToken;
-        address baseToken;
-        string quoteTokenSymbol;
-        string baseTokenSymbol;
-        uint256 quoteTokenAmount;
-        uint256 baseTokenAmount;
-        /// yield and trade profits
-        uint256 quoteTokenYieldProfit;
-        uint256 baseTokenYieldProfit;
-        uint256 quoteTokenTradeProfit;
-        uint256 baseTokenTradeProfit;
-        /// APR
-        uint256 APRNumerator;
-        uint256 APRDenominator;
-        uint256 activeCapital;
-        /// royalty price
-        uint256 royaltyPrice;
-    }
-
     //// ROYALTY PRICE SHARES
 
     function royaltyPriceCompensationShareNumerator() external view returns (uint16);
@@ -125,13 +101,9 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function isStrategyStopped(uint16 stratrgyId) external view returns (bool);
 
-    function baseURI() external view returns (string memory);
-
     function totalPools() external view returns (uint256);
 
     function grETH() external view returns (IGRETH);
-
-    function isStrategiest(address strategiest) external view returns (bool);
 
     function strategyFactory(uint16 strategyId) external view returns (address);
 
@@ -152,8 +124,10 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function minDeposit(address token) external view returns (uint256);
 
     function tokenCap(address token) external view returns (uint256);
+    
+    function isDisapprovedGrinderAI(address ownerOf) external view returns (bool);
 
-    function init(address _grETH) external;
+    function init(address _poolsNFTLens, address _grETH, address _grinderAI) external;
 
     //// ONLY STRATEGIEST FUNCTIONS
     
@@ -163,15 +137,15 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     //// ONLY OWNER FUNCTIONS
 
-    function setStrategiest(address strategiest, bool _isStrategiest) external;
+    function setPoolsNFTLens(address _poolsNFTLens) external;
+
+    function setGRETH(address _grETH) external;
+
+    function setGrinderAI(address _grinderAI) external;
 
     function setMinDeposit(address token, uint256 _minDeposit) external;
 
     function setTokenCap(address token, uint256 _tokenCap) external;
-
-    function setBaseURI(string memory _baseURI) external;
-
-    function setPoolsNFTImage(address _poolsNFTImage) external;
 
     function setRoyaltyShares(
         uint16 _poolOwnerRoyaltyShareNumerator,
@@ -217,7 +191,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function deposit(
         uint256 poolId,
-        uint256 quoteTokenAmount
+        uint256 quoteTokenAmountx
     ) external returns (uint256 deposited);
 
     function withdraw(
@@ -237,7 +211,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function setAgent(address _agent, bool _agentApproval) external;
 
-    function rebalance(uint256 poolIdLeft, uint256 poolIdRight) external;
+    function rebalance(uint256 poolIdLeft, uint256 poolIdRight, uint8 rebalanceLeft, uint8 rebalnceRight) external;
 
     function grind(uint256 poolId) external returns (bool isGrinded);
 
@@ -309,36 +283,45 @@ interface IPoolsNFT is IERC721, IERC2981 {
             uint256[] memory poolIdsOwnedByPoolOwner
         );
 
-    function getPoolNFTInfosBy(uint256[] memory _poolIds) external view returns (PoolNFTInfo[] memory poolInfos);
-
-    function getConfig(uint256 poolId) external view 
-        returns (
-            uint8 longNumberMax,
-            uint8 hedgeNumberMax,
-            uint256 priceVolatility,
-            uint256 initHedgeSellPercent,
-            uint256 extraCoef,
-            uint256 returnPercentLongSell,
-            uint256 returnPercentHedgeSell,
-            uint256 returnPercentHedgeRebuy
-        );
+    function getPoolNFTInfosBy(
+        uint256[] memory _poolIds
+    ) external view returns (IPoolsNFTLens.PoolNFTInfo[] memory poolNFTInfos);
 
     function getPositions(uint256 poolId) external view returns(IURUS.Position memory long, IURUS.Position memory hedge);
 
+    function getConfig(uint256 poolId) external view 
+        returns (
+            uint8 /** longNumberMax,*/,
+            uint8 /** hedgeNumberMax,*/,
+            uint256 /** extraCoef,*/,
+            uint256 /** priceVolatility,*/,
+            uint256 /** returnPercentLongSell,*/,
+            uint256 /** returnPercentHedgeSell,*/,
+            uint256 /** returnPercentHedgeRebuy*/
+        );
+
+    function getFeeConfig(uint256 poolId) external view 
+        returns (
+            uint256 /** */,
+            uint256 /** */,
+            uint256 /** */
+        );
+
     function getThresholds(uint256 poolId) external view 
         returns (
-            uint256 longBuyPriceMin,
-            uint256 longSellQuoteTokenAmountThreshold,
-            uint256 longSellSwapPriceThreshold,
-            uint256 hedgeSellInitPriceThresholdHigh,
-            uint256 hedgeSellInitPriceThresholdLow ,
-            uint256 hedgeSellLiquidity,
-            uint256 hedgeSellQuoteTokenAmountThreshold,
-            uint256 hedgeSellTargetPrice,
-            uint256 hedgeSellSwapPriceThreshold,
-            uint256 hedgeRebuyBaseTokenAmountThreshold,
-            uint256 hedgeRebuySwapPriceThreshold
+            uint256 /**longBuyPriceMin */,
+            uint256 /**longSellQuoteTokenAmountThreshold */,
+            uint256 /**longSellSwapPriceThreshold */,
+            uint256 /**hedgeSellInitPriceThresholdHigh */,
+            uint256 /**hedgeSellInitPriceThresholdLow */,
+            uint256 /**hedgeSellLiquidity */,
+            uint256 /**hedgeSellQuoteTokenAmountThreshold */,
+            uint256 /**hedgeSellTargetPrice */,
+            uint256 /**hedgeSellSwapPriceThreshold */,
+            uint256 /**hedgeRebuyBaseTokenAmountThreshold */,
+            uint256 /**hedgeRebuySwapPriceThreshold */
         );
+
     function execute(address target, uint256 value, bytes memory data) external;
 
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {ILendingAdapter, IToken} from "../../interfaces/ILendingAdapter.sol";
+import {ILendingAdapter, IToken} from "src/interfaces/ILendingAdapter.sol";
 
 /// @title NoLendingAdapter
 /// @notice No adapter to lending protocol. Just store funds on this contract
