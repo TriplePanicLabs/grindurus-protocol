@@ -13,14 +13,14 @@ contract TestAAVEV3AdapterArbitrum is AAVEV3AdapterArbitrum {
     function put(
         IToken token,
         uint256 amount
-    ) public override returns (uint256 putAmount) {
+    ) public returns (uint256 putAmount) {
         putAmount = _put(token, amount);
     }
 
     function take(
         IToken token,
         uint256 amount
-    ) public override returns (uint256 takeAmount) {
+    ) public returns (uint256 takeAmount) {
         takeAmount = _take(token, amount);
     }
 }

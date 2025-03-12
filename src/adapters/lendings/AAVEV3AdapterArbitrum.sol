@@ -64,24 +64,6 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         return IAAVEV3AToken(reserveData.aTokenAddress);
     }
 
-    /// @dev no direct function call. Will revert
-    function put(
-        IToken token,
-        uint256 amount
-    ) public virtual override returns (uint256 putAmount) {
-        token; amount; putAmount;
-        revert();
-    }
-
-    /// @dev no direct function call. Will revert
-    function take(
-        IToken token,
-        uint256 amount
-    ) public virtual override returns (uint256 takeAmount) {
-        token; amount; takeAmount;
-        revert();
-    }
-
     /// @notice puts in `token` to lending protocol
     /// @param token address of `baseToken` or `quoteToken`
     /// @param amount amount of `baseToken` or `quoteToken`
@@ -91,12 +73,11 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         uint256 amount
     ) internal virtual returns (uint256 putAmount) {
         token.forceApprove(address(aaveV3Pool), amount);
-        address onBehalfOf = address(this);
-        uint256 tokenBalanceBefore = token.balanceOf(onBehalfOf);
+        uint256 tokenBalanceBefore = token.balanceOf(address(this));
 
-        try aaveV3Pool.supply(address(token), amount, onBehalfOf, 0) {
+        try aaveV3Pool.supply(address(token), amount, address(this), 0) {
             // uint16 refferalCode = 0;
-            uint256 tokenBalanceAfter = token.balanceOf(onBehalfOf);
+            uint256 tokenBalanceAfter = token.balanceOf(address(this));
             putAmount = tokenBalanceBefore - tokenBalanceAfter;
         } catch {
             // no supply, hold token on this smart contract
@@ -114,11 +95,10 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         IToken token,
         uint256 amount
     ) internal virtual returns (uint256 takeAmount) {
-        address to = address(this);
-        uint256 tokenBalanceBefore = token.balanceOf(to);
+        uint256 tokenBalanceBefore = token.balanceOf(address(this));
 
-        try aaveV3Pool.withdraw(address(token), type(uint256).max, to) {
-            uint256 tokenBalanceAfter = token.balanceOf(to);
+        try aaveV3Pool.withdraw(address(token), type(uint256).max, address(this)) {
+            uint256 tokenBalanceAfter = token.balanceOf(address(this));
             uint256 tokenAmount = tokenBalanceAfter - tokenBalanceBefore; // available tokens
             uint256 investedTokenAmount = investedAmount[token];
             // distribute yield profit
@@ -134,13 +114,15 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
             if (tokenAmount > 0) {
                 // put back unused
                 token.forceApprove(address(aaveV3Pool), tokenAmount);
-                try aaveV3Pool.supply(address(token), tokenAmount, to, 0)
+                try aaveV3Pool.supply(address(token), tokenAmount, address(this), 0)
                 {} catch {}
             }
             takeAmount = amount;
         } catch {
             // no withdraw, take token on this smart contract
-            takeAmount = amount;
+            if (amount <= token.balanceOf(address(this))) {
+                takeAmount = amount;
+            }
         }
         if (investedAmount[token] >= takeAmount) {
             investedAmount[token] -= takeAmount;
