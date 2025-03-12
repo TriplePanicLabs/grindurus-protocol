@@ -530,6 +530,11 @@ The deployment is implemented in scripts and handled by foundry framework.
 $ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript
 ```
 
+Apply .env
+```shell
+$ source .env
+```
+
 ### Arbitrum mainnet deployment
 ```shell
 $ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY 
