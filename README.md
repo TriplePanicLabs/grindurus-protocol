@@ -11,11 +11,12 @@ Automated onchain yield harvesting and strategy trade protocol. Fully implemente
 
 Architeture:
 1. PoolsNFT - enumerates all strategy pools. The gateway to the standartized interaction with strategy pools.
-2. URUSCore - implements all URUS algorithm logic
-3. Registry - storage of quote tokens, base tokens and oracles
-4. GRETH - ERC20 token that stands as incentivization for `grind` and implement the index of profit
-5. Strategy - logic that utilize URUSCore + interaction with onchain protocols
-6. FactoryStrategy - factory, that include strategy and deploys strategy as isolated smart contract
+2. PoolsNFTLens - lens contract that retrieves data from PoolsNFT and Strategies
+3. URUSCore - implements all URUS algorithm logic
+4. Registry - storage of quote tokens, base tokens and oracles
+5. GRETH - ERC20 token that stands as incentivization for `grind` and implement the index of collected profit
+6. Strategy - logic that utilize URUSCore + interaction with onchain protocols
+7. FactoryStrategy - factory, that include strategy and deploys strategy as isolated smart contract
 
 
 # PoolsNFT
@@ -37,15 +38,11 @@ Architeture:
 ## Roles
 ### Owner Role
 The `owner` has the highest level of authority in the contract and is responsible for administrative operations, governance, and configuration. The key responsibilities of the `owner` include:
-- **Managing Strategists**: Granting and revoking strategist permissions via `setStrategiest`.
 - **Configuring Royalties**: Adjusting royalty-related parameters, such as shares for pool owners, grinders, reserves, and royalty receivers, using functions like `setRoyaltyShares` and `setRoyaltyPriceShares`.
 - **Updating Protocol Parameters**: Setting deposit caps (`setTokenCap`), minimum deposits (`setMinDeposit`), and other critical limits.
 - **Managing Metadata**: Defining the base URI for the NFT metadata with `setBaseURI`.
 - **Adding Strategies**: Listing new strategies by associating `strategyId`s with factories using `setStrategyFactory`.
 - **Transferring Ownership**: Delegating contract ownership to another account, including the support for pending ownership.
-
-### Strategiest Role
-The `strategist` is a trusted user who can create, modify, and disable trading strategies. This role is crucial for managing the pool strategies and ensuring the protocol operates as intended. Responsibilities include:
 - **Registering Strategies**: Deploying and associating new strategy implementations using `setStrategyFactory`.
 - **Disabling Strategies**: Stopping strategies deemed invalid or harmful by calling `setStrategyStopped`.
 
@@ -292,17 +289,7 @@ The `Config` structure contains the following parameters:
       - Volatility: 1%
       - Trigger price: $990 (for buy), $1,010 (for hedge sell)
 
-### 5. `initHedgeSellPercent`
-- **Description**: The percentage used to calculate the initial hedge sell threshold.
-- **Purpose**: Sets the range for initiating hedge operations.
-- **Example**:
-  - If `initHedgeSellPercent = 50` (0.5%):
-    - Hedge sell triggers when price falls by 0.5% from the calculated threshold.
-    - **Scenario**:
-      - Threshold: $1,000
-      - Trigger price: $995
-
-### 6. `returnPercentLongSell`
+### 5. `returnPercentLongSell`
 - **Description**: The required return percentage to execute a profitable `long_sell`.
 - **Purpose**: Ensures that long positions are sold only when a certain profit margin is achieved.
 - **Example**:
@@ -336,8 +323,7 @@ Changes to the `Config` structure can only be made by authorized roles, such as 
 3. **`setHedgeNumberMax`**: Updates the maximum number of hedge positions.
 4. **`setExtraCoef`**: Updates the multiplier for liquidity calculations.
 5. **`setPriceVolatilityPercent`**: Updates the allowed price volatility.
-6. **`setInitHedgeSellPercent`**: Updates the initial hedge sell percentage.
-7. **`setOpReturnPercent`**: Updates the return percentage for specific operations.
+6. **`setOpReturnPercent`**: Updates the return percentage for specific operations.
 
 
 ## 6. Long Position
