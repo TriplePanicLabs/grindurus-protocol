@@ -1185,12 +1185,14 @@ contract URUS is IURUS {
         ) {
         if (long.number == 0) {
             return (0,0,0,0,0,0,0,0,0,0,0);
+        } 
+        if (long.number > 0 && hedge.number == 0) {
+            longBuyPriceMin = calcLongPriceMin();
+            (longSellQuoteTokenAmountThreshold, longSellSwapPriceThreshold) = calcLongSellThreshold();
         }
-        longBuyPriceMin = calcLongPriceMin();
-        (longSellQuoteTokenAmountThreshold, longSellSwapPriceThreshold) =  calcLongSellThreshold();
-        if (long.number == long.numberMax) {
+        if (long.number == long.numberMax && hedge.number == 0) {
             (hedgeSellInitPriceThresholdHigh, hedgeSellInitPriceThresholdLow) = calcHedgeSellInitBounds();
-        }
+        } 
         if (hedge.number > 0) {
             (
                 hedgeSellLiquidity,
