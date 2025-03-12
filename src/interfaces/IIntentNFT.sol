@@ -8,6 +8,9 @@ interface IIntentNFT {
     error BelowMinPeriod();
 
     event SetRatePerOneDay(address token, uint256 _ratePerOneDay);
+    event Mint(uint256 intentId, address to, uint256 expire);
+    event Extended(uint256 intentId, address to, uint256 newExpire);
+    event Pay(address paymentToken, address payer, uint256 paymentAmount);
 
     function ONE_DAY() external view returns (uint256);
 

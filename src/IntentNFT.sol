@@ -102,6 +102,7 @@ contract IntentNFT is IIntentNFT, ERC721 {
             intentIdOf[to] = intentId;
             _mint(to, intentId);
             totalIntents++;
+            emit Mint(intentId, to, expire[intentId]);
         } else {
             intentId = intentIdOf[to];
             uint256 blockTimestamp = block.timestamp;
@@ -110,6 +111,7 @@ contract IntentNFT is IIntentNFT, ERC721 {
             } else {
                 expire[intentId] += period;
             }
+            emit Extended(intentId, to, expire[intentId]);
         }
     }
 
@@ -145,6 +147,7 @@ contract IntentNFT is IIntentNFT, ERC721 {
             } else {
                 IToken(paymentToken).safeTransferFrom(msg.sender, receiver, paymentAmount);
             }
+            emit Pay(paymentToken, msg.sender, paymentAmount);
         }
         paid = paymentAmount;
     }
