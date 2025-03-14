@@ -62,22 +62,7 @@ contract UniswapV4AdapterArbitrum is IDexAdapter {
         (_poolManager, _fee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
     }
 
-    function _onlyOwner() internal view virtual {}
-
-    /// @notice swap
-    /// @dev revert due to security. Can be inherrited and reimplemented
-    /// @param tokenIn address of token to be swapped from
-    /// @param tokenOut address of token to be swapped to
-    /// @param amountIn amount of tokenIn to be swapped
-    function swap(
-        IToken tokenIn,
-        IToken tokenOut,
-        uint256 amountIn
-    ) public virtual override returns (uint256 amountOut) {
-        tokenIn; tokenOut; amountIn; amountOut;
-        tokenIn.safeTransferFrom(msg.sender, address(this), amountIn);
-        revert(); // no direct swap
-    }
+    function _onlyAgent() internal view virtual {}
 
     /// @notice swaps assets
     /// @param tokenIn address of tokenIn

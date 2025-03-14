@@ -7,7 +7,7 @@ import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/
 
 /// @title UniswapV3AdapterBase
 /// @notice Adapter for UniswapV3
-/// @dev adapter to UniswapV3 that inherrits by Strategy. Made for Base network
+/// @dev adapter to UniswapV3 that inherrits by Strategy. Made for Arbitrum network
 contract UniswapV3AdapterBase is IDexAdapter {
     using SafeERC20 for IToken;
 
@@ -15,7 +15,7 @@ contract UniswapV3AdapterBase is IDexAdapter {
     ISwapRouterBase public swapRouter;
 
     /// @notice fee of uniswapV3 pool
-    uint24 public fee;
+    uint24 public uniswapV3PoolFee;
 
     constructor() {}
 
@@ -27,43 +27,43 @@ contract UniswapV3AdapterBase is IDexAdapter {
         if (address(swapRouter) != address(0)) {
             revert DexInitialized();
         }
-        (address _swapRouter, uint24 _fee, address _quoteToken, address _baseToken) = decodeDexConstructorArgs(args);
+        (address _swapRouter, uint24 _uniswapV3PoolFee, address _quoteToken, address _baseToken) = decodeDexConstructorArgs(args);
 
         // infinite approve for transferFrom Uniswap
         IToken(_quoteToken).forceApprove(_swapRouter, type(uint256).max);
         IToken(_baseToken).forceApprove(_swapRouter, type(uint256).max);
 
         swapRouter = ISwapRouterBase(_swapRouter);
-        fee = _fee;
+        uniswapV3PoolFee = _uniswapV3PoolFee;
     }
 
     /// @notice encode dex constructor args
     /// @param _swapRouter address of UniswapV3 swap routers
-    /// @param _fee address of UniswapV3 pool fee
+    /// @param _uniswapV3PoolFee address of UniswapV3 pool fee
     /// @param _quoteToken address of quoteToken
     /// @param _baseToken address of baseToken
     function encodeDexConstructorArgs(
         address _swapRouter,
-        uint24 _fee,
+        uint24 _uniswapV3PoolFee,
         address _quoteToken,
         address _baseToken
     ) public pure returns (bytes memory) {
-        return abi.encode(_swapRouter, _fee, _quoteToken, _baseToken);
+        return abi.encode(_swapRouter, _uniswapV3PoolFee, _quoteToken, _baseToken);
     }
 
     /// @notice decode dex constructor args
     /// @param args encoded args of constructor via `encodeDexConstructorArgs`
     function decodeDexConstructorArgs(
         bytes memory args
-    ) public pure returns (address _swapRouter, uint24 _fee, address _quoteToken, address _baseToken) {
-        (_swapRouter, _fee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
+    ) public pure returns (address _swapRouter, uint24 _uniswapV3PoolFee, address _quoteToken, address _baseToken) {
+        (_swapRouter, _uniswapV3PoolFee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
     }
 
-    function _onlyOwner() internal view virtual {}
+    function _onlyAgent() internal view virtual {}
 
     /// @notice set swap router
     function setSwapRouter(address _swapRouter) public {
-        _onlyOwner();
+        _onlyAgent();
         getBaseToken().forceApprove(address(swapRouter), 0);
         getQuoteToken().forceApprove(address(swapRouter), 0);
         swapRouter = ISwapRouterBase(_swapRouter);
@@ -72,25 +72,10 @@ contract UniswapV3AdapterBase is IDexAdapter {
     }
 
     /// @notice set fee
-    /// @param _fee fee for uniswapV3 pool
-    function setFee(uint24 _fee) public {
-        _onlyOwner();
-        fee = _fee;
-    }
-
-    /// @notice swap
-    /// @dev revert due to security. Can be inherrited and reimplemented
-    /// @param tokenIn address of token to be swapped from
-    /// @param tokenOut address of token to be swapped to
-    /// @param amountIn amount of tokenIn to be swapped
-    function swap(
-        IToken tokenIn,
-        IToken tokenOut,
-        uint256 amountIn
-    ) public virtual override returns (uint256 amountOut) {
-        tokenIn; tokenOut; amountIn; amountOut;
-        tokenIn.safeTransferFrom(msg.sender, address(this), amountIn);
-        revert(); // no direct swap
+    /// @param _uniswapV3PoolFee fee for uniswapV3 pool
+    function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public {
+        _onlyAgent();
+        uniswapV3PoolFee = _uniswapV3PoolFee;
     }
 
     /// @notice swaps assets
@@ -108,7 +93,7 @@ contract UniswapV3AdapterBase is IDexAdapter {
             memory params = ISwapRouterBase.ExactInputSingleParams({
                 tokenIn: address(tokenIn),
                 tokenOut: address(tokenOut),
-                fee: fee,
+                fee: uniswapV3PoolFee,
                 recipient: address(this),
                 amountIn: amountIn,
                 amountOutMinimum: 0, // any amount

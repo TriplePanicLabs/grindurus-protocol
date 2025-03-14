@@ -125,7 +125,7 @@ contract URUS is IURUS {
         helper.feeTokenDecimals = feeToken.decimals();
     }
 
-    /// @dev 
+    /// @dev initialize helper of oracle
     function _initHelperOracle() private {
         helper.oracleQuoteTokenPerFeeTokenDecimals = (address(oracleQuoteTokenPerFeeToken) != address(0)) ? oracleQuoteTokenPerFeeToken.decimals() : 8;
         helper.oracleQuoteTokenPerBaseTokenDecimals = (address(oracleQuoteTokenPerBaseToken) != address(0)) ? oracleQuoteTokenPerBaseToken.decimals() : 8;
@@ -177,6 +177,7 @@ contract URUS is IURUS {
     //// ONLY AGENT //////////////////////////////////////////////////////////////////////////
 
     /// @notice sets config of strategy pool
+    /// @param conf config structure
     function setConfig(Config memory conf) public override {
         _onlyAgent();
         _checkConfig(conf);
@@ -229,7 +230,7 @@ contract URUS is IURUS {
 
     /// @notice set retunr for Op
     /// @dev if realRoi == 100.5%=1.005, than returnPercent == realRoi * helper.percentMultiplier
-    /// @param op operation to apply return
+    /// @param op operation in Op enumeration
     /// @param returnPercent return scaled by helper.percentMultiplier
     function setOpReturnPercent(uint8 op, uint256 returnPercent) public override {
         _onlyAgent();
@@ -249,6 +250,7 @@ contract URUS is IURUS {
 
     /// @notice set fee coeficient for Op
     /// @dev if realFeeCoef = 1.61, than feeConfig = realFeeCoef * helper.feeCoeficientMultiplier
+    /// @param op operation in Op enumeration
     /// @param _feeCoef fee coeficient scaled by helper.feeCoeficientMultiplier
     function setOpFeeCoef(uint8 op, uint256 _feeCoef) public override {
         _onlyAgent();
@@ -387,6 +389,8 @@ contract URUS is IURUS {
     }
 
     /// @notice distribute yield profit
+    /// @param token address of token to distribute
+    /// @param profit amount of token
     function _distributeYieldProfit(
         IToken token,
         uint256 profit
@@ -400,6 +404,8 @@ contract URUS is IURUS {
     }
 
     /// @notice distribute trade profit
+    /// @param token address of token to distribute
+    /// @param profit amount of token
     function _distributeTradeProfit(
         IToken token,
         uint256 profit
@@ -414,6 +420,8 @@ contract URUS is IURUS {
 
     /// @notice distribute profit
     /// @dev can be reimplemented in inherited contracts
+    /// @param token address of token to distribute
+    /// @param profit amount of token
     function _distributeProfit(IToken token, uint256 profit) internal virtual {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -645,7 +653,7 @@ contract URUS is IURUS {
         // 0. Verify that hedge is activated
         uint8 hedgeNumber = hedge.number;
         if (hedgeNumber == 0) {
-            revert NoHedge(); // require(hedgeNumber == 0, "Hedged!")
+            revert NoHedge();
         }
 
         // 1.1. Define how much to rebuy
@@ -655,18 +663,22 @@ contract URUS is IURUS {
         // 2.1 Swap quoteToken to baseToken
         baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
         uint256 swapPrice = calcSwapPrice(quoteTokenAmount, baseTokenAmount);
-        (uint256 baseTokenAmountThreshold, ) = calcHedgeRebuyThreshold(quoteTokenAmount);
+        (uint256 baseTokenAmountThreshold, ,uint256 hedgeLossInBaseToken, ) = calcHedgeRebuyThreshold(quoteTokenAmount);
         if (baseTokenAmount <= baseTokenAmountThreshold) {
             revert NotProfitableRebuy();
         }
-        uint256 profitPlusFees = baseTokenAmount - hedge.qty;
-        _distributeTradeProfit(baseToken, profitPlusFees);
-        baseTokenAmount -= profitPlusFees;
+        uint256 hedgeBody = hedge.qty + hedgeLossInBaseToken;
+
+        if (baseTokenAmount > hedgeBody) { // profit + fees
+            uint256 profitPlusFees = baseTokenAmount - hedgeBody;
+            _distributeTradeProfit(baseToken, profitPlusFees);
+            baseTokenAmount -= hedgeBody;
+        }
 
         // 3.1. Put the baseToken to lending protocol
         (baseTokenAmount) = _put(baseToken, baseTokenAmount);
 
-        long.price = ((long.qty * long.price) + (hedge.qty * ((swapPrice + long.price) - hedge.price))) / (long.qty + hedge.qty);
+        long.price = ((long.qty * long.price) + (baseTokenAmount * ((swapPrice + long.price) - hedge.price))) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
         long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
 
@@ -763,7 +775,7 @@ contract URUS is IURUS {
             (baseTokenAmount) = _put(baseToken, baseTokenAmount);
             long.qty = baseTokenAmount;
             long.price = newPrice;
-            long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price); // (baseTokenAmount * newPrice) / helper.oracleQuoteTokenPerBaseTokenMultiplier;
+            long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
         } else {
             helper.initLiquidity = 0;
             long = Position({
@@ -1022,12 +1034,19 @@ contract URUS is IURUS {
     function calcHedgeRebuyThreshold(uint256 quoteTokenAmount) public view override
         returns (
             uint256 baseTokenAmountThreshold,
+            uint256 hedgeLossInQuoteToken,
+            uint256 hedgeLossInBaseToken,
             uint256 hedgeRebuyPriceThreshold
         )
     {
         /**
-         * FORMULA for rebuy (Without proof, because it is simple)
-         *      h.q + fee + profit <= baseTokenAmount
+         * FORMULA for rebuy
+         *      h.q + hedgeLoss + fees + profit <= baseTokenAmount
+         */
+        /**
+         * Visual of hedge rebuy criteria
+         * |--------|------------|------------------|--------------------------|---------------------|-------------> BaseToken
+         *         h.q      h.q+hedgeLoss    h.q+hedgeLoss+fee     h.q+hedgeLoss+fee+profit   baseTokenAmount
          */
         /**
          * Rebuy fee:
@@ -1042,7 +1061,9 @@ contract URUS is IURUS {
             hedgeSellFees = calcBaseTokenByFeeToken(feeQty, hedge.feePrice);
         }
         uint256 hedgeRebuyFee = hedgeSellFees / hedge.number;
-        baseTokenAmountThreshold = ((hedge.qty + hedgeSellFees + hedgeRebuyFee) * config.returnPercentHedgeRebuy) / helper.percentMultiplier;
+        hedgeLossInQuoteToken = calcQuoteTokenByBaseToken(hedge.qty, (long.price - hedge.price));
+        hedgeLossInBaseToken = calcBaseTokenByQuoteToken(hedgeLossInQuoteToken, hedge.price);
+        baseTokenAmountThreshold = ((hedge.qty + hedgeLossInBaseToken + hedgeSellFees + hedgeRebuyFee) * config.returnPercentHedgeRebuy) / helper.percentMultiplier;
         hedgeRebuyPriceThreshold = calcSwapPrice(
             quoteTokenAmount,
             baseTokenAmountThreshold
@@ -1088,6 +1109,8 @@ contract URUS is IURUS {
     function calcHedgeRebuyThreshold() public view override
         returns (
             uint256 baseTokenAmountThreshold,
+            uint256 hedgeLossInQuoteToken,
+            uint256 hedgeLossInBaseToken,
             uint256 hedgeRebuyPriceThreshold
         )
     {
@@ -1097,6 +1120,8 @@ contract URUS is IURUS {
     //// PRICE CALCULATIONS ////////////////////////////////////////////////////////////////////////////
 
     /// @notice calculates baseTokenAmount in terms of `quoteToken` with `baseTokenPrice`
+    /// @dev quoteTokenAmount = baseTokenAmount * quoteTokenPerBaseTokenPrice
+    /// @dev [quoteTokenAmount] = baseToken * quoteToken / baseToken = quoteToken
     /// @param baseTokenAmount amount of `baseToken`
     /// @param quoteTokenPerBaseTokenPrice price of `baseToken`
     /// @return quoteTokenAmount amount of `quoteToken`
@@ -1114,6 +1139,8 @@ contract URUS is IURUS {
     }
 
     /// @notice calculate the feeTokenAmount in terms of `quoteToken`
+    /// @dev quoteTokenAmount = feeTokenAmount * quoteTokenPerFeeTokenPrice
+    /// @dev [quoteTokenAmount] = feeToken * quoteToken / feeToken = quoteToken
     /// @param feeTokenAmount amount of `feeToken`. [feeTokenAmount]=feeToken
     /// @param quoteTokenPerFeeTokenPrice price of quoteToken per feeToken. [priceQuoteTokenPerFeeToken] = quoteToken/feeToken
     function calcQuoteTokenByFeeToken(
@@ -1130,6 +1157,8 @@ contract URUS is IURUS {
     }
 
     /// @notice calculate feeTokenAmount in terms of `baseToken`
+    /// @dev baseTokenAmount = feeTokenAmount * baseTokenPerFeeTokenPrice
+    /// @dev [baseTokenAmount] = feeToken * baseToken / feeToken = baseToken
     /// @param feeTokenAmount amount of `feeToken`. [feeTokenAmount]=feeToken
     /// @param baseTokenPerFeeTokenPrice price of baseToken per feeToken. [baseTokenPerFeeTokenPrice]=baseToken/feeToken
     /// @return baseTokenAmount amount of `baseToken`
@@ -1145,22 +1174,23 @@ contract URUS is IURUS {
             baseTokenAmount = (feeTokenAmount * baseTokenPerFeeTokenPrice) / (helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - bd)));
         }
     }
-
-    /// @notice calcultes quoteTokenAmount in terms of `feeToken`
-    /// @param quoteTokenAmount amount of `quoteToken`. [quoteTokenAmount] = quoteToken
-    /// @return feeTokenAmount amount of `feeToken`
-    function calcFeeTokenByQuoteToken(
-        uint256 quoteTokenAmount
-    ) public view returns (uint256 feeTokenAmount) {
+    
+    /// @notice calculate feeTokenAmount in terms of `baseToken`
+    /// @dev baseTokenAmount = quoteTokenAmount / quoteTokenPerBaseTokenPrice
+    /// @dev [baseTokenAmount] = quoteToken / (quoteToken / baseToken) = baseToken
+    /// @param quoteTokenAmount amount of `feeToken`. [feeTokenAmount]=feeToken
+    /// @param quoteTokenPerBaseTokenPrice price of baseToken per feeToken. [baseTokenPerFeeTokenPrice]=baseToken/feeToken
+    /// @return baseTokenAmount amount of `baseToken`
+    function calcBaseTokenByQuoteToken(
+        uint256 quoteTokenAmount,
+        uint256 quoteTokenPerBaseTokenPrice
+    ) public view returns (uint256 baseTokenAmount) {
+        uint8 bd = helper.baseTokenDecimals;
         uint8 qd = helper.quoteTokenDecimals;
-        uint8 fd = helper.feeTokenDecimals;
-        uint256 quoteTokenPerFeeTokenPrice = getPriceQuoteTokensPerFeeToken(); // [feeTokenPrice] = quoteToken / feeToken
-        if (quoteTokenPerFeeTokenPrice > 0) {
-            if (fd >= qd) {
-                feeTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - qd))) / quoteTokenPerFeeTokenPrice;
-            } else {
-                feeTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerFeeTokenMultiplier) / (quoteTokenPerFeeTokenPrice * (10 ** (qd - fd)));
-            }
+        if (bd >= qd) {
+            baseTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerBaseTokenMultiplier * (10 ** (bd - qd))) / quoteTokenPerBaseTokenPrice;
+        } else {
+            baseTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerBaseTokenMultiplier) / (quoteTokenPerBaseTokenPrice * (10 ** (qd - bd)));
         }
     }
 
@@ -1200,6 +1230,8 @@ contract URUS is IURUS {
             ) = calcHedgeSellThreshold();
             (
                 hedgeRebuyBaseTokenAmountThreshold,
+                ,
+                ,
                 hedgeRebuySwapPriceThreshold
             ) = calcHedgeRebuyThreshold();
         }

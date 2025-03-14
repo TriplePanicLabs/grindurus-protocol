@@ -196,7 +196,13 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         /// HEDGE SELLING to the end
 
-        mockSwapRouter.setRate(2140 * 10 ** 8); // Decrease price further
+        (thresholdHigh, thresholdLow) = pool0.calcHedgeSellInitBounds();
+        
+        console.log();
+        console.log("HedgeSell High: ", uintToDecimal(thresholdHigh,8));
+        console.log("HedgeSell Low:  ", uintToDecimal(thresholdLow,8));
+
+        mockSwapRouter.setRate(2180 * 10 ** 8); // Decrease price further
         console.log("12) Price set to 2140");
         poolsNFT.grind(poolId0);
         console.log("13) Init hedge sell");
@@ -207,8 +213,8 @@ contract URUSStrategy1ArbitrumTest is Test {
         assert(hqty13 > 0); // initialize hedge position
         assert(hprice13 > 0); // initialize hedge position
 
-        mockSwapRouter.setRate(2200 * 10 ** 8);
-        console.log("14) Price set to 2200");
+        mockSwapRouter.setRate(2240 * 10 ** 8);
+        console.log("14) Price set to 2240");
         poolsNFT.grind(poolId0);
         console.log("15) Hedge sell");
         printLongPosition(poolId0);

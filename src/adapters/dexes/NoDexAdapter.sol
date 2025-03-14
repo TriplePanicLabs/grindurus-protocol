@@ -30,22 +30,7 @@ contract NoDexAdapter is IDexAdapter {
         (arg) = abi.decode(args, (string));
     } 
 
-    function _onlyPoolOwner() internal view virtual {}
-
-    /// @notice swaps assets
-    /// @param tokenIn address of tokenIn
-    /// @param tokenOut address of token out
-    /// @param amountIn amount of tokenIn
-    /// @return amountOut amount of tokenOut
-    function swap(
-        IToken tokenIn,
-        IToken tokenOut,
-        uint256 amountIn
-    ) public override returns (uint256 amountOut) {
-        tokenIn; tokenOut; amountIn; amountOut;
-        tokenIn.safeTransferFrom(msg.sender, address(this), amountIn);
-        revert();
-    }
+    function _onlyAgent() internal view virtual {}
 
     /// @notice swaps assets
     /// @param tokenIn address of tokenIn

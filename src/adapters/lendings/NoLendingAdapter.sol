@@ -7,7 +7,7 @@ import {ILendingAdapter, IToken} from "src/interfaces/ILendingAdapter.sol";
 /// @notice No adapter to lending protocol. Just store funds on this contract
 contract NoLendingAdapter is ILendingAdapter {
 
-    function _onlyOwner() internal view virtual {}
+    function _onlyAgent() internal view virtual {}
 
     function _put(
         IToken token,

@@ -6,9 +6,10 @@ import {IToken} from "./IToken.sol";
 interface IDexAdapter {
     error DexInitialized();
 
-    function swap(
-        IToken tokenIn,
-        IToken tokenOut,
-        uint256 amountIn
-    ) external returns (uint256 amountOut);
+    /// @dev should be implemented in inherrited contracts
+    // function _swap(
+    //     IToken tokenIn,
+    //     IToken tokenOut,
+    //     uint256 amountIn
+    // ) external returns (uint256 amountOut);
 }

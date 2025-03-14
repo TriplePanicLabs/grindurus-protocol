@@ -12,12 +12,10 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwnerOrPending();
     error NotOwnerOf();
     error NotMatchPoolsNFT();
-    error NotStrategiest();
     error NotDepositor();
     error NotAgent();
     error NoCapital();
     error InvalidOp();
-    error InvalidRoyaltyNumerator();
     error InvalidGRETHShares();
     error InvalidRoyaltyShares();
     error InvalidRoyaltyPriceShare();
@@ -25,8 +23,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error InsufficientDeposit();
     error ExceededDepositCap();
     error DifferentOwnersOfPools();
-    error DifferentQuoteTokens();
-    error DifferentBaseTokens();
+    error DifferentTokens();
     error ZeroNewRoyaltyPrice();
     error InsufficientRoyaltyPrice();
 

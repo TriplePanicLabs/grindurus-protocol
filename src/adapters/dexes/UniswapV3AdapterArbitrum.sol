@@ -59,11 +59,11 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         (_swapRouter, _uniswapV3PoolFee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
     }
 
-    function _onlyOwner() internal view virtual {}
+    function _onlyAgent() internal view virtual {}
 
     /// @notice set swap router
     function setSwapRouter(address _swapRouter) public {
-        _onlyOwner();
+        _onlyAgent();
         getBaseToken().forceApprove(address(swapRouter), 0);
         getQuoteToken().forceApprove(address(swapRouter), 0);
         swapRouter = ISwapRouterArbitrum(_swapRouter);
@@ -74,23 +74,8 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
     /// @notice set fee
     /// @param _uniswapV3PoolFee fee for uniswapV3 pool
     function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public {
-        _onlyOwner();
+        _onlyAgent();
         uniswapV3PoolFee = _uniswapV3PoolFee;
-    }
-
-    /// @notice swap
-    /// @dev revert due to security. Can be inherrited and reimplemented
-    /// @param tokenIn address of token to be swapped from
-    /// @param tokenOut address of token to be swapped to
-    /// @param amountIn amount of tokenIn to be swapped
-    function swap(
-        IToken tokenIn,
-        IToken tokenOut,
-        uint256 amountIn
-    ) public virtual override returns (uint256 amountOut) {
-        tokenIn; tokenOut; amountIn; amountOut;
-        tokenIn.safeTransferFrom(msg.sender, address(this), amountIn);
-        revert(); // no direct swap
     }
 
     /// @notice swaps assets

@@ -9,7 +9,7 @@ contract TestUniswapV3AdapterArbitrum is UniswapV3AdapterArbitrum {
         IToken tokenIn,
         IToken tokenOut,
         uint256 amountIn
-    ) public override returns (uint256 amountOut) {
+    ) public returns (uint256 amountOut) {
         amountOut = _swap(tokenIn, tokenOut, amountIn);
     }
 }

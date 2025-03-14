@@ -68,8 +68,21 @@ interface IURUS is IERC5313 {
         HEDGE_SELL, // 2
         HEDGE_REBUY, // 3
         REBALANCE, // 4
-        INVEST, // 5
-        DIVEST // 6
+        DEPOSIT, // 5
+        WITHDRAW, // 6
+        INVEST, // 7
+        DIVEST, // 8
+        EXIT, // 9
+        SET_LONG_NUMBER_MAX,
+        SET_HEDGE_NUMBER_MAX,
+        SET_EXTRA_COEFICIENT,
+        SET_PRICE_VOLATILITY_PERCENT,
+        SET_RETURN_PERCENT_LONG_SELL,
+        SET_RETURN_PERCENT_HEDGE_SELL,
+        SET_RETURN_PERCENT_HEDGE_REBUY,
+        SET_FEE_COEF_LONG_SELL,
+        SET_FEE_COEF_HEDGE_SELL,
+        SET_FEE_COEF_HEDGE_REBUY
     }
 
     struct FeeConfig {
@@ -234,6 +247,8 @@ interface IURUS is IERC5313 {
     function calcHedgeRebuyThreshold(uint256 quoteTokenAmount) external view
         returns (
             uint256 baseTokenAmountThreshold,
+            uint256 hedgeLossInQuoteToken,
+            uint256 hedgeLossInBaseToken,
             uint256 swapPriceThreshold
         );
 
@@ -250,6 +265,8 @@ interface IURUS is IERC5313 {
     function calcHedgeRebuyThreshold() external view
         returns (
             uint256 baseTokenAmountThreshold,
+            uint256 hedgeLossInQuoteToken,
+            uint256 hedgeLossInBaseToken,
             uint256 swapPriceThreshold
         );
 
@@ -267,8 +284,6 @@ interface IURUS is IERC5313 {
         external
         view
         returns (uint256 baseTokenAmount);
-
-    function calcFeeTokenByQuoteToken(uint256 quoteTokenAmount) external view returns (uint256 feeTokenAmount);
 
     function getThresholds() external view 
         returns (

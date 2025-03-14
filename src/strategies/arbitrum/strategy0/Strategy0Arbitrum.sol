@@ -60,7 +60,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     }
 
     /// @dev checks that msg.sender is owner
-    function _onlyOwner() internal view override(UniswapV3AdapterArbitrum, NoLendingAdapter, URUS) {
+    function _onlyOwner() internal view override(URUS) {
         if (msg.sender != owner()) {
             revert NotOwner();
         }
@@ -74,7 +74,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     }
 
     /// @dev checks that msg.sender is agent
-    function _onlyAgent() internal view override(URUS) {
+    function _onlyAgent() internal view override(URUS, NoLendingAdapter, UniswapV3AdapterArbitrum) {
         try poolsNFT.isAgentOf(owner(), msg.sender) returns (bool isAgent) {
             if (!isAgent) {
                 revert NotAgent();
