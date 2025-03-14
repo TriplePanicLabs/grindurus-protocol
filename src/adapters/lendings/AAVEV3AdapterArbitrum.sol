@@ -47,13 +47,13 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
 
     /// @notice checking ownership
     /// @dev should be reimplemented in inherritant contract
-    function _onlyOwner() internal view virtual {}
+    function _onlyAgent() internal view virtual {}
 
     /// @notice sets pool
     /// @param _aaveV3Pool address of AAVEv3 pool
-    function setAaveV3Pool(IAAVEV3PoolArbitrum _aaveV3Pool) public {
-        _onlyOwner();
-        aaveV3Pool = _aaveV3Pool;
+    function setAaveV3Pool(address _aaveV3Pool) public {
+        _onlyAgent();
+        aaveV3Pool = IAAVEV3PoolArbitrum(_aaveV3Pool);
     }
 
     /// @notice retruns aToken
