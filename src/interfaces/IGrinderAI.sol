@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {IURUS} from "src/interfaces/IURUS.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 
 interface IGrinderAI {
@@ -37,6 +38,8 @@ interface IGrinderAI {
     function batchGrind(uint256[] memory poolIds) external;
 
     function batchGrindOp(uint256[] memory poolIds, uint8[] memory ops) external;
+
+    function setConfig(uint256 poolId, IURUS.Config memory config) external;
 
     function setLongNumberMax(uint256 poolId, uint8 longNumberMax) external;
 

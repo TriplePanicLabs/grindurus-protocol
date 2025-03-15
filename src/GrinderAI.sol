@@ -18,15 +18,11 @@ contract GrinderAI is IGrinderAI {
     IPoolsNFT public poolsNFT;
 
     /// @dev address of account => is agent
-    mapping (address account => bool) public isAgent; 
+    mapping (address account => bool) public isAgent;
 
     /// @param _poolsNFT address of poolsNFT
     constructor (address _poolsNFT)  {
-        if (_poolsNFT == address(0)) { 
-            poolsNFT = IPoolsNFT(msg.sender);
-        } else {
-            poolsNFT = IPoolsNFT(_poolsNFT);
-        }
+        poolsNFT = IPoolsNFT(_poolsNFT);
         isAgent[owner()] = true;
     }
 
@@ -154,6 +150,14 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
+    /// @notice sets whole config
+    /// @param poolId id of pool on poolsNFT
+    /// @param config structure of config params
+    function setConfig(uint256 poolId, IURUS.Config memory config) public override {
+        _onlyAgent();
+        IStrategy(poolsNFT.pools(poolId)).setConfig(config);
+    }
+
     /// @notice sets long number max
     /// @param poolId id of pool on poolsNFT
     /// @param longNumberMax param longNumberMax on IURUS.Config
@@ -214,7 +218,7 @@ contract GrinderAI is IGrinderAI {
     /// @param value amount of ETH
     /// @param data calldata to target
     function execute(address target, uint256 value, bytes calldata data) public override {
-        _onlyAgent();
+        _onlyOwner();
         (bool success, ) = target.call{value: value}(data);
         success;
     }
@@ -227,7 +231,7 @@ contract GrinderAI is IGrinderAI {
     receive() external payable {
         if (msg.value > 0) {
             bool success;
-            (success, ) = address(poolsNFT).call{value: msg.value}("");
+            (success, ) = address(owner()).call{value: msg.value}("");
         }
     }
 
