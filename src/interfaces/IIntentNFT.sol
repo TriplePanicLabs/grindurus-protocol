@@ -12,6 +12,12 @@ interface IIntentNFT {
     event Extended(uint256 intentId, address to, uint256 newExpire);
     event Pay(address paymentToken, address payer, uint256 paymentAmount);
 
+    struct Intent {
+        address owner;
+        uint256 expire;
+        uint256[] poolIds;
+    }
+
     function ONE_DAY() external view returns (uint256);
 
     function totalIntents() external view returns (uint256);
@@ -49,6 +55,8 @@ interface IIntentNFT {
         uint256 _expire, 
         uint256[] memory _poolIds
     );
+
+    function getIntents(uint256[] memory intentIds) external view returns (Intent[] memory _intents);
 
     function tokenURI(uint256 poolId) external view returns (string memory uri);
 

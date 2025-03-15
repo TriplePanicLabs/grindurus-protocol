@@ -212,6 +212,25 @@ contract IntentNFT is IIntentNFT, ERC721 {
         (, _poolIds) = poolsNFT.getPoolIdsOf(_account);
     }
 
+    /// @notice get intents array
+    /// @param intentIds array of intents ids
+    function getIntents(uint256[] memory intentIds) public view override returns (Intent[] memory _intents) {
+        uint256 len = intentIds.length;
+        _intents = new Intent[](len);
+        address _owner;
+        uint256[] memory _poolIds;
+        for (uint256 i; i < len;) {
+            _owner = ownerOf(intentIds[i]);
+            (, _poolIds) = poolsNFT.getPoolIdsOf(_owner);
+            _intents[i] = Intent({
+                owner: _owner,
+                expire: expire[intentIds[i]],
+                poolIds: _poolIds
+            });
+            unchecked { ++i; }
+        }
+    }
+
     /// @notice returns tokenURI of `tokenId`
     /// @param poolId pool id of pool in array `pools`
     /// @return uri unified reference indentificator for `tokenId`
