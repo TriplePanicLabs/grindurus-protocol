@@ -13,7 +13,7 @@ import {IntentNFT} from "src/IntentNFT.sol";
 
 
 contract IntentNFTScript is Script {
-    PoolsNFT public poolsNFT = PoolsNFT(payable(address(0))); // address can be change
+    PoolsNFT public poolsNFT = PoolsNFT(payable(0)); // address can be change
     
     IntentNFT public intentNFT;
 
