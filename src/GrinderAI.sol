@@ -155,6 +155,25 @@ contract GrinderAI is IGrinderAI {
     /// @param config structure of config params
     function setConfig(uint256 poolId, IURUS.Config memory config) public override {
         _onlyAgent();
+        _setConfig(poolId, config);
+    }
+
+    /// @notice sets batch of whole config
+    /// @param poolIds array of poolIds
+    /// @param configs array of configs
+    function batchSetConfig(uint256[] memory poolIds, IURUS.Config[] memory configs) public override {
+        if (poolIds.length != configs.length) {
+            revert InvalidLength();
+        }
+        uint256 len = poolIds.length;
+        for (uint256 i; i < len; ) {
+            _setConfig(poolIds[i], configs[i]);
+            unchecked { ++i; }
+        }
+    }
+
+    /// @notice set config
+    function _setConfig(uint256 poolId, IURUS.Config memory config) private {
         IStrategy(poolsNFT.pools(poolId)).setConfig(config);
     }
 

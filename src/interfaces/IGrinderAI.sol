@@ -41,6 +41,8 @@ interface IGrinderAI {
 
     function setConfig(uint256 poolId, IURUS.Config memory config) external;
 
+    function batchSetConfig(uint256[] memory poolIds, IURUS.Config[] memory configs) external;
+
     function setLongNumberMax(uint256 poolId, uint8 longNumberMax) external;
 
     function setHedgeNumberMax(uint256 poolId, uint8 hedgeNumberMax) external;
