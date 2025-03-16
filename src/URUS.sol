@@ -8,7 +8,7 @@ import "forge-std/console.sol";
 /// @title URUS
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice core logic of URUS algorithm. Ubiquitous Resources for Utilities and Securities (URUS)
-/// @dev constructor is function `initCore`
+/// @dev constructor is function `initURUS`
 contract URUS is IURUS {
    using SafeERC20 for IToken;
 
@@ -672,7 +672,7 @@ contract URUS is IURUS {
         if (baseTokenAmount > hedgeBody) { // profit + fees
             uint256 profitPlusFees = baseTokenAmount - hedgeBody;
             _distributeTradeProfit(baseToken, profitPlusFees);
-            baseTokenAmount -= hedgeBody;
+            baseTokenAmount -= profitPlusFees;
         }
 
         // 3.1. Put the baseToken to lending protocol
