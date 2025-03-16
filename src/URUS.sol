@@ -353,8 +353,8 @@ contract URUS is IURUS {
         returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
     {
         _onlyGateway();
-        (quoteTokenAmount) = _take(quoteToken, type(uint256).max);
-        (baseTokenAmount) = _take(baseToken, type(uint256).max);
+        quoteTokenAmount = _take(quoteToken, type(uint256).max);
+        baseTokenAmount = _take(baseToken, type(uint256).max);
         uint256 quoteTokenBalance = quoteToken.balanceOf(address(this));
         uint256 baseTokenBalance = baseToken.balanceOf(address(this));
         address _owner = owner();
@@ -452,7 +452,7 @@ contract URUS is IURUS {
             quoteTokenAmount = (long.liquidity * config.extraCoef) / helper.coefMultiplier;
         }
         // 1.2. Take the quoteToken from lending protocol
-        (quoteTokenAmount) = _take(quoteToken, quoteTokenAmount);
+        quoteTokenAmount = _take(quoteToken, quoteTokenAmount);
         // 2.0 Swap quoteTokenAmount to baseTokenAmount on DEX
         baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
         uint256 swapPrice = calcSwapPrice(
@@ -474,7 +474,7 @@ contract URUS is IURUS {
         long.priceMin = calcLongPriceMin();
 
         // 4.1. Put baseToken to lending protocol
-        (baseTokenAmount) = _put(baseToken, baseTokenAmount);
+        baseTokenAmount = _put(baseToken, baseTokenAmount);
 
         // 5.1. Accumulate fees
         uint256 feePrice = getPriceQuoteTokensPerFeeToken(); // [long.feePrice] = quoteToken/feeToken
@@ -485,7 +485,8 @@ contract URUS is IURUS {
             long.feeQty += feeQty;
         }
         // 6.1 Emit Long Buy
-        emit LongBuy(quoteTokenAmount, baseTokenAmount, swapPrice);
+        //emit LongBuy(quoteTokenAmount, baseTokenAmount, swapPrice);
+        emit Transmute(uint8(Op.LONG_BUY), quoteTokenAmount, baseTokenAmount, swapPrice);
     }
 
     /// @notice makes long_sell
@@ -504,7 +505,7 @@ contract URUS is IURUS {
 
         // 1. Take all qty from lending protocol
         baseTokenAmount = long.qty;
-        (baseTokenAmount) = _take(baseToken, baseTokenAmount);
+        baseTokenAmount = _take(baseToken, baseTokenAmount);
 
         // 2.1. Swap baseTokenAmount to quoteTokenAmount
         quoteTokenAmount = _swap(baseToken, quoteToken, baseTokenAmount);
@@ -520,7 +521,7 @@ contract URUS is IURUS {
         _distributeTradeProfit(quoteToken, profitPlusFees);
 
         // 4.0 Put the rest of `quouteToken` to lending protocol
-        (quoteTokenAmount) = _put(quoteToken, quoteTokenAmount);
+        quoteTokenAmount = _put(quoteToken, quoteTokenAmount);
 
         long = Position({
             number: 0,
@@ -532,7 +533,7 @@ contract URUS is IURUS {
             feeQty: 0,
             feePrice: 0
         });
-        emit LongSell(quoteTokenAmount, baseTokenAmount, calcSwapPrice(quoteTokenAmount, baseTokenAmount));
+        emit Transmute(uint8(Op.LONG_SELL), quoteTokenAmount, baseTokenAmount, calcSwapPrice(quoteTokenAmount, baseTokenAmount));
     }
 
     /// @notice makes hedge_sell
@@ -563,7 +564,7 @@ contract URUS is IURUS {
             baseTokenAmount = long.qty;
         }
         // 1.2. Take the baseToken from lending protocol
-        (baseTokenAmount) = _take(baseToken, baseTokenAmount);
+        baseTokenAmount = _take(baseToken, baseTokenAmount);
 
         // 2.1 Swap the base token amount to quote token
         quoteTokenAmount = _swap(baseToken, quoteToken, baseTokenAmount);
@@ -601,7 +602,7 @@ contract URUS is IURUS {
         }
 
         // 3.1. Put the quote token to lending protocol
-        (quoteTokenAmount) = _put(quoteToken, quoteTokenAmount);
+        quoteTokenAmount = _put(quoteToken, quoteTokenAmount);
 
         if (hedgeNumber < hedgeNumberMaxMinusOne) {
             long.qty -= baseTokenAmount;
@@ -641,7 +642,7 @@ contract URUS is IURUS {
                 feePrice: 0
             });
         }
-        emit HedgeSell(quoteTokenAmount, baseTokenAmount, swapPrice);
+        emit Transmute(uint8(Op.HEDGE_SELL), quoteTokenAmount, baseTokenAmount, swapPrice);
     }
 
     /// @notice makes hedge_rebuy
@@ -659,7 +660,7 @@ contract URUS is IURUS {
         // 1.1. Define how much to rebuy
         quoteTokenAmount = hedge.liquidity;
         // 1.2. Take base token amount
-        (quoteTokenAmount) = _take(quoteToken, quoteTokenAmount);
+        quoteTokenAmount = _take(quoteToken, quoteTokenAmount);
         // 2.1 Swap quoteToken to baseToken
         baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
         uint256 swapPrice = calcSwapPrice(quoteTokenAmount, baseTokenAmount);
@@ -676,7 +677,7 @@ contract URUS is IURUS {
         }
 
         // 3.1. Put the baseToken to lending protocol
-        (baseTokenAmount) = _put(baseToken, baseTokenAmount);
+        baseTokenAmount = _put(baseToken, baseTokenAmount);
 
         long.price = ((long.qty * long.price) + (baseTokenAmount * ((swapPrice + long.price) - hedge.price))) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
@@ -692,7 +693,7 @@ contract URUS is IURUS {
             feeQty: 0,
             feePrice: 0
         });
-        emit HedgeRebuy(quoteTokenAmount, baseTokenAmount, swapPrice);
+        emit Transmute(uint8(Op.HEDGE_REBUY), quoteTokenAmount, baseTokenAmount, swapPrice);
     }
 
     /// @notice iteration of URUS algorithm
@@ -760,7 +761,7 @@ contract URUS is IURUS {
         if (long.number < long.numberMax) {
             revert NotLongNumberMax();
         }
-        (baseTokenAmount) = _take(baseToken, long.qty);
+        baseTokenAmount = _take(baseToken, long.qty);
         baseToken.approve(msg.sender, baseTokenAmount);
         long.qty -= baseTokenAmount;
         price = long.price;
@@ -772,7 +773,7 @@ contract URUS is IURUS {
         _onlyGateway();
         if (baseTokenAmount > 0) {
             baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
-            (baseTokenAmount) = _put(baseToken, baseTokenAmount);
+            baseTokenAmount = _put(baseToken, baseTokenAmount);
             long.qty = baseTokenAmount;
             long.price = newPrice;
             long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);

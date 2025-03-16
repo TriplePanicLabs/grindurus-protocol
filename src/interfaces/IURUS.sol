@@ -33,35 +33,14 @@ interface IURUS is IERC5313 {
     error NoHedge();
     error NotProfitableRebuy();
 
-    event LongBuy(
-        uint256 quoteTokenAmount,
-        uint256 baseTokenAmount,
-        uint256 swapPrice
-    );
-    event LongSell(
-        uint256 quoteTokenAmount,
-        uint256 baseTokenAmount,
-        uint256 swapPrice
-    );
-    event HedgeSell(
-        uint256 quoteTokenAmount,
-        uint256 baseTokenAmount,
-        uint256 swapPrice
-    );
-    event HedgeRebuy(
+    event Transmute(
+        uint8 op,
         uint256 quoteTokenAmount,
         uint256 baseTokenAmount,
         uint256 swapPrice
     );
 
     /// @dev OPeration to number:
-    ///     LONG_BUY == 0
-    ///     LONG_SELL ==  1
-    ///     HEDGE_SELL ==  2
-    ///     HEDGE_REBUY ==  3
-    ///     REBALANCE ==  4
-    ///     INVEST ==  5
-    ///     DIVEST ==  6
     enum Op {
         LONG_BUY, // 0
         LONG_SELL, // 1
@@ -73,16 +52,17 @@ interface IURUS is IERC5313 {
         INVEST, // 7
         DIVEST, // 8
         EXIT, // 9
-        SET_LONG_NUMBER_MAX,
-        SET_HEDGE_NUMBER_MAX,
-        SET_EXTRA_COEFICIENT,
-        SET_PRICE_VOLATILITY_PERCENT,
-        SET_RETURN_PERCENT_LONG_SELL,
-        SET_RETURN_PERCENT_HEDGE_SELL,
-        SET_RETURN_PERCENT_HEDGE_REBUY,
-        SET_FEE_COEF_LONG_SELL,
-        SET_FEE_COEF_HEDGE_SELL,
-        SET_FEE_COEF_HEDGE_REBUY
+        SET_CONFIG, // 10
+        SET_LONG_NUMBER_MAX, // 11
+        SET_HEDGE_NUMBER_MAX, // 12
+        SET_EXTRA_COEFICIENT, // 13
+        SET_PRICE_VOLATILITY_PERCENT, // 14
+        SET_RETURN_PERCENT_LONG_SELL, // 15
+        SET_RETURN_PERCENT_HEDGE_SELL, // 16
+        SET_RETURN_PERCENT_HEDGE_REBUY, // 17
+        SET_FEE_COEF_LONG_SELL, // 18
+        SET_FEE_COEF_HEDGE_SELL, // 19
+        SET_FEE_COEF_HEDGE_REBUY // 20
     }
 
     struct FeeConfig {
