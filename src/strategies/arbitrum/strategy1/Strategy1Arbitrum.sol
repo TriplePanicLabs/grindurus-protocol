@@ -195,29 +195,31 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
         )
     {
         uint256 baseTokenPrice = getPriceQuoteTokenPerBaseToken();
-        uint256 investment = investedAmount[quoteToken] +
-            calcQuoteTokenByBaseToken(
-                investedAmount[baseToken],
-                baseTokenPrice
-            );
-        uint256 profits = 0 + // trade profits + yield profits + pending yield profits
-            totalProfits.quoteTokenTradeProfit +
-            calcQuoteTokenByBaseToken(
-                totalProfits.baseTokenTradeProfit,
-                baseTokenPrice
-            ) + // yield profits
-            totalProfits.quoteTokenYieldProfit +
-            calcQuoteTokenByBaseToken(
-                totalProfits.baseTokenYieldProfit,
-                baseTokenPrice
-            ) + // pending yield profits
-            getPendingYield(quoteToken) +
-            calcQuoteTokenByBaseToken(
-                getPendingYield(baseToken), 
-                baseTokenPrice
-            );
-        ROINumerator = profits;
-        ROIDenominator = investment;
+        if (baseTokenPrice > 0) {
+            uint256 investment = investedAmount[quoteToken] +
+                calcQuoteTokenByBaseToken(
+                    investedAmount[baseToken],
+                    baseTokenPrice
+                );
+            uint256 profits = 0 + // trade profits + yield profits + pending yield profits
+                totalProfits.quoteTokenTradeProfit +
+                calcQuoteTokenByBaseToken(
+                    totalProfits.baseTokenTradeProfit,
+                    baseTokenPrice
+                ) + // yield profits
+                totalProfits.quoteTokenYieldProfit +
+                calcQuoteTokenByBaseToken(
+                    totalProfits.baseTokenYieldProfit,
+                    baseTokenPrice
+                ) + // pending yield profits
+                getPendingYield(quoteToken) +
+                calcQuoteTokenByBaseToken(
+                    getPendingYield(baseToken), 
+                    baseTokenPrice
+                );
+            ROINumerator = profits;
+            ROIDenominator = investment;
+        } 
         ROIPeriod = block.timestamp - startTimestamp;
     }
 
@@ -234,10 +236,12 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
             uint256 ROIPeriod
         ) = ROI();
         uint256 secondsInYear = 365 * 24 * 60 * 60;
-        APRNumerator = ROINumerator * secondsInYear;
-        APRDenominator = ROIDenominator *  ROIPeriod;
+        if (ROINumerator > 0 && ROIDenominator > 0) {
+            APRNumerator = ROINumerator * secondsInYear;
+            APRDenominator = ROIDenominator *  ROIPeriod;
+        }
     }
-    
+
     /// @notice return pool total active capital based on positions
     /// @dev [activeCapital] = quoteToken
     function getActiveCapital() external view returns (uint256) {
