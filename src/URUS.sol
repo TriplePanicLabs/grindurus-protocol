@@ -3,7 +3,6 @@ pragma solidity =0.8.28;
 
 import {IURUS, IToken, IERC5313, AggregatorV3Interface} from "src/interfaces/IURUS.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "forge-std/console.sol";
 
 /// @title URUS
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
@@ -170,10 +169,6 @@ contract URUS is IURUS {
         }
     }
 
-    //// ONLY OWNER //////////////////////////////////////////////////////////////////////////
-
-
-
     //// ONLY AGENT //////////////////////////////////////////////////////////////////////////
 
     /// @notice sets config of strategy pool
@@ -190,7 +185,7 @@ contract URUS is IURUS {
     function setLongNumberMax(uint8 longNumberMax) public override {
         _onlyAgent();
         if (longNumberMax < MIN_LONG_NUMBER_MAX) { // require(longNumberMax > MIN_LONG_NUMBER_MAX)
-            revert InvalidLongNumberMax();
+            revert InvalidNumberMax();
         }
         config.longNumberMax = longNumberMax;
         _setHelperInitLiquidityAndInvestCoef();
@@ -201,7 +196,7 @@ contract URUS is IURUS {
     function setHedgeNumberMax(uint8 hedgeNumberMax) public override {
         _onlyAgent();
         if (hedgeNumberMax < MIN_HEDGE_NUMBER_MAX) {
-            revert InvalidHedgeNumberMax();
+            revert InvalidNumberMax();
         }
         config.hedgeNumberMax = hedgeNumberMax;
     }
@@ -212,6 +207,9 @@ contract URUS is IURUS {
         _onlyAgent();
         if (extraCoef == 0) {
             revert InvalidExtraCoef();
+        }
+        if (long.number > 0) {
+            revert Long();
         }
         config.extraCoef = extraCoef;
         _setHelperInitLiquidityAndInvestCoef();
@@ -460,7 +458,7 @@ contract URUS is IURUS {
             baseTokenAmount
         ); // [baseTokenPrice] = quoteToken/baseToken
         if (swapPrice > calcLongPriceMin()) {
-            revert BuyUpperPriceMin(swapPrice, calcLongPriceMin());
+            revert BuyUpperPriceMin();
         }
 
         // 3.1. Update position
@@ -477,16 +475,20 @@ contract URUS is IURUS {
         baseTokenAmount = _put(baseToken, baseTokenAmount);
 
         // 5.1. Accumulate fees
+        uint256 feeQty = (gasStart - gasleft() + 50) * tx.gasprice; // gas * feeToken / gas = feeToken
         uint256 feePrice = getPriceQuoteTokensPerFeeToken(); // [long.feePrice] = quoteToken/feeToken
-        uint256 txGasPrice = tx.gasprice;
-        if (feePrice > 0 && txGasPrice > 0) {
-            uint256 feeQty = (gasStart - gasleft() + 50) * txGasPrice; // gas * feeToken / gas = feeToken
+        if (feeQty > 0 && feePrice > 0) {
             long.feePrice = (long.feeQty * long.feePrice + feeQty * feePrice) / (long.feeQty + feeQty);
-            long.feeQty += feeQty;
         }
-        // 6.1 Emit Long Buy
-        //emit LongBuy(quoteTokenAmount, baseTokenAmount, swapPrice);
-        emit Transmute(uint8(Op.LONG_BUY), quoteTokenAmount, baseTokenAmount, swapPrice);
+        long.feeQty += feeQty;
+        // 6.1 Emit Transmute of long buy operation
+        emit Transmute(
+            uint8(Op.LONG_BUY),
+            quoteTokenAmount,
+            baseTokenAmount,
+            swapPrice,
+            feeQty
+        );
     }
 
     /// @notice makes long_sell
@@ -495,12 +497,13 @@ contract URUS is IURUS {
         override
         returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
     {
+        uint256 gasStart = gasleft();
         // 0. Verify that number != 0
         if (long.number == 0) {
             revert NoLong();
         }
         if (hedge.number > 0) {
-            revert Hedged();
+            revert Hedge();
         }
 
         // 1. Take all qty from lending protocol
@@ -533,7 +536,14 @@ contract URUS is IURUS {
             feeQty: 0,
             feePrice: 0
         });
-        emit Transmute(uint8(Op.LONG_SELL), quoteTokenAmount, baseTokenAmount, calcSwapPrice(quoteTokenAmount, baseTokenAmount));
+        uint256 feeQty = (gasStart - gasleft() + 50) * tx.gasprice; // gas * feeToken / gas = feeToken
+        emit Transmute(
+            uint8(Op.LONG_SELL),
+            quoteTokenAmount,
+            baseTokenAmount,
+            calcSwapPrice(quoteTokenAmount, baseTokenAmount),
+            feeQty // (gasStart - gasleft() + 50) * tx.gasprice
+        );
     }
 
     /// @notice makes hedge_sell
@@ -574,11 +584,7 @@ contract URUS is IURUS {
             // INITIALIZE HEDGE SELL
             (uint256 hedgeSellInitThresholdHigh, uint256 hedgeSellInitThresholdLow) = calcHedgeSellInitBounds();
             if (swapPrice > hedgeSellInitThresholdHigh || hedgeSellInitThresholdLow > swapPrice) {
-                revert HedgeSellOutOfBound(
-                    swapPrice,
-                    hedgeSellInitThresholdHigh,
-                    hedgeSellInitThresholdLow
-                );
+                revert HedgeSellOutOfBound();
             }
             hedge.priceMin = swapPrice;
             hedge.price = swapPrice;
@@ -604,22 +610,22 @@ contract URUS is IURUS {
         // 3.1. Put the quote token to lending protocol
         quoteTokenAmount = _put(quoteToken, quoteTokenAmount);
 
+        uint256 feeQty;
         if (hedgeNumber < hedgeNumberMaxMinusOne) {
             long.qty -= baseTokenAmount;
             hedge.qty += baseTokenAmount;
             hedge.liquidity += quoteTokenAmount;
             hedge.number += 1;
 
+            feeQty = (gasStart - gasleft() + 50) * tx.gasprice; // [feeQty] = gas * feeToken / gas = feeToken
             uint256 feePrice = getPriceBaseTokensPerFeeToken(swapPrice); // [feePrice] = baseToken/feeToken
-            uint256 txGasPrice = tx.gasprice;
-            if (feePrice > 0 && txGasPrice > 0) {
+            if (feeQty > 0 && feePrice > 0) {
                 // gasStart always bigger than gasleft()
-                uint256 feeQty = (gasStart - gasleft() + 50) * txGasPrice; // [feeQty] = gas * feeToken / gas = feeToken
                 // [hedge.feePrice] = (feeToken * (baseToken/feeToken) + feeToken * (baseToken/feeToken)) / (feeToken + feeToken) =
                 //                  = (baseToken + baseToken) / feeToken = baseToken / feeToken
                 hedge.feePrice = (hedge.feeQty * hedge.feePrice + feeQty * feePrice) / (hedge.feeQty + feeQty);
-                hedge.feeQty += feeQty;
             }
+            hedge.feeQty += feeQty;
         } else if (hedgeNumber == hedgeNumberMaxMinusOne) {
             long = Position({
                 number: 0,
@@ -641,8 +647,15 @@ contract URUS is IURUS {
                 feeQty: 0,
                 feePrice: 0
             });
+            feeQty = (gasStart - gasleft() + 50) * tx.gasprice; // [feeQty] = gas * feeToken / gas = feeToken
         }
-        emit Transmute(uint8(Op.HEDGE_SELL), quoteTokenAmount, baseTokenAmount, swapPrice);
+        emit Transmute(
+            uint8(Op.HEDGE_SELL),
+            quoteTokenAmount,
+            baseTokenAmount,
+            swapPrice,
+            feeQty
+        );
     }
 
     /// @notice makes hedge_rebuy
@@ -651,6 +664,7 @@ contract URUS is IURUS {
         override
         returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
     {
+        uint256 gasStart = gasleft();
         // 0. Verify that hedge is activated
         uint8 hedgeNumber = hedge.number;
         if (hedgeNumber == 0) {
@@ -693,7 +707,14 @@ contract URUS is IURUS {
             feeQty: 0,
             feePrice: 0
         });
-        emit Transmute(uint8(Op.HEDGE_REBUY), quoteTokenAmount, baseTokenAmount, swapPrice);
+        uint256 feeQty = (gasStart - gasleft() + 50) * tx.gasprice; // [feeQty] = gas * feeToken / gas = feeToken
+        emit Transmute(
+            uint8(Op.HEDGE_REBUY),
+            quoteTokenAmount,
+            baseTokenAmount,
+            swapPrice,
+            feeQty
+        );
     }
 
     /// @notice iteration of URUS algorithm
@@ -756,13 +777,13 @@ contract URUS is IURUS {
     {
         _onlyGateway();
         if (hedge.number > 0) {
-            revert Hedged();
+            revert Hedge();
         }
         if (long.number < long.numberMax) {
             revert NotLongNumberMax();
         }
         baseTokenAmount = _take(baseToken, long.qty);
-        baseToken.approve(msg.sender, baseTokenAmount);
+        baseToken.forceApprove(msg.sender, baseTokenAmount);
         long.qty -= baseTokenAmount;
         price = long.price;
     }
@@ -805,6 +826,10 @@ contract URUS is IURUS {
         if (address(oracleQuoteTokenPerBaseToken) != address(0)) {
             (, int256 answer, , , ) = oracleQuoteTokenPerBaseToken.latestRoundData();
             price = uint256(answer);
+        } else {
+            if ((long.qty + hedge.qty) > 0) {
+                price = (long.qty * long.price + hedge.qty * hedge.price) / (long.qty + hedge.qty);
+            }
         }
     }
 
@@ -880,7 +905,7 @@ contract URUS is IURUS {
         if (long.number == 0) {
             return type(uint256).max;
         } else {
-            return long.price - (long.price * config.priceVolatilityPercent) / helper.percentMultiplier;
+            return (long.price - ((long.price * config.priceVolatilityPercent) / helper.percentMultiplier));
         }
     }
 

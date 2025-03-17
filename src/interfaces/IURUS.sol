@@ -8,36 +8,36 @@ import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interf
 interface IURUS is IERC5313 {
 
     error URUSInitialized();
-    error InvalidConfig();
-    error InvalidLongNumberMax();
-    error InvalidHedgeNumberMax();
-    error InvalidExtraCoef();
-    error InvalidInitHedgeSellPercent();
-    error InvalidOp();
-    error InvalidReturnOfInvestment();
-    error InvalidLength();
-    error InvalidPriceVolatility();
     error NotOwner();
     error NotAgent();
+    error InvalidLength();
+    error InvalidConfig();
+    error InvalidNumberMax();
+    error InvalidExtraCoef();
+    error InvalidOp();
+    error InvalidReturnOfInvestment();
+    error InvalidPriceVolatility();
     error QuoteTokenInvested();
     error LongNumberMax();
-    error BuyUpperPriceMin(uint256 swapPrice, uint256 priceMin);
-    error NoLong();
-    error NotProfitableLongSell();
-    error HedgeSellOutOfBound(uint256 swapPrice, uint256 thresholdHigh, uint256 thresholdLow);
     error NotLongNumberMax();
+    error Long();
+    error NoLong();
+    error Hedge();
+    error NoHedge();
+    error BuyUpperPriceMin();
+    error NotProfitableLongSell();
+    error HedgeSellOutOfBound();
     error DivestExceedsMaxLiquidity();
     error QuoteTokenAmountExceededMaxLiquidity();
     error NotProfitableHedgeSell();
-    error Hedged();
-    error NoHedge();
     error NotProfitableRebuy();
 
     event Transmute(
         uint8 op,
         uint256 quoteTokenAmount,
         uint256 baseTokenAmount,
-        uint256 swapPrice
+        uint256 swapPrice,
+        uint256 feeQty
     );
 
     /// @dev OPeration to number:
@@ -51,18 +51,7 @@ interface IURUS is IERC5313 {
         WITHDRAW, // 6
         INVEST, // 7
         DIVEST, // 8
-        EXIT, // 9
-        SET_CONFIG, // 10
-        SET_LONG_NUMBER_MAX, // 11
-        SET_HEDGE_NUMBER_MAX, // 12
-        SET_EXTRA_COEFICIENT, // 13
-        SET_PRICE_VOLATILITY_PERCENT, // 14
-        SET_RETURN_PERCENT_LONG_SELL, // 15
-        SET_RETURN_PERCENT_HEDGE_SELL, // 16
-        SET_RETURN_PERCENT_HEDGE_REBUY, // 17
-        SET_FEE_COEF_LONG_SELL, // 18
-        SET_FEE_COEF_HEDGE_SELL, // 19
-        SET_FEE_COEF_HEDGE_REBUY // 20
+        EXIT // 9
     }
 
     struct FeeConfig {
