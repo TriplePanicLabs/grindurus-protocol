@@ -966,18 +966,17 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
 
     /// @notice gets pool ids owned by `poolOwner`
     /// @param poolOwner address of pool owner
-    /// @return totalPoolIds total amount of pool ids owned by `poolOwner`
     /// @return poolIdsOwnedByPoolOwner array of owner pool ids
     function getPoolIdsOf(
         address poolOwner
     )
         external
         view
-        returns (uint256 totalPoolIds, uint256[] memory poolIdsOwnedByPoolOwner)
+        returns (uint256[] memory poolIdsOwnedByPoolOwner)
     {
-        totalPoolIds = balanceOf(poolOwner);
+        uint256 totalPoolIds = balanceOf(poolOwner);
         if (totalPoolIds == 0) {
-            return (0, new uint256[](1));
+            return new uint256[](0);
         }
         uint256 i = 0;
         poolIdsOwnedByPoolOwner = new uint256[](totalPoolIds);
@@ -985,7 +984,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             poolIdsOwnedByPoolOwner[i] = tokenOfOwnerByIndex(poolOwner, i);
             unchecked { ++i; }
         }
-        return (totalPoolIds, poolIdsOwnedByPoolOwner);
     }
 
     /// @notice get pool nft info by pool ids

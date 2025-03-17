@@ -276,7 +276,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
         external
         view
         returns (
-            uint256 totalPoolIds,
             uint256[] memory poolIdsOwnedByPoolOwner
         );
 

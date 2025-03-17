@@ -196,7 +196,7 @@ contract IntentNFT is IIntentNFT, ERC721 {
     {
         _account = poolsNFT.ownerOf(poolId);
         _expire = expire[intentIdOf[_account]];
-        (, _poolIds) = poolsNFT.getPoolIdsOf(_account);
+        _poolIds = poolsNFT.getPoolIdsOf(_account);
     }
 
     /// @notice get intent of `_account`
@@ -209,24 +209,26 @@ contract IntentNFT is IIntentNFT, ERC721 {
         uint256 intentId = intentIdOf[account];
         _account = ownerOf(intentId);
         _expire = expire[intentId];
-        (, _poolIds) = poolsNFT.getPoolIdsOf(_account);
+        _poolIds = poolsNFT.getPoolIdsOf(_account);
+    }
+
+    /// @notice get intent by intentId
+    /// @param intentId id of intent
+    function getIntent(uint256 intentId) public view returns (Intent memory intent) {
+        intent = Intent({
+            owner: ownerOf(intentId),
+            expire: expire[intentId],
+            poolIds: poolsNFT.getPoolIdsOf(ownerOf(intentId))
+        });
     }
 
     /// @notice get intents array
     /// @param intentIds array of intents ids
-    function getIntents(uint256[] memory intentIds) public view override returns (Intent[] memory _intents) {
+    function getIntents(uint256[] memory intentIds) public view override returns (Intent[] memory intents) {
         uint256 len = intentIds.length;
-        _intents = new Intent[](len);
-        address _owner;
-        uint256[] memory _poolIds;
+        intents = new Intent[](len);
         for (uint256 i; i < len;) {
-            _owner = ownerOf(intentIds[i]);
-            (, _poolIds) = poolsNFT.getPoolIdsOf(_owner);
-            _intents[i] = Intent({
-                owner: _owner,
-                expire: expire[intentIds[i]],
-                poolIds: _poolIds
-            });
+            intents[i] = getIntent(intentIds[i]);
             unchecked { ++i; }
         }
     }
