@@ -165,7 +165,7 @@ contract PoolsNFTTest is Test {
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 270e6;
-        deal(quoteToken, address(this), quoteTokenAmount);
+        deal(quoteToken, address(this), 1000e6);
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
@@ -173,24 +173,23 @@ contract PoolsNFTTest is Test {
             baseToken,
             quoteTokenAmount
         );
-        poolsNFT.setRoyaltyPrice(poolId, 0.0001 ether);
         uint256 royaltyPriceBefore = poolsNFT.royaltyPrice(poolId);
         (
             uint256 compensationShare,
             uint256 poolOwnerShare,
-            uint256 primaryReceiverShare,
-            uint256 grinderShare,
+            uint256 reserveShare,
+            uint256 ownerShare,
             uint256 oldRoyaltyPrice,
-            uint256 newRoyaltyPrice
+            uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + reserveShare + ownerShare
         ) = poolsNFT.calcRoyaltyPriceShares(poolId);
+        IToken(quoteToken).approve(address(poolsNFT), newRoyaltyPrice);
         compensationShare;
         poolOwnerShare;
-        primaryReceiverShare;
-        grinderShare;
+        reserveShare;
+        ownerShare;
         oldRoyaltyPrice;
-        (uint256 royaltyPricePaid, uint256 refund) = poolsNFT.buyRoyalty{value: newRoyaltyPrice}(poolId);
+        uint256 royaltyPricePaid = poolsNFT.buyRoyalty(poolId);
         royaltyPricePaid;
-        refund;
 
         uint256 royaltyPriceAfter = poolsNFT.royaltyPrice(poolId);
         assert(royaltyPriceAfter > royaltyPriceBefore);

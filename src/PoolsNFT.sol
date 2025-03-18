@@ -27,9 +27,12 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev this value of denominator is 100%
     uint16 public constant DENOMINATOR = 100_00;
 
-    //// ROYALTY PRICE SHARES //////////////////////////////////////////////////////////////////////////////////////////////////
+    //// ROYALTY PRICE PARAMS AND SHARES //////////////////////////////////////////////////////////////////////////////////////////////////
+    /// require CompensationShareNumerator + ReserveShareNumerator + PoolOwnerShareNumerator + OwnerShareNumerator > 100%
 
-    /// require CompensationShareNumerator + TreasuryShareNumerator + PoolOwnerShareNumerator + LastGrinderShareNumerator > 100%
+    /// @dev numerator of init royalty price
+    uint16 public royaltyPriceInitNumerator;
+
     /// @dev numerator of royalty price compensation to previous owner share
     uint16 public royaltyPriceCompensationShareNumerator;
 
@@ -118,6 +121,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     mapping (uint256 poolId => address) public royaltyReceiver;
 
     /// @dev poolId => royalty price
+    /// @dev [royalty price] = quote token of pool id
     mapping (uint256 poolId => uint256) public royaltyPrice;
 
     /// @notice store minter of pool for airdrop points
@@ -140,9 +144,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev if minDeposit == 0, that no limit for minimum deposit
     mapping (address token => uint256) public minDeposit;
 
-    /// @dev token address => token cap
-    /// @dev if cap == 0, than cap is unlimited
-    mapping (address token => uint256) public tokenCap;
+    /// @dev token address => maximum amount of deposit
+    /// @dev if maxDeposit == 0, that no limut for maximum deposit
+    mapping (address token => uint256) public maxDeposit;
 
     /// @dev owner of address => is disapproved grinder AI
     mapping (address _ownerOf => bool) public isDisapprovedGrinderAI;
@@ -160,6 +164,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         pendingOwner = payable(address(0));
         owner = payable(msg.sender);
 
+        royaltyPriceInitNumerator = 1_00; // 1%
         royaltyPriceCompensationShareNumerator = 101_00; // 101%
         royaltyPriceReserveShareNumerator = 1_00; // 1%
         royaltyPricePoolOwnerShareNumerator = 5_00; // 5%
@@ -173,7 +178,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         grethRoyaltyReceiverShareNumerator = 3_00; // 3%;
         // total greth share = 80% + 15% + 2% + 3% = 100%
         require(grethGrinderShareNumerator + grethReserveShareNumerator + grethPoolOwnerShareNumerator + grethRoyaltyReceiverShareNumerator == DENOMINATOR);
-        
+
         // poolOwnerShareNumerator + royaltyReserveShareNumerator + royaltyReceiverShareNumerator + royaltyOwnerShareNumerator == DENOMINATOR
         royaltyNumerator = 20_00; // 20%
         poolOwnerShareNumerator = 80_00; // 80%
@@ -255,13 +260,22 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         minDeposit[token] = _minDeposit;
     }
 
-    /// @notice sets cap tvl
-    /// @dev if _capTVL==0, than no cap for asset
+    /// @notice sets maximum deposit
     /// @param token address of token
-    /// @param _tokenCap maximum amount of token
-    function setTokenCap(address token, uint256 _tokenCap) external override {
+    /// @param _maxDeposit maximum amount of deposit
+    function setMaxDeposit(address token, uint256 _maxDeposit) external override {
         _onlyOwner();
-        tokenCap[token] = _tokenCap;
+        maxDeposit[token] = _maxDeposit;
+    }
+
+    /// @notice set royalty price init numerator
+    /// @param _royaltyPriceInitNumerator numerator of royalty price init
+    function setRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator) external override {
+        _onlyOwner();
+        if (_royaltyPriceInitNumerator >= DENOMINATOR) {
+            revert InvalidRoyaltyPriceInit();
+        }
+        royaltyPriceInitNumerator = _royaltyPriceInitNumerator;
     }
 
     /// @notice sets royalty price share to actors
@@ -410,16 +424,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             poolId,
             quoteTokenAmount
         );
-    }
-
-    /// @notice set royalty price. Sets once
-    /// @dev callable only by owner of `poolId`
-    /// @param poolId id of pool
-    /// @param _royaltyPrice amount of ETH
-    function setRoyaltyPrice(uint256 poolId, uint256 _royaltyPrice) external override {
-        _onlyOwnerOf(poolId);
-        require(royaltyPrice[poolId] == 0 && _royaltyPrice > 0);
-        royaltyPrice[poolId] = _royaltyPrice;
+        royaltyPrice[poolId] = (quoteTokenAmount * royaltyPriceInitNumerator) / DENOMINATOR;
     }
 
     /// @notice approve depositor of pool
@@ -454,7 +459,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         IStrategy pool = IStrategy(pools[poolId]);
         IToken quoteToken = pool.quoteToken();
         _checkMinDeposit(address(quoteToken), quoteTokenAmount);
-        _checkCap(address(quoteToken), quoteTokenAmount);
+        _checkMaxDeposit(address(quoteToken), quoteTokenAmount);
         quoteToken.safeTransferFrom(
             msg.sender,
             address(this),
@@ -505,10 +510,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @notice exit from strategy and transfer ownership to royalty receiver
     /// @dev callable only by owner of poolId
     /// @param poolId pool id of pool in array `pools`
-    function exit(uint256 poolId)
-        external
-        override
-        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
+    function exit(
+        uint256 poolId
+    ) external override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
     {
         _onlyOwnerOf(poolId);
         IStrategy pool = IStrategy(pools[poolId]);
@@ -522,16 +526,16 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @notice checks min deposit
     function _checkMinDeposit(address quoteToken, uint256 depositAmount) private view {
         if (depositAmount < minDeposit[quoteToken]) {
-            revert InsufficientDeposit();
+            revert InsufficientMinDeposit();
         }
     }
 
     /// @notice checks TVL of quoteToken
     /// @param quoteToken address of quoteToken
-    /// @param quoteTokenAmount amount of quote token
-    function _checkCap(address quoteToken, uint256 quoteTokenAmount) private view {
-        if ((tokenCap[quoteToken] > 0) && (totalDeposited[quoteToken] + quoteTokenAmount > tokenCap[quoteToken])) {
-            revert ExceededDepositCap();
+    /// @param depositAmount amount of quote token
+    function _checkMaxDeposit(address quoteToken, uint256 depositAmount) private view {
+        if (depositAmount > maxDeposit[quoteToken]) {
+            revert ExceededMaxDeposit();
         }
     }
 
@@ -716,32 +720,19 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @notice buy royalty for pool with `poolId`
     /// @param poolId pool id of pool in array `pools`
     /// @return royaltyPricePaid paid for royalty
-    /// @return refund excess of msg.value
     function buyRoyalty(
         uint256 poolId
-    )
-        external
-        payable
-        override
-        returns (uint256, uint256)
-    {
-        return buyRoyaltyTo(poolId, payable(msg.sender));
+    ) external override returns (uint256) {
+        return buyRoyaltyTo(poolId, msg.sender);
     }
 
     /// @notice buy royalty for pool with `poolId`
     /// @param poolId pool id of pool in array `pools`
     /// @return royaltyPricePaid paid for royalty
-    /// @return refund excess of msg.value
     function buyRoyaltyTo(
         uint256 poolId,
-        address payable to
-    )
-        public
-        payable
-        override
-        nonReentrant
-        returns (uint256 royaltyPricePaid, uint256 refund)
-    {
+        address to
+    ) public override returns (uint256 royaltyPricePaid) {
         (
             uint256 compensationShare, // oldRoyaltyPrice + compensation
             uint256 poolOwnerShare,
@@ -750,49 +741,31 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             /**uint256 oldRoyaltyPrice */,
             uint256 newRoyaltyPrice // compensationShare + poolOwnerShare + reserveShare + ownerShare
         ) = calcRoyaltyPriceShares(poolId);
-        if (newRoyaltyPrice == 0) {
-            revert ZeroNewRoyaltyPrice();
-        }
-        if (msg.value < newRoyaltyPrice) {
-            revert InsufficientRoyaltyPrice();
-        }
-        address payable oldRoyaltyReceiver = payable(getRoyaltyReceiver(poolId));
-        // instantiate new royalty receiver
+        IStrategy pool = IStrategy(pools[poolId]);
+        IToken quoteToken = pool.getQuoteToken();
+        quoteToken.safeTransferFrom(msg.sender, address(this), newRoyaltyPrice);
+        
+        address oldRoyaltyReceiver = getRoyaltyReceiver(poolId);
         royaltyReceiver[poolId] = to;
-        royaltyPrice[poolId] = newRoyaltyPrice; // newRoyaltyPrice always increase!
+        royaltyPrice[poolId] = newRoyaltyPrice;
 
         if (compensationShare > 0) {
-            _sendETH(oldRoyaltyReceiver, compensationShare);
+            quoteToken.safeTransfer(oldRoyaltyReceiver, compensationShare);
             royaltyPricePaid += compensationShare;
         }
         if (poolOwnerShare > 0) {
-            _sendETH(payable(ownerOf(poolId)), poolOwnerShare);
+            quoteToken.safeTransfer(ownerOf(poolId), poolOwnerShare);
             royaltyPricePaid += poolOwnerShare;
         }
         if (reserveShare > 0) {
-            _sendETH(payable(address(grETH)), reserveShare);
+            quoteToken.safeTransfer(address(grETH), reserveShare);
             royaltyPricePaid += reserveShare;
         }
         if (ownerShare > 0) {
-            _sendETH(owner, ownerShare);
+            quoteToken.safeTransfer(owner, ownerShare);
             royaltyPricePaid += ownerShare;
         }
-        refund = msg.value - royaltyPricePaid;
-        if (refund > 0) {
-            _sendETH(payable(msg.sender), refund);
-        }
         emit BuyRoyalty(poolId, to, royaltyPricePaid);
-    }
-
-    /// @notice sends ETH
-    /// @param receiver address of receiver
-    /// @param amount amount of ETH
-    function _sendETH(address payable receiver, uint256 amount) internal {
-        bool success;
-        (success, ) = receiver.call{value: amount}("");
-        if (!success) {
-            (success, ) = owner.call{value: amount}("");
-        }
     }
 
     /// @notice implementation of royalty standart ERC2981

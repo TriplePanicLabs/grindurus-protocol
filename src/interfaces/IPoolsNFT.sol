@@ -18,14 +18,13 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error InvalidOp();
     error InvalidGRETHShares();
     error InvalidRoyaltyShares();
+    error InvalidRoyaltyPriceInit();
     error InvalidRoyaltyPriceShare();
     error StrategyStopped();
-    error InsufficientDeposit();
-    error ExceededDepositCap();
+    error InsufficientMinDeposit();
+    error ExceededMaxDeposit();
     error DifferentOwnersOfPools();
     error DifferentTokens();
-    error ZeroNewRoyaltyPrice();
-    error InsufficientRoyaltyPrice();
 
     event Mint(
         uint256 poolId,
@@ -142,7 +141,9 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function setMinDeposit(address token, uint256 _minDeposit) external;
 
-    function setTokenCap(address token, uint256 _tokenCap) external;
+    function setMaxDeposit(address token, uint256 _minDeposit) external;
+
+    function setRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator) external;
 
     function setRoyaltyShares(
         uint16 _poolOwnerRoyaltyShareNumerator,
@@ -182,8 +183,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 quoteTokenAmount
     ) external returns (uint256 poolId);
 
-    function setRoyaltyPrice(uint256 poolId, uint256 _royaltyPrice) external;
-
     function setDepositor(uint256 poolId, address depositor, bool _depositorApproval) external;
 
     function deposit(
@@ -220,12 +219,12 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function buyRoyalty(
         uint256 poolId
-    ) external payable returns (uint256 royaltyPricePaid, uint256 refund);
+    ) external returns (uint256 royaltyPricePaid);
 
     function buyRoyaltyTo(
         uint256 poolId,
-        address payable to
-    ) external payable returns (uint256 royaltyPricePaid, uint256 refund);
+        address to
+    ) external returns (uint256 royaltyPricePaid);
 
     function royaltyInfo(
         uint256 tokenId,
