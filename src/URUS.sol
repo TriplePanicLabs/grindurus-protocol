@@ -475,7 +475,7 @@ contract URUS is IURUS {
         baseTokenAmount = _put(baseToken, baseTokenAmount);
 
         // 5.1. Accumulate fees
-        uint256 feeQty = (gasStart - gasleft() + 50) * tx.gasprice; // gas * feeToken / gas = feeToken
+        uint256 feeQty = ((gasStart - gasleft()) + 50) * tx.gasprice; // gas * feeToken / gas = feeToken
         uint256 feePrice = getPriceQuoteTokensPerFeeToken(); // [long.feePrice] = quoteToken/feeToken
         if (feeQty > 0 && feePrice > 0) {
             long.feePrice = (long.feeQty * long.feePrice + feeQty * feePrice) / (long.feeQty + feeQty);
@@ -536,7 +536,7 @@ contract URUS is IURUS {
             feeQty: 0,
             feePrice: 0
         });
-        uint256 feeQty = (gasStart - gasleft() + 50) * tx.gasprice; // gas * feeToken / gas = feeToken
+        uint256 feeQty = ((gasStart - gasleft()) + 50) * tx.gasprice; // gas * feeToken / gas = feeToken
         emit Transmute(
             uint8(Op.LONG_SELL),
             quoteTokenAmount,
@@ -617,7 +617,7 @@ contract URUS is IURUS {
             hedge.liquidity += quoteTokenAmount;
             hedge.number += 1;
 
-            feeQty = (gasStart - gasleft() + 50) * tx.gasprice; // [feeQty] = gas * feeToken / gas = feeToken
+            feeQty = ((gasStart - gasleft()) + 50) * tx.gasprice; // [feeQty] = gas * feeToken / gas = feeToken
             uint256 feePrice = getPriceBaseTokensPerFeeToken(swapPrice); // [feePrice] = baseToken/feeToken
             if (feeQty > 0 && feePrice > 0) {
                 // gasStart always bigger than gasleft()
@@ -647,7 +647,7 @@ contract URUS is IURUS {
                 feeQty: 0,
                 feePrice: 0
             });
-            feeQty = (gasStart - gasleft() + 50) * tx.gasprice; // [feeQty] = gas * feeToken / gas = feeToken
+            feeQty = ((gasStart - gasleft()) + 50) * tx.gasprice; // [feeQty] = gas * feeToken / gas = feeToken
         }
         emit Transmute(
             uint8(Op.HEDGE_SELL),
@@ -707,7 +707,7 @@ contract URUS is IURUS {
             feeQty: 0,
             feePrice: 0
         });
-        uint256 feeQty = (gasStart - gasleft() + 50) * tx.gasprice; // [feeQty] = gas * feeToken / gas = feeToken
+        uint256 feeQty = ((gasStart - gasleft() + 50)) * tx.gasprice; // [feeQty] = gas * feeToken / gas = feeToken
         emit Transmute(
             uint8(Op.HEDGE_REBUY),
             quoteTokenAmount,
@@ -799,7 +799,6 @@ contract URUS is IURUS {
             long.price = newPrice;
             long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
         } else {
-            helper.initLiquidity = 0;
             long = Position({
                 number: 0,
                 numberMax: 0,
@@ -811,6 +810,7 @@ contract URUS is IURUS {
                 feePrice: 0
             });
         }
+        helper.initLiquidity = (long.liquidity * helper.coefMultiplier) / helper.investCoef;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
