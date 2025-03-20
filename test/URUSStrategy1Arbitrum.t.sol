@@ -202,7 +202,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         console.log("HedgeSell High: ", uintToDecimal(thresholdHigh,8));
         console.log("HedgeSell Low:  ", uintToDecimal(thresholdLow,8));
 
-        mockSwapRouter.setRate(2180 * 10 ** 8); // Decrease price further
+        mockSwapRouter.setRate(2140 * 10 ** 8); // Decrease price further
         console.log("12) Price set to 2140");
         poolsNFT.grind(poolId0);
         console.log("13) Init hedge sell");

@@ -534,7 +534,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param quoteToken address of quoteToken
     /// @param depositAmount amount of quote token
     function _checkMaxDeposit(address quoteToken, uint256 depositAmount) private view {
-        if (depositAmount > maxDeposit[quoteToken]) {
+        if (maxDeposit[quoteToken] != 0 && depositAmount > maxDeposit[quoteToken]) {
             revert ExceededMaxDeposit();
         }
     }

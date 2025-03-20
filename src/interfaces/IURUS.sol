@@ -7,28 +7,13 @@ import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interf
 
 interface IURUS is IERC5313 {
 
-    error URUSInitialized();
     error NotOwner();
     error NotAgent();
     error InvalidLength();
-    error InvalidConfig();
-    error InvalidNumberMax();
-    error InvalidExtraCoef();
     error InvalidOp();
-    error InvalidReturnOfInvestment();
-    error InvalidPriceVolatility();
-    error QuoteTokenInvested();
-    error LongNumberMax();
-    error NotLongNumberMax();
-    error Long();
-    error NoLong();
-    error Hedge();
-    error NoHedge();
     error BuyUpperPriceMin();
     error NotProfitableLongSell();
     error HedgeSellOutOfBound();
-    error DivestExceedsMaxLiquidity();
-    error QuoteTokenAmountExceededMaxLiquidity();
     error NotProfitableHedgeSell();
     error NotProfitableRebuy();
 
@@ -40,18 +25,12 @@ interface IURUS is IERC5313 {
         uint256 feeQty
     );
 
-    /// @dev OPeration to number:
+    /// @dev URUS OPerations
     enum Op {
         LONG_BUY, // 0
         LONG_SELL, // 1
         HEDGE_SELL, // 2
-        HEDGE_REBUY, // 3
-        REBALANCE, // 4
-        DEPOSIT, // 5
-        WITHDRAW, // 6
-        INVEST, // 7
-        DIVEST, // 8
-        EXIT // 9
+        HEDGE_REBUY // 3
     }
 
     struct FeeConfig {

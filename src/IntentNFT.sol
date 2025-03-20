@@ -4,7 +4,6 @@ pragma solidity =0.8.28;
 import {IToken} from "src/interfaces/IToken.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {IIntentNFT} from "src/interfaces/IIntentNFT.sol";
-import {IIntentsNFTImage} from "src/interfaces/IIntentsNFTImage.sol";
 import {Base64} from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
 import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
