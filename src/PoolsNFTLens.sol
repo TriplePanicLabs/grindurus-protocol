@@ -52,13 +52,13 @@ contract PoolsNFTLens is IPoolsNFTLens {
     }
 
     /// @notice get pool nft info by pool ids
-    /// @param _poolIds array of poolIds
-    function getPoolNFTInfosBy(uint256[] memory _poolIds) external view override returns (PoolNFTInfo[] memory poolInfos) {
-        uint256 poolIdsLen = _poolIds.length;
+    /// @param poolIds array of poolIds
+    function getPoolNFTInfosBy(uint256[] memory poolIds) external view override returns (PoolNFTInfo[] memory poolInfos) {
+        uint256 poolIdsLen = poolIds.length;
         poolInfos = new PoolNFTInfo[](poolIdsLen);
         uint256 poolInfosId = 0;
         for (; poolInfosId < poolIdsLen; ) {
-            poolInfos[poolInfosId] = _formPoolInfo(_poolIds[poolInfosId]);
+            poolInfos[poolInfosId] = _formPoolInfo(poolIds[poolInfosId]);
             unchecked {
                 ++poolInfosId;
             }
@@ -105,7 +105,8 @@ contract PoolsNFTLens is IPoolsNFTLens {
 
     /// @notice returns positions of strategy
     /// @param poolId pool id of pool in array `pools` on PoolsNFT
-    function getPositions(uint256 poolId) public view override returns(IURUS.Position memory long, IURUS.Position memory hedge) {
+    function getPositions(uint256 poolId) public view override returns(Positions memory positions) {
+        IStrategy strategy = IStrategy(poolsNFT.pools(poolId));
         uint8 number;
         uint8 numberMax;
         uint256 priceMin;
@@ -123,8 +124,8 @@ contract PoolsNFTLens is IPoolsNFTLens {
             price,
             feeQty,
             feePrice
-        ) = IStrategy(poolsNFT.pools(poolId)).getLong();
-        long = IURUS.Position({
+        ) = strategy.getLong();
+        positions.long = IURUS.Position({
             number: number,
             numberMax: numberMax,
             priceMin: priceMin,
@@ -143,8 +144,8 @@ contract PoolsNFTLens is IPoolsNFTLens {
             price,
             feeQty,
             feePrice
-        ) = IStrategy(poolsNFT.pools(poolId)).getHedge();
-        hedge = IURUS.Position({
+        ) = strategy.getHedge();
+        positions.hedge = IURUS.Position({
             number: number,
             numberMax: numberMax,
             priceMin: priceMin,
@@ -154,6 +155,18 @@ contract PoolsNFTLens is IPoolsNFTLens {
             feeQty: feeQty,
             feePrice: feePrice
         });
+    }
+
+    function getPositionsBy(uint256[] memory poolIds) external view override returns (Positions[] memory positions) {
+        uint256 poolIdsLen = poolIds.length;
+        positions = new Positions[](poolIdsLen);
+        uint256 positionsId = 0;
+        for (; positionsId < poolIdsLen; ) {
+            positions[positionsId] = getPositions(poolIds[positionsId]);
+            unchecked {
+                ++positionsId;
+            }
+        }
     }
 
     /// @notice get thresholds of pool with `poolId`

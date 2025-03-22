@@ -282,7 +282,9 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256[] memory _poolIds
     ) external view returns (IPoolsNFTLens.PoolNFTInfo[] memory poolNFTInfos);
 
-    function getPositions(uint256 poolId) external view returns(IURUS.Position memory long, IURUS.Position memory hedge);
+    function getPositions(uint256 poolId) external view returns(IPoolsNFTLens.Positions memory);
+
+    function getPositionsBy(uint256[] memory _poolIds) external view returns (IPoolsNFTLens.Positions[] memory);
 
     function getConfig(uint256 poolId) external view 
         returns (

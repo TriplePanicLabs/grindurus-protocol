@@ -49,6 +49,11 @@ interface IPoolsNFTLens {
         uint256 royaltyPrice;
     }
 
+    struct Positions {
+        IURUS.Position long;
+        IURUS.Position hedge;
+    }
+
     function poolsNFT() external view returns (IPoolsNFT);
 
     function baseURI() external view returns (string memory);
@@ -57,7 +62,9 @@ interface IPoolsNFTLens {
 
     function tokenURI(uint256 poolId) external view returns (string memory);
 
-    function getPositions(uint256 poolId) external view returns(IURUS.Position memory long, IURUS.Position memory hedge);
+    function getPositions(uint256 poolId) external view returns(Positions memory positions);
+
+    function getPositionsBy(uint256[] memory poolIds) external view returns(Positions[] memory positions);
 
     function getConfig(uint256 poolId) external view returns(
         uint8 longNumberMax,

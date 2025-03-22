@@ -997,11 +997,20 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param poolId pool id of pool in array `pools`
     function getPositions(uint256 poolId) external view override 
         returns(
-            IURUS.Position memory long,
-            IURUS.Position memory hedge
+            IPoolsNFTLens.Positions memory
         )
     {
         return poolsNFTLens.getPositions(poolId);
+    }
+
+    /// @notice get positions by pool ids
+    /// @param _poolIds array of poolIds
+    function getPositionsBy(uint256[] memory _poolIds) external view override 
+        returns (
+            IPoolsNFTLens.Positions[] memory
+        )
+    {
+        return poolsNFTLens.getPositionsBy(_poolIds);
     }
 
     /// @notice gets pool thresholds

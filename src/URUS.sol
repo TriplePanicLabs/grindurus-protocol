@@ -647,7 +647,12 @@ contract URUS is IURUS {
         // 2.1 Swap quoteToken to baseToken
         baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
         uint256 swapPrice = calcSwapPrice(quoteTokenAmount, baseTokenAmount);
-        (uint256 baseTokenAmountThreshold, ,uint256 hedgeLossInBaseToken, ) = calcHedgeRebuyThreshold(quoteTokenAmount);
+        (
+            uint256 baseTokenAmountThreshold,
+            /** uint256 hedgeLossInQuoteToken*/,
+            uint256 hedgeLossInBaseToken,
+            /** uint256 hedgeRebuyPriceThreshold*/
+        ) = calcHedgeRebuyThreshold(quoteTokenAmount);
         if (baseTokenAmount <= baseTokenAmountThreshold) {
             revert NotProfitableRebuy();
         }
@@ -662,9 +667,8 @@ contract URUS is IURUS {
         // 3.1. Put the baseToken to lending protocol
         baseTokenAmount = _put(baseToken, baseTokenAmount);
 
-        long.price = ((long.qty * long.price) + (baseTokenAmount * ((swapPrice + long.price) - hedge.price))) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
-        long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
+        long.price = calcSwapPrice(long.liquidity, long.qty);
 
         hedge = Position({
             number: 0,

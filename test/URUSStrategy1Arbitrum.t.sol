@@ -181,9 +181,11 @@ contract URUSStrategy1ArbitrumTest is Test {
         assert(qty9 < qty7); // hedge sold
         assert(hqty9 == qty7 - qty9); // init hedge positions
         assert(hprice9 > 0); // init hedge position price 
+    
+        printHedgeRebuyParams(poolId0);
 
-        mockSwapRouter.setRate(1700 * 10 ** 8); // Decrease price further
-        console.log("10) Price decreased by another 10%.");
+        mockSwapRouter.setRate(2140 * 10 ** 8); // Decrease price further
+        console.log("10) Price set to 2140.");
 
         poolsNFT.grind(poolId0);
         console.log("11) Rebuy executed.");
@@ -202,8 +204,8 @@ contract URUSStrategy1ArbitrumTest is Test {
         console.log("HedgeSell High: ", uintToDecimal(thresholdHigh,8));
         console.log("HedgeSell Low:  ", uintToDecimal(thresholdLow,8));
 
-        mockSwapRouter.setRate(2140 * 10 ** 8); // Decrease price further
-        console.log("12) Price set to 2140");
+        mockSwapRouter.setRate(2190 * 10 ** 8); // Decrease price further
+        console.log("12) Price set to 2190");
         poolsNFT.grind(poolId0);
         console.log("13) Init hedge sell");
         (uint256 qty13, uint256 price13) = printLongPosition(poolId0);
@@ -237,6 +239,47 @@ contract URUSStrategy1ArbitrumTest is Test {
         (uint256 hqty17, uint256 hprice17) = printHedgePosition(poolId0);
         assert(hqty17 == 0); // hedge sell close the positon 
         assert(hprice17 == 0); // hedge sell close the position
+    }
+
+    function test_rebuy() public {
+        pool0.setSwapRouter(address(mockSwapRouter));
+        pool0.setLongNumberMax(1);
+        pool0.setHedgeNumberMax(2);
+        
+        mockSwapRouter.setRate(2000 * 10 ** 8);
+        (uint256 qty0, uint256 price0) = printLongPosition(poolId0);
+        (uint256 hqty0, uint256 hprice0) = printHedgePosition(poolId0);
+
+        poolsNFT.grind(poolId0);
+        console.log("1) Long buy");
+        (uint256 qty1, uint256 price1) = printLongPosition(poolId0);
+        (uint256 hqty1, uint256 hprice1) = printHedgePosition(poolId0);
+
+        (uint256 thresholdHigh, uint256 thresholdLow) = pool0.calcHedgeSellInitBounds();
+        
+        console.log();
+        console.log("HedgeSell High: ", uintToDecimal(thresholdHigh,8));
+        console.log("HedgeSell Low:  ", uintToDecimal(thresholdLow,8));
+        mockSwapRouter.setRate(1991 * 10 ** 8);
+        console.log();
+        console.log("2) Set price 1991");
+        console.log();
+        (uint256 qty2, uint256 price2) = printLongPosition(poolId0);
+        (uint256 hqty2, uint256 hprice2) = printHedgePosition(poolId0);
+        poolsNFT.grind(poolId0);
+        console.log("3) hedge sell init");
+        (uint256 qty3, uint256 price3) = printLongPosition(poolId0);
+        (uint256 hqty3, uint256 hprice3) = printHedgePosition(poolId0);
+
+        printHedgeRebuyParams(poolId0);
+
+        mockSwapRouter.setRate(1960 * 10 ** 8);
+
+        poolsNFT.grind(poolId0);
+        console.log("4) hedge rebuy");
+        (uint256 qty4, uint256 price4) = printLongPosition(poolId0);
+        (uint256 hqty4, uint256 hprice4) = printHedgePosition(poolId0);
+
     }
 
     function test_rebalance() public {
@@ -306,6 +349,21 @@ contract URUSStrategy1ArbitrumTest is Test {
         console.log("   liq:   ", uintToDecimal(liquidity, 6));
         _qty = qty;
         _price = price;
+    }
+
+    function printHedgeRebuyParams(uint256 poolId) internal view {
+        Strategy1Arbitrum _pool = Strategy1Arbitrum(payable(poolsNFT.pools(poolId)));
+        ( 
+            uint256 baseTokenAmountThreshold10,
+            uint256 hedgeLossInQuoteToken10,
+            uint256 hedgeLossInBaseToken10,
+            uint256 hedgeRebuyPriceThreshold10
+        ) = _pool.calcHedgeRebuyThreshold();
+
+        console.log("10) baseTokenAmountThreshold: ", uintToDecimal(baseTokenAmountThreshold10, 18));
+        console.log("10) hedgeLossInQuoteToken:    ", uintToDecimal(hedgeLossInQuoteToken10, 6));
+        console.log("10) hedgeLossInBaseToken:     ", uintToDecimal(hedgeLossInBaseToken10, 18));
+        console.log("10) hedge rebuy threshold:    ", uintToDecimal(hedgeRebuyPriceThreshold10, 8));
     }
 
     function uintToDecimal(uint256 value, uint8 decimals) internal pure returns (string memory) {
