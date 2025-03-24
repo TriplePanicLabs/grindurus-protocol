@@ -1038,10 +1038,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param target address of target contract
     /// @param value amount of ETH
     /// @param data data to execute on target contract
-    function execute(address target, uint256 value, bytes memory data) external override {
+    function execute(address target, uint256 value, bytes memory data) external override returns (bool success, bytes memory result) {
         _onlyOwner();
-        (bool success, ) = target.call{value: value}(data);
-        success;
+        (success, result) = target.call{value: value}(data);
     }
 
     receive() external payable {

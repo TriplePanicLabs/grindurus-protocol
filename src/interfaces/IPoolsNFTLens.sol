@@ -14,11 +14,6 @@ interface IPoolsNFTLens {
         uint256 ROIPeriod;
     }
 
-    struct APR {
-        uint256 APRNumerator;
-        uint256 APRDenominator;
-    }
-
     struct PoolNFTInfo {
         uint256 poolId;
         uint256 strategyId;
@@ -44,7 +39,6 @@ interface IPoolsNFTLens {
         uint256 startTimestamp;
         IURUS.TotalProfits totalProfits;
         ROI roi;
-        APR apr;
         /// royalty price
         uint256 royaltyPrice;
     }
@@ -98,5 +92,7 @@ interface IPoolsNFTLens {
         );
 
     function getPoolNFTInfosBy(uint256[] memory _poolIds) external view returns (PoolNFTInfo[] memory poolInfos);
+
+    function execute(address target, uint256 value, bytes calldata data) external returns (bool success, bytes memory result);
 
 }

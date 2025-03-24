@@ -9,7 +9,6 @@ interface IURUS is IERC5313 {
 
     error NotOwner();
     error NotAgent();
-    error InvalidLength();
     error InvalidOp();
     error BuyUpperPriceMin();
     error NotProfitableLongSell();

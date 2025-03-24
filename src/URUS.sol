@@ -9,7 +9,7 @@ import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/
 /// @notice core logic of URUS algorithm. Ubiquitous Resources for Utilities and Securities (URUS)
 /// @dev constructor is function `initURUS`
 contract URUS is IURUS {
-   using SafeERC20 for IToken;
+    using SafeERC20 for IToken;
 
     /// @dev minimum value of `longNumberMax` in `config`
     uint8 public constant MIN_LONG_NUMBER_MAX = 1;

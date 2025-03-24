@@ -236,14 +236,13 @@ contract GrinderAI is IGrinderAI {
     /// @param target address of target
     /// @param value amount of ETH
     /// @param data calldata to target
-    function execute(address target, uint256 value, bytes calldata data) public override {
+    function execute(address target, uint256 value, bytes calldata data) public override returns (bool success, bytes memory result) {
         _onlyOwner();
-        (bool success, ) = target.call{value: value}(data);
-        success;
+        (success, result) = target.call{value: value}(data);
     }
 
     /// @notice return version of GrinderAI
-    function version() public pure returns (uint256) {
+    function version() external pure returns (uint256) {
         return 0;
     }
 

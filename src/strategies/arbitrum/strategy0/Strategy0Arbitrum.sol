@@ -28,6 +28,9 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     /// @dev timestamp of deployment
     uint256 public startTimestamp;
 
+    /// @dev true - reinvest, false - not reinvest
+    bool public reinvest;
+
     constructor () {}
 
     function init(
@@ -41,9 +44,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         Config memory _config,
         bytes memory _dexArgs
     ) public {
-        if (address(poolsNFT) != address(0)) {
-            revert StrategyInitialized(strategyId());
-        }
+        require(address(poolsNFT) == address(0));
         initURUS(
             _oracleQuoteTokenPerFeeToken,
             _oracleQuoteTokenPerBaseToken,
@@ -57,6 +58,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         poolsNFT = IPoolsNFT(_poolsNFT);
         poolId = _poolId;
         startTimestamp = block.timestamp;
+        reinvest = true;
     }
 
     /// @dev checks that msg.sender is owner
@@ -68,9 +70,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
 
     /// @dev checks that msg.sender is gateway
     function _onlyGateway() internal view override(URUS) {
-        if (msg.sender != address(poolsNFT)) {
-            revert NotPoolsNFT();
-        }
+        require(msg.sender == address(poolsNFT));
     }
 
     /// @dev checks that msg.sender is agent
@@ -112,16 +112,28 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         URUS._distributeTradeProfit(token, profit);
     }
 
+    /// @notice distribute profit
+    /// @param token address of token
+    /// @param profit amount of token
     function _distributeProfit(IToken token, uint256 profit) internal override (URUS) {
         (
             address[] memory receivers,
             uint256[] memory amounts
         ) = poolsNFT.calcRoyaltyShares(poolId, profit);
         uint256 len = receivers.length;
-        if (len != amounts.length) {
-            revert InvalidLength();
+        require(len == amounts.length);
+        if (reinvest) {
+            uint256 quoteTokenAmount;
+            if (token == quoteToken) {
+                quoteTokenAmount = amounts[0];
+            } else {
+                quoteTokenAmount = _swap(getBaseToken(), getQuoteToken(), amounts[0]);
+            }
+            _invest(quoteTokenAmount);
+        } else {
+            token.safeTransfer(receivers[0], amounts[0]);
         }
-        uint256 i;
+        uint256 i = 1;
         for (;i < len;) {
             if (amounts[i] > 0) {
                 token.safeTransfer(receivers[i], amounts[i]);
@@ -130,10 +142,16 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         }
     }
 
-    /// @notice execute any transaction
-    function execute(address target, uint256 value, bytes calldata data) public returns (bytes memory result) {
+    /// @notice switch reinvest flag
+    function switchReinvest() external override {
         _onlyOwner();
-        (, result) = target.call{value: value}(data);
+        reinvest = !reinvest;
+    }
+
+    /// @notice execute any transaction
+    function execute(address target, uint256 value, bytes calldata data) public override returns (bool success, bytes memory result) {
+        _onlyOwner();
+        (success, result) = target.call{value: value}(data);
     }
 
     /// @notice return total profits of strategy pool
@@ -189,24 +207,6 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         ROIPeriod = block.timestamp - startTimestamp;
     }
 
-    /// @notice calculates annual percentage rate (APR) of strategy pool
-    /// @dev returns the numerator and denominator of APR. APR = APRNumerator / APRDenominator
-    function APR()
-        public
-        view
-        returns (uint256 APRNumerator, uint256 APRDenominator)
-    {
-        (
-            uint256 ROINumerator,
-            uint256 ROIDenominator,
-            uint256 ROIPeriod
-        ) = ROI();
-        // convert ROI per 1 day
-        uint256 oneDayInSeconds = 86400;
-        APRNumerator = ROINumerator * ROIPeriod * 365;
-        APRDenominator = ROIDenominator * oneDayInSeconds;
-    }
-
     /// @notice return pool total active capital based on positions
     /// @dev [activeCapital] = quoteToken
     function getActiveCapital() external view returns (uint256) {
@@ -217,7 +217,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     }
 
     /// @notice returns strategy id
-    function strategyId() public pure override returns (uint16) {
+    function strategyId() external pure override returns (uint16) {
         return 0;
     }
 

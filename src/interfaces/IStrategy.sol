@@ -7,8 +7,6 @@ import {IURUS} from "src/interfaces/IURUS.sol";
 
 /// @notice the interface for Strategy Pool
 interface IStrategy is IURUS {
-    error StrategyInitialized(uint256 strategyId);
-    error NotPoolsNFT();
 
     function poolsNFT() external view returns (IPoolsNFT);
 
@@ -16,9 +14,11 @@ interface IStrategy is IURUS {
 
     function startTimestamp() external view returns (uint256);
 
-    function ROI() external view returns (uint256 ROINumerator, uint256 ROIDenominator, uint256 ROIPeriod);
+    function reinvest() external view returns (bool);
 
-    function APR() external view returns (uint256 APRNumerator, uint256 APRDenominator);
+    function switchReinvest() external;
+
+    function ROI() external view returns (uint256 ROINumerator, uint256 ROIDenominator, uint256 ROIPeriod);
 
     function getActiveCapital() external view returns (uint256);
 
@@ -41,5 +41,7 @@ interface IStrategy is IURUS {
             uint256 quoteTokenTradeProfit,
             uint256 baseTokenTradeProfit
         );
+
+    function execute(address target, uint256 value, bytes calldata data) external returns (bool success, bytes memory result);
 
 }

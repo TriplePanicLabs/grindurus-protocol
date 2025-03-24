@@ -55,6 +55,6 @@ interface IGrinderAI {
 
     function setOpFeeCoef(uint256 poolId, uint8 op, uint256 _feeCoef) external;
 
-    function execute(address target, uint256 value, bytes calldata data) external;
+    function execute(address target, uint256 value, bytes calldata data) external returns (bool success, bytes memory result);
 
 }

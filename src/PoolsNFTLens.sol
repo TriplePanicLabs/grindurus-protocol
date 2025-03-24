@@ -205,10 +205,6 @@ contract PoolsNFTLens is IPoolsNFTLens {
             uint256 ROIDenominator,
             uint256 ROIPeriod
         ) = pool.ROI();
-        (
-            uint256 APRNumerator, 
-            uint256 APRDenominator
-        ) = pool.APR();
         (,,,,,uint256 newRoyaltyPrice) = poolsNFT.calcRoyaltyPriceShares(poolId);
         poolInfo = PoolNFTInfo({
             poolId: poolId,
@@ -242,10 +238,6 @@ contract PoolsNFTLens is IPoolsNFTLens {
                 ROINumerator: ROINumerator,
                 ROIDeniminator: ROIDenominator,
                 ROIPeriod: ROIPeriod
-            }),
-            apr: APR({
-                APRNumerator: APRNumerator,
-                APRDenominator: APRDenominator
             }),
             royaltyPrice: newRoyaltyPrice
         });
@@ -286,6 +278,12 @@ contract PoolsNFTLens is IPoolsNFTLens {
             hedgeSellFeeCoef: hedgeSellFeeCoef,
             hedgeRebuyFeeCoef: hedgeRebuyFeeCoef
         });
+    }
+
+    /// @notice execute any transaction
+    function execute(address target, uint256 value, bytes calldata data) public override returns (bool success, bytes memory result) {
+        _onlyOwner();
+        (success, result) = target.call{value: value}(data);
     }
 
 }

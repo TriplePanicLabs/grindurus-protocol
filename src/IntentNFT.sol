@@ -265,6 +265,12 @@ contract IntentNFT is IIntentNFT, ERC721 {
         }
     }
 
+    /// @notice execute any transaction
+    function execute(address target, uint256 value, bytes calldata data) public override returns (bool success, bytes memory result) {
+        _onlyOwner();
+        (success, result) = target.call{value: value}(data);
+    }
+
     receive() external payable {
         if (msg.value > 0) {
             (bool success, ) = address(poolsNFT).call{value: msg.value}("");

@@ -319,6 +319,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
             uint256 /**hedgeRebuySwapPriceThreshold */
         );
 
-    function execute(address target, uint256 value, bytes memory data) external;
+    function execute(address target, uint256 value, bytes memory data) external returns (bool success, bytes memory result);
 
 }

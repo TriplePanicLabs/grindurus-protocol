@@ -46,7 +46,7 @@ interface IGRETH is IToken {
         address to
     ) external payable returns (uint256[] memory tokenAmount);
 
-    function execute(address target, uint256 value, bytes memory data) external;
+    function execute(address target, uint256 value, bytes memory data) external returns (bool success, bytes memory result);
 
     function withdraw(address token, uint256 amount) external returns (uint256 withdrawnAmount);
 
