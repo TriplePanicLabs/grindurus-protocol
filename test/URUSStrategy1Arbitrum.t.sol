@@ -215,7 +215,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         assert(hqty13 > 0); // initialize hedge position
         assert(hprice13 > 0); // initialize hedge position
 
-        mockSwapRouter.setRate(2240 * 10 ** 8);
+        mockSwapRouter.setRate(2250 * 10 ** 8);
         console.log("14) Price set to 2240");
         poolsNFT.grind(poolId0);
         console.log("15) Hedge sell");
