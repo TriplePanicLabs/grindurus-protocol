@@ -130,6 +130,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
                 quoteTokenAmount = _swap(getBaseToken(), getQuoteToken(), amounts[0]);
             }
             _invest(quoteTokenAmount);
+            _put(quoteToken, quoteTokenAmount);
         } else {
             token.safeTransfer(receivers[0], amounts[0]);
         }

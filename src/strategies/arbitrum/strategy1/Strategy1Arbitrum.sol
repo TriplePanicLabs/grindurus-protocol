@@ -158,6 +158,7 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
                 quoteTokenAmount = _swap(getBaseToken(), getQuoteToken(), amounts[0]);
             }
             _invest(quoteTokenAmount);
+            _put(quoteToken, quoteTokenAmount);
         } else {
             token.safeTransfer(receivers[0], amounts[0]);
         }
