@@ -39,8 +39,8 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         address _oracleQuoteTokenPerFeeToken,
         address _oracleQuoteTokenPerBaseToken,
         address _feeToken,
-        address _quoteToken,
         address _baseToken,
+        address _quoteToken,
         Config memory _config,
         bytes memory _dexArgs
     ) public {
@@ -49,8 +49,8 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
             _oracleQuoteTokenPerFeeToken,
             _oracleQuoteTokenPerBaseToken,
             _feeToken,
-            _quoteToken,
             _baseToken,
+            _quoteToken,
             _config
         );
         initDex(_dexArgs);

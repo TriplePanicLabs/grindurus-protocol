@@ -30,11 +30,11 @@ contract URUS is IURUS {
     /// @dev address of fee token
     IToken public feeToken;
 
-    /// @dev address of quote token
-    IToken public quoteToken;
-
     /// @dev address of base token
     IToken public baseToken;
+
+    /// @dev address of quote token
+    IToken public quoteToken;
 
     /// @dev fee coeficients
     FeeConfig public feeConfig;
@@ -66,8 +66,8 @@ contract URUS is IURUS {
         address _oracleQuoteTokenPerFeeToken,
         address _oracleQuoteTokenPerBaseToken,
         address _feeToken,
-        address _quoteToken,
         address _baseToken,
+        address _quoteToken,
         Config memory _config
     ) public {
         require(address(quoteToken) == address(0));
@@ -76,8 +76,8 @@ contract URUS is IURUS {
         oracleQuoteTokenPerBaseToken = AggregatorV3Interface(_oracleQuoteTokenPerBaseToken);
 
         feeToken = IToken(_feeToken);
-        quoteToken = IToken(_quoteToken);
         baseToken = IToken(_baseToken);
+        quoteToken = IToken(_quoteToken);
 
         feeConfig = FeeConfig({
             longSellFeeCoef: 1_00, // x1.00
@@ -117,9 +117,9 @@ contract URUS is IURUS {
 
     /// @dev initialize tokens decimals
     function _initHelperTokensDecimals() private {
+        helper.feeTokenDecimals = feeToken.decimals();
         helper.baseTokenDecimals = baseToken.decimals();
         helper.quoteTokenDecimals = quoteToken.decimals();
-        helper.feeTokenDecimals = feeToken.decimals();
     }
 
     /// @dev initialize helper of oracle
@@ -280,7 +280,6 @@ contract URUS is IURUS {
     ) public override returns (uint256 withdrawn) {
         _onlyGateway();
         require(long.number == 0);
-        require(quoteTokenAmount <= calcMaxLiquidity());
         withdrawn = _take(quoteToken, quoteTokenAmount);
         _divest(withdrawn);
         quoteToken.safeTransfer(to, withdrawn);
@@ -315,8 +314,9 @@ contract URUS is IURUS {
         uint256 divestAmount
     ) internal returns (uint256 newMaxLiquidity) {
         uint256 maxLiqudity = calcMaxLiquidity();
-        require(divestAmount <= maxLiqudity);
-        newMaxLiquidity = maxLiqudity - divestAmount;
+        if (divestAmount <= maxLiqudity) {
+            newMaxLiquidity = maxLiqudity - divestAmount;
+        }
         helper.initLiquidity = (newMaxLiquidity * helper.coefMultiplier) / helper.investCoef;
     }
 
@@ -745,22 +745,23 @@ contract URUS is IURUS {
     /// @return baseTokenAmount base token amount that take part in rebalance
     /// @return price base token price scaled by price multuplier
     function beforeRebalance()
-        public
+        external
         returns (uint256 baseTokenAmount, uint256 price)
     {
         _onlyGateway();
         require(hedge.number == 0);
         require(long.number == long.numberMax);
-
-        baseTokenAmount = _take(baseToken, long.qty);
-        baseToken.forceApprove(msg.sender, baseTokenAmount);
-        long.qty -= baseTokenAmount;
-        price = long.price;
+        if (long.qty > 0) {
+            baseTokenAmount = _take(baseToken, long.qty);
+            baseToken.forceApprove(msg.sender, baseTokenAmount);
+            long.qty -= baseTokenAmount;
+            price = long.price;
+        }
     }
 
     /// @notice third step for rebalance the positions via poolsNFT
     /// @dev called after rebalance by poolsNFT
-    function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public {
+    function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) external {
         _onlyGateway();
         if (baseTokenAmount > 0) {
             baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
@@ -768,6 +769,11 @@ contract URUS is IURUS {
             long.qty = baseTokenAmount;
             long.price = newPrice;
             long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
+            if (long.number == 0) {
+                long.number = 1;
+                long.numberMax = 1;
+                long.priceMin = calcLongPriceMin();
+            }
         } else {
             long = Position({
                 number: 0,
@@ -781,6 +787,38 @@ contract URUS is IURUS {
             });
         }
         helper.initLiquidity = (long.liquidity * helper.coefMultiplier) / helper.investCoef;
+    }
+
+    /// @notice dip rebalance mechanism
+    /// @dev executed by gateway.
+    /// @dev dip baseToken, if you completely sure that you earn baseToken for free
+    /// @param tokenAmount amount of quote token
+    function dip(address token, uint256 tokenAmount) external override {
+        _onlyGateway();
+        require(long.number == long.numberMax);
+        require(hedge.number == 0);
+        IToken(token).safeTransferFrom(msg.sender, address(this), tokenAmount);
+        uint256 baseTokenAmount;
+        uint256 swapPrice;
+        if (token == address(quoteToken)) {
+            baseTokenAmount = _swap(quoteToken, baseToken, tokenAmount);
+            swapPrice = calcSwapPrice(tokenAmount, baseTokenAmount);
+            ( ,uint256 thresholdLow) = calcHedgeSellInitBounds();
+            if (swapPrice >= thresholdLow) {
+                revert DipUpperThreshold();
+            }
+            _invest(tokenAmount);
+        } else if (token == address(baseToken)) {
+            baseTokenAmount = tokenAmount;
+            // swapPrice = 0;
+            // no invest, as no quote token is surplused
+        } else {
+            revert ();
+        }
+        baseTokenAmount = _put(baseToken, baseTokenAmount);
+        long.price = ((long.qty * long.price) + (baseTokenAmount * swapPrice)) / (long.qty + baseTokenAmount);
+        long.qty += baseTokenAmount;
+        long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

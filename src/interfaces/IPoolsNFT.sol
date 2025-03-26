@@ -9,17 +9,13 @@ import {IPoolsNFTLens} from "src/interfaces/IPoolsNFTLens.sol";
 
 interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
-    error NotOwnerOrPending();
     error NotOwnerOf();
-    error NotMatchPoolsNFT();
     error NotDepositor();
     error NotAgent();
     error NoCapital();
     error InvalidOp();
-    error InvalidGRETHShares();
-    error InvalidRoyaltyShares();
+    error InvalidShares();
     error InvalidRoyaltyPriceInit();
-    error InvalidRoyaltyPriceShare();
     error StrategyStopped();
     error InsufficientMinDeposit();
     error ExceededMaxDeposit();
@@ -113,10 +109,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function poolIds(address pool) external view returns (uint256);
 
-    function deposited(uint256 poolId, address token) external view returns (uint256);
-
-    function totalDeposited(address token) external view returns (uint256);
-
     function minDeposit(address token) external view returns (uint256);
 
     function maxDeposit(address token) external view returns (uint256);
@@ -209,6 +201,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function rebalance(uint256 poolIdLeft, uint256 poolIdRight, uint8 rebalanceLeft, uint8 rebalnceRight) external;
 
+    function dip(uint256 poolId, address token, uint256 tokenAmount) external;
+
     function grind(uint256 poolId) external returns (bool isGrinded);
 
     function grindTo(uint256 poolId, address grinder) external returns (bool isGrinded);
@@ -271,9 +265,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function getPoolIdsOf(
         address poolOwner
-    )
-        external
-        view
+    ) external view
         returns (
             uint256[] memory poolIdsOwnedByPoolOwner
         );
@@ -282,42 +274,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256[] memory _poolIds
     ) external view returns (IPoolsNFTLens.PoolNFTInfo[] memory poolNFTInfos);
 
-    function getPositions(uint256 poolId) external view returns(IPoolsNFTLens.Positions memory);
-
     function getPositionsBy(uint256[] memory _poolIds) external view returns (IPoolsNFTLens.Positions[] memory);
-
-    function getConfig(uint256 poolId) external view 
-        returns (
-            uint8 /** longNumberMax,*/,
-            uint8 /** hedgeNumberMax,*/,
-            uint256 /** extraCoef,*/,
-            uint256 /** priceVolatility,*/,
-            uint256 /** returnPercentLongSell,*/,
-            uint256 /** returnPercentHedgeSell,*/,
-            uint256 /** returnPercentHedgeRebuy*/
-        );
-
-    function getFeeConfig(uint256 poolId) external view 
-        returns (
-            uint256 /** */,
-            uint256 /** */,
-            uint256 /** */
-        );
-
-    function getThresholds(uint256 poolId) external view 
-        returns (
-            uint256 /**longBuyPriceMin */,
-            uint256 /**longSellQuoteTokenAmountThreshold */,
-            uint256 /**longSellSwapPriceThreshold */,
-            uint256 /**hedgeSellInitPriceThresholdHigh */,
-            uint256 /**hedgeSellInitPriceThresholdLow */,
-            uint256 /**hedgeSellLiquidity */,
-            uint256 /**hedgeSellQuoteTokenAmountThreshold */,
-            uint256 /**hedgeSellTargetPrice */,
-            uint256 /**hedgeSellSwapPriceThreshold */,
-            uint256 /**hedgeRebuyBaseTokenAmountThreshold */,
-            uint256 /**hedgeRebuySwapPriceThreshold */
-        );
 
     function execute(address target, uint256 value, bytes memory data) external returns (bool success, bytes memory result);
 

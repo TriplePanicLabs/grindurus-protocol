@@ -12,13 +12,12 @@ import {IStrategyFactory} from "src/interfaces/IStrategyFactory.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {Base64} from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
-import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import {ERC721, ERC721Enumerable, IERC165} from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 /// @title GrindURUS Pools NFT
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice NFT that represets ownership of every grindurus strategy pools
-contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
+contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     using SafeERC20 for IToken;
 
     //// CONTSTANTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -134,12 +133,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @dev pool strategy address => poolId
     mapping (address pool => uint256) public poolIds;
 
-    /// @dev poolId => token address => deposit amount
-    mapping (uint256 poolId => mapping (address token => uint256)) public deposited;
-
-    /// @dev token address => amount of deposit in pool
-    mapping (address token => uint256) public totalDeposited;
-
     /// @dev token address => minimum amount to deposit
     /// @dev if minDeposit == 0, that no limit for minimum deposit
     mapping (address token => uint256) public minDeposit;
@@ -213,6 +206,13 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         }
     }
 
+    /// @notice checks that msg.sender is agent
+    function _onlyAgentOf(uint256 poolId) private view {
+        if (!isAgentOf(ownerOf(poolId), msg.sender)) {
+            revert NotAgent();
+        }
+    }
+
     /// @notice checks that msg.sender is owner of pool id
     function _onlyOwnerOf(uint256 poolId) private view {
         if (msg.sender != ownerOf(poolId)) {
@@ -227,9 +227,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setPoolsNFTLens(address _poolsNFTLens) external override {
         _onlyOwner();
         poolsNFTLens = IPoolsNFTLens(_poolsNFTLens);
-        if (address(poolsNFTLens.poolsNFT()) != address(this)) {
-            revert NotMatchPoolsNFT();
-        }
+        require(address(poolsNFTLens.poolsNFT()) == address(this));
     }
 
     /// @notice sets pools NFT Image
@@ -237,9 +235,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setGRETH(address _grETH) external override {
         _onlyOwner();
         grETH = IGRETH(_grETH);
-        if (address(grETH.poolsNFT()) != address(this)) {
-            revert NotMatchPoolsNFT();
-        }
+        require(address(grETH.poolsNFT()) == address(this));
     }
 
     /// @notice sets grinder AI
@@ -247,9 +243,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function setGrinderAI(address _grinderAI) external override {
         _onlyOwner();
         grinderAI = IGrinderAI(_grinderAI);
-        if (address(grinderAI.poolsNFT()) != address(this)) {
-            revert NotMatchPoolsNFT();
-        }
+        require(address(grinderAI.poolsNFT()) == address(this));
     }
 
     /// @notice sets minimum deposit
@@ -288,7 +282,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     ) external override {
         _onlyOwner();
         if (_royaltyPriceCompensationShareNumerator <= DENOMINATOR) {
-            revert InvalidRoyaltyPriceShare();
+            revert InvalidShares();
         }
         royaltyPriceCompensationShareNumerator = _royaltyPriceCompensationShareNumerator;
         royaltyPriceReserveShareNumerator = _royaltyPriceReserveShareNumerator;
@@ -306,7 +300,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     ) external override {
         _onlyOwner();
         if (_grethGrinderShareNumerator + _grethReserveShareNumerator + _grethPoolOwnerShareNumerator + _grethRoyaltyReceiverShareNumerator != DENOMINATOR) {
-            revert InvalidGRETHShares();
+            revert InvalidShares();
         }
         grethGrinderShareNumerator = _grethGrinderShareNumerator;
         grethReserveShareNumerator = _grethReserveShareNumerator;
@@ -324,7 +318,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     ) external override {
         _onlyOwner();
         if (_poolOwnerRoyaltyShareNumerator + _royaltyReceiverShareNumerator + _royaltyReserveShareNumerator + _royaltyOwnerShareNumerator != DENOMINATOR) {
-            revert InvalidRoyaltyShares();
+            revert InvalidShares();
         }
         royaltyNumerator = DENOMINATOR - _poolOwnerRoyaltyShareNumerator;
         poolOwnerShareNumerator = _poolOwnerRoyaltyShareNumerator;
@@ -343,7 +337,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             owner = pendingOwner;
             pendingOwner = payable(address(0));
         } else {
-            revert NotOwnerOrPending();
+            revert NotOwner();
         }
     }
 
@@ -374,15 +368,15 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     /// @param quoteTokenAmount amount of quoteToken to be deposited after mint
     function mint(
         uint16 strategyId,
-        address quoteToken,
         address baseToken,
+        address quoteToken,
         uint256 quoteTokenAmount
     ) external override returns (uint256) {
         return mintTo(
             msg.sender,
             strategyId,
-            quoteToken,
             baseToken,
+            quoteToken,
             quoteTokenAmount
         );
     }
@@ -396,18 +390,41 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     function mintTo(
         address to,
         uint16 strategyId,
-        address quoteToken,
         address baseToken,
+        address quoteToken,
         uint256 quoteTokenAmount
     ) public override returns (uint256 poolId) {
         if (isStrategyStopped[strategyId]) {
             revert StrategyStopped();
         }
+        poolId = _mintTo(to, strategyId, baseToken, quoteToken);
+        if (quoteTokenAmount == 0) {
+            require(msg.sender == address(grinderAI));
+        } else {
+            _deposit(
+                poolId,
+                quoteTokenAmount
+            );
+            royaltyPrice[poolId] = (quoteTokenAmount * royaltyPriceInitNumerator) / DENOMINATOR;
+        }
+    }
+
+    /// @notice mint NFT and deploy strategy
+    /// @dev mints to `to`
+    /// @param strategyId id of strategy implementation
+    /// @param baseToken address of baseToken
+    /// @param quoteToken address of quoteToken
+    function _mintTo(
+        address to,
+        uint16 strategyId,
+        address baseToken,
+        address quoteToken
+    ) internal returns (uint256 poolId) {
         poolId = totalPools;
         address pool = IStrategyFactory(strategyFactory[strategyId]).deploy(
             poolId,
-            quoteToken,
-            baseToken
+            baseToken,
+            quoteToken
         );
         minter[poolId] = msg.sender;
         pools[poolId] = pool;
@@ -420,11 +437,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             baseToken,
             quoteToken
         );
-        _deposit(
-            poolId,
-            quoteTokenAmount
-        );
-        royaltyPrice[poolId] = (quoteTokenAmount * royaltyPriceInitNumerator) / DENOMINATOR;
     }
 
     /// @notice approve depositor of pool
@@ -467,8 +479,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         );
         quoteToken.forceApprove(address(pool), quoteTokenAmount);
         depositedAmount = pool.deposit(quoteTokenAmount);
-        deposited[poolId][address(quoteToken)] += depositedAmount;
-        _increaseTotalDeposited(address(quoteToken), depositedAmount);
         emit Deposit(
             poolId,
             address(pool),
@@ -502,8 +512,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         IStrategy pool = IStrategy(pools[poolId]);
         IToken quoteToken = pool.quoteToken();
         withdrawn = pool.withdraw(to, quoteTokenAmount);
-        deposited[poolId][address(quoteToken)] -= withdrawn;
-        _decreaseTotalDeposited(address(quoteToken), withdrawn);
         emit Withdraw(poolId, to, address(quoteToken), quoteTokenAmount);
     }
 
@@ -517,9 +525,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         _onlyOwnerOf(poolId);
         IStrategy pool = IStrategy(pools[poolId]);
         (quoteTokenAmount, baseTokenAmount) = pool.exit();
-        IToken quoteToken = pool.quoteToken();
-        _decreaseTotalDeposited(address(quoteToken), deposited[poolId][address(quoteToken)]);
-        deposited[poolId][address(quoteToken)] = 0;
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
     }
 
@@ -547,24 +552,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         }
     }
 
-    /// @notice increase Total Value Locked
-    /// @param quoteToken address of quote token
-    /// @param increaseAmount amount of quote token to increase TVL
-    function _increaseTotalDeposited(address quoteToken, uint256 increaseAmount) private {
-        totalDeposited[quoteToken] += increaseAmount;
-    }
-
-    /// @notice decrease Total Value Locked
-    /// @param quoteToken address of quote token
-    /// @param decreaseAmount amount of quote token to decrease TVL
-    function _decreaseTotalDeposited(address quoteToken, uint256 decreaseAmount) private {
-        if (totalDeposited[quoteToken] > decreaseAmount) {
-            totalDeposited[quoteToken] -= decreaseAmount;
-        } else {
-            totalDeposited[quoteToken] = 0;
-        }
-    }
-
     /// @notice approve agent to msg.sender
     /// @param _agent address of agent
     function setAgent(address _agent, bool _agentApproval) external override {
@@ -586,9 +573,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         if (ownerOf(poolId0) != ownerOf(poolId1)) {
             revert DifferentOwnersOfPools();
         }
-        if (!isAgentOf(ownerOf(poolId0), msg.sender)) {
-            revert NotAgent();
-        }
+        _onlyAgentOf(poolId0);
         IStrategy pool0 = IStrategy(pools[poolId0]);
         IStrategy pool1 = IStrategy(pools[poolId1]);
         if (address(pool0.quoteToken()) != address(pool1.quoteToken()) || address(pool0.baseToken()) != address(pool1.baseToken())) {
@@ -626,6 +611,19 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             poolId0,
             poolId1
         );
+    }
+
+    /// @notice dip rebalance mechanism via quoteToken
+    /// @dev aggregate quoteTokenAmount to pool
+    /// @param poolId pool id of pool to dip
+    /// @param token address of token
+    /// @param tokenAmount quote token amount
+    function dip(uint256 poolId, address token, uint256 tokenAmount) external override {
+        require(isAgentOf(ownerOf(poolId), msg.sender) || isDepositorOf(poolId, msg.sender));
+        IStrategy pool = IStrategy(pools[poolId]);
+        IToken(token).safeTransferFrom(msg.sender, address(this), tokenAmount);
+        IToken(token).forceApprove(address(pool), tokenAmount);
+        pool.dip(token, tokenAmount);
     }
 
     /// @notice grind the pool with `poolId`
@@ -831,12 +829,16 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
     {
         uint256 _royaltyPrice = royaltyPrice[poolId];
         uint256 _denominator = DENOMINATOR;
-        compensationShare = (_royaltyPrice * royaltyPriceCompensationShareNumerator) / _denominator;
-        poolOwnerShare = (_royaltyPrice * royaltyPricePoolOwnerShareNumerator) / _denominator;
-        reserveShare = (_royaltyPrice * royaltyPriceReserveShareNumerator) / _denominator;
-        ownerShare = (_royaltyPrice * royaltyPriceOwnerShareNumerator) / _denominator;
-        oldRoyaltyPrice = _royaltyPrice;
-        newRoyaltyPrice = compensationShare + poolOwnerShare + reserveShare + ownerShare;
+        if (_royaltyPrice > 0) {
+            compensationShare = (_royaltyPrice * royaltyPriceCompensationShareNumerator) / _denominator;
+            poolOwnerShare = (_royaltyPrice * royaltyPricePoolOwnerShareNumerator) / _denominator;
+            reserveShare = (_royaltyPrice * royaltyPriceReserveShareNumerator) / _denominator;
+            ownerShare = (_royaltyPrice * royaltyPriceOwnerShareNumerator) / _denominator;
+            oldRoyaltyPrice = _royaltyPrice;
+            newRoyaltyPrice = compensationShare + poolOwnerShare + reserveShare + ownerShare;
+        } else {
+            newRoyaltyPrice = IStrategy(pools[poolId]).getActiveCapital() * royaltyPriceInitNumerator / _denominator;
+        }
     }
 
     /// @notice calculates shares of grETH for actors
@@ -923,6 +925,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
             if (_agent == address(grinderAI)) {
                 return !isDisapprovedGrinderAI[_ownerOf]; // by default grinderAI is agent of ownerOf
             } else {
+                // ownerOf is always self agent
                 return (_ownerOf == _agent || _agentApprovals[_ownerOf][_agent]); 
             }
         } else {
@@ -965,72 +968,10 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable, ReentrancyGuard {
         return poolsNFTLens.getPoolNFTInfosBy(_poolIds);
     }
 
-    /// @notice get pools config
-    /// @param poolId pool id of pool in array `pools`
-    function getConfig(uint256 poolId) external view override
-        returns (
-            uint8 longNumberMax,
-            uint8 hedgeNumberMax,
-            uint256 extraCoef,
-            uint256 priceVolatility,
-            uint256 returnPercentLongSell,
-            uint256 returnPercentHedgeSell,
-            uint256 returnPercentHedgeRebuy  
-        )
-    {
-        return poolsNFTLens.getConfig(poolId);
-    }
-
-    /// @notice get pools fee config
-    /// @param poolId pool id of pool in array `pools`
-    function getFeeConfig(uint256 poolId) external view 
-        returns (
-            uint256 longSellFeeCoef,
-            uint256 hedgeSellFeeCoef,
-            uint256 hedgeRebuyFeeCoef
-        ) 
-    {
-        return poolsNFTLens.getFeeConfig(poolId);
-    }
-
-    /// @notice get pools positions
-    /// @param poolId pool id of pool in array `pools`
-    function getPositions(uint256 poolId) external view override 
-        returns(
-            IPoolsNFTLens.Positions memory
-        )
-    {
-        return poolsNFTLens.getPositions(poolId);
-    }
-
     /// @notice get positions by pool ids
     /// @param _poolIds array of poolIds
-    function getPositionsBy(uint256[] memory _poolIds) external view override 
-        returns (
-            IPoolsNFTLens.Positions[] memory
-        )
-    {
+    function getPositionsBy(uint256[] memory _poolIds) external view override returns (IPoolsNFTLens.Positions[] memory) {
         return poolsNFTLens.getPositionsBy(_poolIds);
-    }
-
-    /// @notice gets pool thresholds
-    /// @param poolId pool id of pool in array `pools`
-    function getThresholds(uint256 poolId) external view override
-        returns (
-            uint256 longBuyPriceMin,
-            uint256 longSellQuoteTokenAmountThreshold,
-            uint256 longSellSwapPriceThreshold,
-            uint256 hedgeSellInitPriceThresholdHigh,
-            uint256 hedgeSellInitPriceThresholdLow,
-            uint256 hedgeSellLiquidity,
-            uint256 hedgeSellQuoteTokenAmountThreshold,
-            uint256 hedgeSellTargetPrice,
-            uint256 hedgeSellSwapPriceThreshold,
-            uint256 hedgeRebuyBaseTokenAmountThreshold,
-            uint256 hedgeRebuySwapPriceThreshold
-        )
-    {
-        return poolsNFTLens.getThresholds(poolId);
     }
 
     /// @notice execute any transaction on target smart contract

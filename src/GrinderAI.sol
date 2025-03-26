@@ -20,6 +20,14 @@ contract GrinderAI is IGrinderAI {
     /// @dev address of account => is agent
     mapping (address account => bool) public isAgent;
 
+    /// @dev address of account 
+    mapping (address account => mapping (address quoteToken => uint256)) public depositPositions;
+
+    struct DepositPosition {
+        uint256 deposit;
+        uint256 invested;
+    }
+
     /// @param _poolsNFT address of poolsNFT
     constructor (address _poolsNFT)  {
         poolsNFT = IPoolsNFT(_poolsNFT);

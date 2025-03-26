@@ -63,8 +63,8 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     /// @param _oracleQuoteTokenPerFeeToken address of oracle of quoteToken per fee token
     /// @param _oracleQuoteTokenPerBaseToken address of oracle of quoteToken per base token
     /// @param _feeToken address of fee token
-    /// @param _quoteToken address of quote token
     /// @param _baseToken address of base token
+    /// @param _quoteToken address of quote token
     /// @param _lendingArgs encoded data for lending adapter
     /// @param _dexArgs encoded data for dex adapter
     /// @param _config config for URUS algorithm
@@ -74,8 +74,8 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
         address _oracleQuoteTokenPerFeeToken,
         address _oracleQuoteTokenPerBaseToken,
         address _feeToken,
-        address _quoteToken,
         address _baseToken,
+        address _quoteToken,
         Config memory _config,
         bytes calldata _lendingArgs,
         bytes calldata _dexArgs
@@ -85,8 +85,8 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
             _oracleQuoteTokenPerFeeToken,
             _oracleQuoteTokenPerBaseToken,
             _feeToken,
-            _quoteToken,
             _baseToken,
+            _quoteToken,
             _config
         );
         initLending(

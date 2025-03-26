@@ -56,51 +56,13 @@ contract PoolsNFTLens is IPoolsNFTLens {
     function getPoolNFTInfosBy(uint256[] memory poolIds) external view override returns (PoolNFTInfo[] memory poolInfos) {
         uint256 poolIdsLen = poolIds.length;
         poolInfos = new PoolNFTInfo[](poolIdsLen);
-        uint256 poolInfosId = 0;
-        for (; poolInfosId < poolIdsLen; ) {
-            poolInfos[poolInfosId] = _formPoolInfo(poolIds[poolInfosId]);
+        uint256 index = 0;
+        for (; index < poolIdsLen; ) {
+            poolInfos[index] = _formPoolInfo(poolIds[index]);
             unchecked {
-                ++poolInfosId;
+                ++index;
             }
         }
-    }
-
-    /// @notice gets config of pool with poolId
-    /// @param poolId pool id of pool in array `pools`
-    function getConfig(uint256 poolId) external view override returns(
-        uint8 longNumberMax,
-        uint8 hedgeNumberMax,
-        uint256 extraCoef,
-        uint256 priceVolatility,
-        uint256 returnPercentLongSell,
-        uint256 returnPercentHedgeSell,
-        uint256 returnPercentHedgeRebuy
-    ) {
-        (
-            longNumberMax,
-            hedgeNumberMax,
-            extraCoef,
-            priceVolatility,
-            returnPercentLongSell,
-            returnPercentHedgeSell,
-            returnPercentHedgeRebuy   
-        ) = IStrategy(poolsNFT.pools(poolId)).getConfig();
-    }
-
-    /// @notice gets config of pool with poolId
-    /// @param poolId pool id of pool in array `pools` on PoolsNFT
-    function getFeeConfig(uint256 poolId) external view override 
-        returns (
-            uint256 longSellFeeCoef,
-            uint256 hedgeSellFeeCoef,
-            uint256 hedgeRebuyFeeCoef
-        ) 
-    {
-        (
-            longSellFeeCoef,
-            hedgeSellFeeCoef,
-            hedgeRebuyFeeCoef
-        ) = IStrategy(poolsNFT.pools(poolId)).getFeeConfig();
     }
 
     /// @notice returns positions of strategy
@@ -157,22 +119,77 @@ contract PoolsNFTLens is IPoolsNFTLens {
         });
     }
 
+    /// @notice forms config structure for `getPoolNFTInfosBy`
+    /// @param poolId id of pool
+    function getConfig(uint256 poolId) public view returns (IURUS.Config memory) {
+        (
+            uint8 longNumberMax,
+            uint8 hedgeNumberMax,
+            uint256 extraCoef,
+            uint256 priceVolatilityPercent,
+            uint256 returnPercentLongSell,
+            uint256 returnPercentHedgeSell,
+            uint256 returnPercentHedgeRebuy
+        ) = IStrategy(poolsNFT.pools(poolId)).getConfig();
+        return IURUS.Config({
+            longNumberMax: longNumberMax,
+            hedgeNumberMax: hedgeNumberMax,
+            extraCoef: extraCoef,
+            priceVolatilityPercent: priceVolatilityPercent,
+            returnPercentLongSell: returnPercentLongSell,
+            returnPercentHedgeSell: returnPercentHedgeSell,
+            returnPercentHedgeRebuy: returnPercentHedgeRebuy
+        });
+    }
+
+    /// @notice forms fee config structure for `getPoolNFTInfosBy`
+    function getFeeConfig(uint256 poolId) public view returns (IURUS.FeeConfig memory) {
+        (
+            uint256 longSellFeeCoef,
+            uint256 hedgeSellFeeCoef,
+            uint256 hedgeRebuyFeeCoef
+        ) = IStrategy(poolsNFT.pools(poolId)).getFeeConfig();
+        return IURUS.FeeConfig({
+            longSellFeeCoef: longSellFeeCoef,
+            hedgeSellFeeCoef: hedgeSellFeeCoef,
+            hedgeRebuyFeeCoef: hedgeRebuyFeeCoef
+        });
+    }
+
+    /// @notice returns batch of positions of strategy
+    /// @param poolIds array of poolId`s on PoolsNFT
     function getPositionsBy(uint256[] memory poolIds) external view override returns (Positions[] memory positions) {
         uint256 poolIdsLen = poolIds.length;
         positions = new Positions[](poolIdsLen);
-        uint256 positionsId = 0;
-        for (; positionsId < poolIdsLen; ) {
-            positions[positionsId] = getPositions(poolIds[positionsId]);
+        uint256 index = 0;
+        for (; index < poolIdsLen; ) {
+            positions[index] = getPositions(poolIds[index]);
             unchecked {
-                ++positionsId;
+                ++index;
             }
         }
     }
 
+    /// @notice returns ROI structure
+    /// @param poolId pool id of pool in array `pools` on PoolsNFT
+    function getROI(uint256 poolId) public view returns (ROI memory) {
+        IStrategy pool = IStrategy(poolsNFT.pools(poolId));
+        (
+            uint256 ROINumerator,
+            uint256 ROIDenominator,
+            uint256 ROIPeriod
+        ) = pool.ROI();
+        return ROI({
+            ROINumerator: ROINumerator,
+            ROIDeniminator: ROIDenominator,
+            ROIPeriod: ROIPeriod
+        });
+    }
+
     /// @notice get thresholds of pool with `poolId`
     /// @param poolId pool id of pool in array `pools` on PoolsNFT
-    function getThresholds(uint256 poolId) external view override
-        returns (
+    function getThresholds(uint256 poolId) public view override returns (Thresholds memory) {
+        (
             uint256 longBuyPriceMin,
             uint256 longSellQuoteTokenAmountThreshold,
             uint256 longSellSwapPriceThreshold,
@@ -184,10 +201,40 @@ contract PoolsNFTLens is IPoolsNFTLens {
             uint256 hedgeSellSwapPriceThreshold,
             uint256 hedgeRebuyBaseTokenAmountThreshold,
             uint256 hedgeRebuySwapPriceThreshold
-        )
-    {
-        address pool = poolsNFT.pools(poolId);
-        return IStrategy(pool).getThresholds();
+        ) = IStrategy(poolsNFT.pools(poolId)).getThresholds();
+
+        return Thresholds({
+            longBuyPriceMin: longBuyPriceMin,
+            longSellQuoteTokenAmountThreshold: longSellQuoteTokenAmountThreshold,
+            longSellSwapPriceThreshold: longSellSwapPriceThreshold,
+            hedgeSellInitPriceThresholdHigh: hedgeSellInitPriceThresholdHigh,
+            hedgeSellInitPriceThresholdLow: hedgeSellInitPriceThresholdLow,
+            hedgeSellLiquidity: hedgeSellLiquidity,
+            hedgeSellQuoteTokenAmountThreshold: hedgeSellQuoteTokenAmountThreshold,
+            hedgeSellTargetPrice: hedgeSellTargetPrice,
+            hedgeSellSwapPriceThreshold: hedgeSellSwapPriceThreshold,
+            hedgeRebuyBaseTokenAmountThreshold: hedgeRebuyBaseTokenAmountThreshold,
+            hedgeRebuySwapPriceThreshold: hedgeRebuySwapPriceThreshold
+        });
+    }
+
+    function getRoyaltyParams(uint256 poolId) public view returns (RoyaltyParams memory) {
+        (
+            uint256 compensationShare,
+            uint256 poolOwnerShare,
+            uint256 reserveShare,
+            uint256 ownerShare,
+            uint256 oldRoyaltyPrice,
+            uint256 newRoyaltyPrice
+        ) = poolsNFT.calcRoyaltyPriceShares(poolId);
+        return RoyaltyParams({
+            compensationShare: compensationShare,
+            poolOwnerShare: poolOwnerShare,
+            reserveShare: reserveShare,
+            ownerShare: ownerShare,
+            oldRoyaltyPrice: oldRoyaltyPrice,
+            newRoyaltyPrice: newRoyaltyPrice
+        });
     }
 
     /// @notice forms pool info
@@ -200,18 +247,13 @@ contract PoolsNFTLens is IPoolsNFTLens {
             uint256 quoteTokenTradeProfit,
             uint256 baseTokenTradeProfit
         ) = pool.getTotalProfits();
-        (
-            uint256 ROINumerator,
-            uint256 ROIDenominator,
-            uint256 ROIPeriod
-        ) = pool.ROI();
-        (,,,,,uint256 newRoyaltyPrice) = poolsNFT.calcRoyaltyPriceShares(poolId);
         poolInfo = PoolNFTInfo({
             poolId: poolId,
             strategyId: pool.strategyId(),
             pool: address(pool),
-            config: _formConfig(poolId),
-            feeConfig: _formFeeConfig(poolId),
+            positions: getPositions(poolId),
+            config: getConfig(poolId),
+            feeConfig: getFeeConfig(poolId),
             oracleQuoteTokenPerFeeToken: address(pool.oracleQuoteTokenPerFeeToken()),
             oracleQuoteTokenPerBaseToken: address(pool.oracleQuoteTokenPerBaseToken()),
             feeToken: address(pool.feeToken()),
@@ -234,49 +276,9 @@ contract PoolsNFTLens is IPoolsNFTLens {
                 quoteTokenTradeProfit: quoteTokenTradeProfit,
                 baseTokenTradeProfit: baseTokenTradeProfit
             }),
-            roi: ROI({
-                ROINumerator: ROINumerator,
-                ROIDeniminator: ROIDenominator,
-                ROIPeriod: ROIPeriod
-            }),
-            royaltyPrice: newRoyaltyPrice
-        });
-    }
-
-    /// @notice forms config structure for `getPoolNFTInfosBy`
-    /// @param poolId id of pool
-    function _formConfig(uint256 poolId) private view returns (IURUS.Config memory) {
-        (
-            uint8 longNumberMax,
-            uint8 hedgeNumberMax,
-            uint256 extraCoef,
-            uint256 priceVolatilityPercent,
-            uint256 returnPercentLongSell,
-            uint256 returnPercentHedgeSell,
-            uint256 returnPercentHedgeRebuy
-        ) = IStrategy(poolsNFT.pools(poolId)).getConfig();
-        return IURUS.Config({
-            longNumberMax: longNumberMax,
-            hedgeNumberMax: hedgeNumberMax,
-            extraCoef: extraCoef,
-            priceVolatilityPercent: priceVolatilityPercent,
-            returnPercentLongSell: returnPercentLongSell,
-            returnPercentHedgeSell: returnPercentHedgeSell,
-            returnPercentHedgeRebuy: returnPercentHedgeRebuy
-        });
-    }
-
-    /// @notice forms fee config structure for `getPoolNFTInfosBy`
-    function _formFeeConfig(uint256 poolId) private view returns (IURUS.FeeConfig memory) {
-        (
-            uint256 longSellFeeCoef,
-            uint256 hedgeSellFeeCoef,
-            uint256 hedgeRebuyFeeCoef
-        ) = IStrategy(poolsNFT.pools(poolId)).getFeeConfig();
-        return IURUS.FeeConfig({
-            longSellFeeCoef: longSellFeeCoef,
-            hedgeSellFeeCoef: hedgeSellFeeCoef,
-            hedgeRebuyFeeCoef: hedgeRebuyFeeCoef
+            roi: getROI(poolId),
+            thresholds: getThresholds(poolId),
+            royaltyParams: getRoyaltyParams(poolId)
         });
     }
 

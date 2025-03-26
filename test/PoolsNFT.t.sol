@@ -34,6 +34,8 @@ contract PoolsNFTTest is Test {
 
     RegistryArbitrum public oracleRegistry;
 
+    Strategy1Arbitrum public strategy1;
+
     Strategy1FactoryArbitrum public factory1;
 
     function setUp() public {
@@ -52,7 +54,10 @@ contract PoolsNFTTest is Test {
 
         oracleRegistry = new RegistryArbitrum(address(poolsNFT));
 
+        strategy1 = new Strategy1Arbitrum();
+
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
+        factory1.setStrategyImplementation(address(strategy1));
 
         poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
         poolsNFT.setStrategyFactory(address(factory1));
@@ -67,8 +72,8 @@ contract PoolsNFTTest is Test {
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
-            quoteToken,
             baseToken,
+            quoteToken,
             quoteTokenAmount
         );
 
@@ -109,8 +114,8 @@ contract PoolsNFTTest is Test {
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
-            quoteToken,
             baseToken,
+            quoteToken,
             quoteTokenAmount
         );
 
@@ -147,8 +152,8 @@ contract PoolsNFTTest is Test {
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
-            quoteToken,
             baseToken,
+            quoteToken,
             quoteTokenAmount
         );
 
@@ -169,8 +174,8 @@ contract PoolsNFTTest is Test {
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
-            quoteToken,
             baseToken,
+            quoteToken,
             quoteTokenAmount
         );
         uint256 royaltyPriceBefore = poolsNFT.royaltyPrice(poolId);
@@ -204,8 +209,8 @@ contract PoolsNFTTest is Test {
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
-            quoteToken,
             baseToken,
+            quoteToken,
             quoteTokenAmount
         );
         address receiver = address(777);

@@ -6,6 +6,7 @@ import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {Strategy0Arbitrum, IStrategy, IToken} from "./Strategy0Arbitrum.sol";
 import {IURUS} from "src/interfaces/IURUS.sol";
 import {IRegistry} from "src/interfaces/IRegistry.sol";
+import {ERC1967Proxy} from "lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /// @title GrindURUS Factory Pool Strategy 1
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
@@ -22,13 +23,16 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
     address private usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
     address private usdcArbitrum = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
 
-    address private uniswapV3SwapRouterArbitrum = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address public uniswapV3SwapRouterArbitrum = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
     /// @dev address of fee token
     address public feeToken;
 
     /// @dev addess of oracle registry
     IRegistry public registry;
+
+    /// @dev address of implementation of strategy1
+    address public strategyImplementation;
 
     /// @dev quoteToken => baseToken => uniswapV3PoolFee
     mapping (address quoteToken => mapping(address baseToken => uint24)) public uniswapV3PoolFee;
@@ -61,16 +65,18 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
 
     /// @notice checks that msg.sender is poolsNFT
     function _onlyPoolsNFT() internal view {
-        if (msg.sender != address(poolsNFT)) {
-            revert NotPoolsNFT();
-        }
+        require(msg.sender == address(poolsNFT));
     }
 
     /// @notice checks that msg.sender is owner
     function _onlyOwner() internal view {
-        if (msg.sender != owner()) {
-            revert NotOwner();
-        }
+        require(msg.sender == owner());
+    }
+
+    /// @notice sets strategy implementation
+    function setStrategyImplementation(address _stategyImplementation) external {
+        _onlyOwner();
+        strategyImplementation = _stategyImplementation;
     }
 
     /// @notice sets default config
@@ -107,13 +113,13 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
     /// @return pool address of pool
     function deploy(
         uint256 poolId,
-        address quoteToken,
-        address baseToken
+        address baseToken,
+        address quoteToken
     ) public override returns (address) {
         _onlyPoolsNFT();
         address oracleQuoteTokenPerFeeToken = registry.getOracle(quoteToken, feeToken); // may be address(0)
         address oracleQuoteTokenPerBaseToken = registry.getOracle(quoteToken, baseToken); //  may be address(0)
-        Strategy0Arbitrum pool = new Strategy0Arbitrum();
+        Strategy0Arbitrum pool = Strategy0Arbitrum(_deploy());
         uint24 uniswapV3Fee = uniswapV3PoolFee[quoteToken][baseToken];
         bytes memory dexArgs = abi.encode(uniswapV3SwapRouterArbitrum, uniswapV3Fee, quoteToken, baseToken);
         
@@ -122,13 +128,19 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
             poolId,
             oracleQuoteTokenPerFeeToken,
             oracleQuoteTokenPerBaseToken,
-            feeToken, // fee token
-            quoteToken,
+            feeToken,
             baseToken,
+            quoteToken,
             defaultConfig,
             dexArgs
         );
         return address(pool);
+    }
+
+    /// @notice deploy proxy of strategy implementation
+    function _deploy() internal returns (address payable) {
+        ERC1967Proxy proxy = new ERC1967Proxy(strategyImplementation, "");
+        return payable(proxy);
     }
 
     /// @notice returns address of owner

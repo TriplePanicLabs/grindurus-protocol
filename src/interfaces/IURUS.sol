@@ -11,6 +11,7 @@ interface IURUS is IERC5313 {
     error NotAgent();
     error InvalidOp();
     error BuyUpperPriceMin();
+    error DipUpperThreshold();
     error NotProfitableLongSell();
     error HedgeSellOutOfBound();
     error NotProfitableHedgeSell();
@@ -120,6 +121,8 @@ interface IURUS is IERC5313 {
 
     function setOpFeeCoef(uint8 op, uint256 _feeCoef) external;
 
+    // function setAllowedOp(uint8 op, bool _isAllowed) external;
+
     function deposit(
         uint256 quoteTokenAmount
     ) external returns (uint256 depositedAmount);
@@ -144,6 +147,8 @@ interface IURUS is IERC5313 {
     function beforeRebalance() external returns (uint256 baseTokenAmount, uint256 price);
 
     function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) external;
+
+    function dip(address token, uint256 tokenAmount) external;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //// PRICES
@@ -296,5 +301,5 @@ interface IURUS is IERC5313 {
             uint256 hedgeSellFeeCoef,
             uint256 hedgeRebuyFeeCoef
         );
-    
+
 }

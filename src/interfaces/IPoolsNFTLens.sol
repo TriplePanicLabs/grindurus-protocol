@@ -8,16 +8,45 @@ interface IPoolsNFTLens {
 
     error NotOwner();
 
+    struct Positions {
+        IURUS.Position long;
+        IURUS.Position hedge;
+    }
+
     struct ROI {
         uint256 ROINumerator;
         uint256 ROIDeniminator;
         uint256 ROIPeriod;
     }
 
+    struct Thresholds {
+        uint256 longBuyPriceMin;
+        uint256 longSellQuoteTokenAmountThreshold;
+        uint256 longSellSwapPriceThreshold;
+        uint256 hedgeSellInitPriceThresholdHigh;
+        uint256 hedgeSellInitPriceThresholdLow;
+        uint256 hedgeSellLiquidity;
+        uint256 hedgeSellQuoteTokenAmountThreshold;
+        uint256 hedgeSellTargetPrice;
+        uint256 hedgeSellSwapPriceThreshold;
+        uint256 hedgeRebuyBaseTokenAmountThreshold;
+        uint256 hedgeRebuySwapPriceThreshold;
+    }
+
+    struct RoyaltyParams {
+        uint256 compensationShare;
+        uint256 poolOwnerShare;
+        uint256 reserveShare;
+        uint256 ownerShare;
+        uint256 oldRoyaltyPrice;
+        uint256 newRoyaltyPrice;
+    }
+
     struct PoolNFTInfo {
         uint256 poolId;
         uint256 strategyId;
         address pool;
+        Positions positions;
         IURUS.Config config;
         IURUS.FeeConfig feeConfig;
         address oracleQuoteTokenPerBaseToken;
@@ -39,13 +68,9 @@ interface IPoolsNFTLens {
         uint256 startTimestamp;
         IURUS.TotalProfits totalProfits;
         ROI roi;
-        /// royalty price
-        uint256 royaltyPrice;
-    }
-
-    struct Positions {
-        IURUS.Position long;
-        IURUS.Position hedge;
+        Thresholds thresholds;
+        /// royalty params
+        RoyaltyParams royaltyParams;
     }
 
     function poolsNFT() external view returns (IPoolsNFT);
@@ -60,38 +85,13 @@ interface IPoolsNFTLens {
 
     function getPositionsBy(uint256[] memory poolIds) external view returns(Positions[] memory positions);
 
-    function getConfig(uint256 poolId) external view returns(
-        uint8 longNumberMax,
-        uint8 hedgeNumberMax,
-        uint256 extraCoef,
-        uint256 priceVolatility,
-        uint256 returnPercentLongSell,
-        uint256 returnPercentHedgeSell,
-        uint256 returnPercentHedgeRebuy
-    );
+    function getConfig(uint256 poolId) external view returns(IURUS.Config memory);
 
-    function getFeeConfig(uint256 poolId) external view returns (
-        uint256 longSellFeeCoef,
-        uint256 hedgeSellFeeCoef,
-        uint256 hedgeRebuyFeeCoef
-    );
+    function getFeeConfig(uint256 poolId) external view returns (IURUS.FeeConfig memory);
 
-    function getThresholds(uint256 poolId) external view
-        returns (
-            uint256 longBuyPriceMin,
-            uint256 longSellQuoteTokenAmountThreshold,
-            uint256 longSellSwapPriceThreshold,
-            uint256 hedgeSellInitPriceThresholdHigh,
-            uint256 hedgeSellInitPriceThresholdLow,
-            uint256 hedgeSellLiquidity,
-            uint256 hedgeSellQuoteTokenAmountThreshold,
-            uint256 hedgeSellTargetPrice,
-            uint256 hedgeSellSwapPriceThreshold,
-            uint256 hedgeRebuyBaseTokenAmountThreshold,
-            uint256 hedgeRebuySwapPriceThreshold
-        );
+    function getThresholds(uint256 poolId) external view returns (Thresholds memory);
 
-    function getPoolNFTInfosBy(uint256[] memory _poolIds) external view returns (PoolNFTInfo[] memory poolInfos);
+    function getPoolNFTInfosBy(uint256[] memory poolIds) external view returns (PoolNFTInfo[] memory poolInfos);
 
     function execute(address target, uint256 value, bytes calldata data) external returns (bool success, bytes memory result);
 

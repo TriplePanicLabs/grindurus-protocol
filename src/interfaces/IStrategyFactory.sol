@@ -5,16 +5,13 @@ import {IPoolsNFT} from "./IPoolsNFT.sol";
 import {IStrategy} from "./IStrategy.sol";
 
 interface IStrategyFactory {
-    error NotPoolsNFT();
-    error InvalidStrategyId();
-    error NotOwner();
 
     function poolsNFT() external view returns (IPoolsNFT);
 
     function deploy(
-        uint256 _poolId,
-        address _quoteToken,
-        address _baseToken
+        uint256 poolId,
+        address baseToken,
+        address quoteToken
     ) external returns (address);
 
     function owner() external view returns (address);

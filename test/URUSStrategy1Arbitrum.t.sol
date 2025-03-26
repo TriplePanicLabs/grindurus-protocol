@@ -39,6 +39,8 @@ contract URUSStrategy1ArbitrumTest is Test {
 
     RegistryArbitrum public oracleRegistry;
 
+    Strategy1Arbitrum public strategy1;
+
     Strategy1FactoryArbitrum public factory1;
 
     MockSwapRouterArbitrum public mockSwapRouter;
@@ -60,8 +62,9 @@ contract URUSStrategy1ArbitrumTest is Test {
         grinderAI = new GrinderAI(address(poolsNFT));
 
         oracleRegistry = new RegistryArbitrum(address(poolsNFT));
-
+        strategy1 = new Strategy1Arbitrum();
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
+        factory1.setStrategyImplementation(address(strategy1));
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
         poolsNFT.setStrategyFactory(address(factory1));
@@ -76,8 +79,8 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         poolId0 = poolsNFT.mint(
             1,                      // strategyId
-            usdtArbitrum,           // quoteToken
             wethArbitrum,           // baseToken
+            usdtArbitrum,           // quoteToken
             amount                  // quoteTokenAmount
         );
         address pool0Address = poolsNFT.pools(poolId0);
@@ -289,8 +292,8 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         uint256 poolId1 = poolsNFT.mint(
             1,                      // strategyId
-            usdtArbitrum,           // quoteToken
             wethArbitrum,           // baseToken
+            usdtArbitrum,           // quoteToken
             amount1                 // quoteTokenAmount
         );
         address pool1Address = poolsNFT.pools(poolId1);
@@ -302,8 +305,8 @@ contract URUSStrategy1ArbitrumTest is Test {
         IToken(usdtArbitrum).approve(address(poolsNFT), amount2);
         uint256 poolId2 = poolsNFT.mint(
             1,                      // strategyId
-            usdtArbitrum,           // quoteToken
             wethArbitrum,           // baseToken
+            usdtArbitrum,           // quoteToken
             amount2                 // quoteTokenAmount
         );
         address pool2Address = poolsNFT.pools(poolId2);
@@ -323,6 +326,43 @@ contract URUSStrategy1ArbitrumTest is Test {
         printLongPosition(poolId1);
         printLongPosition(poolId2);
 
+    }
+
+    function test_dip_and_undip() public {
+        pool0.setSwapRouter(address(mockSwapRouter));
+        
+        pool0.setLongNumberMax(1);
+        pool0.setHedgeNumberMax(2);
+        pool0.setExtraCoef(2_00); // x2.00
+        pool0.setPriceVolatilityPercent(1_00); // 1%
+        
+        poolsNFT.grind(poolId0);
+        console.log("1) Long buy");
+        printLongPosition(poolId0);
+        
+        (uint256 thresholdHigh, uint256 thresholdLow) = pool0.calcHedgeSellInitBounds();
+    
+        console.log();
+        console.log("HedgeSell High: ", uintToDecimal(thresholdHigh,8));
+        console.log("HedgeSell Low:  ", uintToDecimal(thresholdLow,8));
+            
+        uint256 amount2 = 2000 * 10**6;
+        IToken(usdtArbitrum).approve(address(poolsNFT), amount2);
+        mockSwapRouter.setRate(2970 * 10 ** 8);
+        poolsNFT.dip(poolId0, usdtArbitrum, amount2);
+        console.log("2) Dip");
+        printLongPosition(poolId0);
+
+        mockSwapRouter.setRate(3000 * 10 ** 8);
+        console.log("3) Set price 3000");
+
+        poolsNFT.grind(poolId0);
+        console.log("4) Long sell");
+        printLongPosition(poolId0);
+
+        poolsNFT.withdraw(poolId0, type(uint256).max);
+        console.log("5) Withdraw");
+        printLongPosition(poolId0);
     }
 
     function printLongPosition(uint256 poolId) internal view returns (uint256 _qty, uint256 _price) {
