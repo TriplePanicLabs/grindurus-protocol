@@ -7,30 +7,27 @@ interface IIntentNFT {
     error NotPaymentToken();
     error BelowMinPeriod();
 
-    event SetRatePerOneDay(address token, uint256 _ratePerOneDay);
-    event Mint(uint256 intentId, address to, uint256 expire);
-    event Extended(uint256 intentId, address to, uint256 newExpire);
+    event SetRatePerGrind(address token, uint256 _ratePerGrind);
+    event Mint(uint256 intentId, address to, uint256 grinds);
     event Pay(address paymentToken, address payer, uint256 paymentAmount);
 
     struct Intent {
         address owner;
-        uint256 expire;
+        uint256 grinds;
         uint256[] poolIds;
     }
-
-    function ONE_DAY() external view returns (uint256);
 
     function totalIntents() external view returns (uint256);
 
     function baseURI() external view returns (string memory);
 
-    function expire(uint256 intentId) external view returns (uint256);
+    function grinds(uint256 intentId) external view returns (uint256);
 
     function intentIdOf(address account) external view returns (uint256);
 
-    function ratePerOneDay(address paymentToken) external view returns (uint256);
+    function ratePerGrind(address paymentToken) external view returns (uint256);
 
-    function setRatePerOneDay(address token, uint256 _ratePerOneDay) external;
+    function setRatePerGrind(address token, uint256 _ratePerGrind) external;
 
     function setBaseURI(string memory _baseURI) external;
 
@@ -40,9 +37,9 @@ interface IIntentNFT {
 
     function transfer(address to, uint256 intentId) external;
 
-    function owner() external view returns (address);
+    function owner() external view returns (address payable);
 
-    function calcPayment(address paymentToken, uint256 period) external view returns (uint256 paymentAmount); 
+    function calcPayment(address paymentToken, uint256 grinds) external view returns (uint256 paymentAmount); 
 
     function getIntentBy(uint256 poolId) external view returns ( 
         address _account,

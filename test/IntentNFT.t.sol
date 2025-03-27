@@ -32,8 +32,8 @@ contract IntentNFTTest is Test {
 
         poolsNFT = new PoolsNFT();
         intentNFT = new IntentNFT(address(poolsNFT));
-        intentNFT.setRatePerOneDay(address(0), 1e12); // 0.000001 ETH
-        intentNFT.setRatePerOneDay(usdtArbitrum, 1e6); // 1 USDT
+        intentNFT.setRatePerGrind(address(0), 1e12); // 0.000001 ETH
+        intentNFT.setRatePerGrind(usdtArbitrum, 1e6); // 1 USDT
         vm.stopBroadcast();
     }
 
@@ -41,12 +41,12 @@ contract IntentNFTTest is Test {
     function test_mint() public {
         vm.startBroadcast(user);
         deal(user, 1e18);
-        uint256 period = 60 days;
-        uint256 paymentAmount = intentNFT.calcPayment(address(0), period);
+        uint256 grinds = 600;
+        uint256 paymentAmount = intentNFT.calcPayment(address(0), grinds);
         //console.log("paymentAmount: ", paymentAmount);
         
         uint256 ownerBalanceBefore = owner.balance;
-        uint256 intentId = intentNFT.mint{value: paymentAmount}(address(0), period);
+        uint256 intentId = intentNFT.mint{value: paymentAmount}(address(0), grinds);
         uint256 ownerBalanceAfter = owner.balance;
 
         assert(ownerBalanceAfter > ownerBalanceBefore);
@@ -57,14 +57,14 @@ contract IntentNFTTest is Test {
     function test_mint_usdt() public {
         vm.startBroadcast(user);
         deal(usdtArbitrum, user, 1000e6);
-        uint256 period = 60 days;
-        uint256 paymentAmount = intentNFT.calcPayment(usdtArbitrum, period);
+        uint256 grinds = 600;
+        uint256 paymentAmount = intentNFT.calcPayment(usdtArbitrum, grinds);
 
         IToken usdt = IToken(usdtArbitrum);
         usdt.approve(address(intentNFT), paymentAmount);
 
         uint256 ownerBalanceBefore = usdt.balanceOf(owner);
-        uint256 intentId = intentNFT.mint(usdtArbitrum, period);
+        uint256 intentId = intentNFT.mint(usdtArbitrum, grinds);
         uint256 ownerBalanceAfter = usdt.balanceOf(owner);
 
         assert(ownerBalanceAfter > ownerBalanceBefore);
@@ -75,14 +75,14 @@ contract IntentNFTTest is Test {
     function test_mint_and_transfer() public {
         vm.startBroadcast(user);
         deal(usdtArbitrum, user, 1000e6);
-        uint256 period = 60 days;
-        uint256 paymentAmount = intentNFT.calcPayment(usdtArbitrum, period);
+        uint256 grinds = 600;
+        uint256 paymentAmount = intentNFT.calcPayment(usdtArbitrum, grinds);
 
         IToken usdt = IToken(usdtArbitrum);
         usdt.approve(address(intentNFT), paymentAmount);
 
         uint256 ownerBalanceBefore = usdt.balanceOf(owner);
-        uint256 intentId = intentNFT.mint(usdtArbitrum, period);
+        uint256 intentId = intentNFT.mint(usdtArbitrum, grinds);
         uint256 ownerBalanceAfter = usdt.balanceOf(owner);
         assert(intentId == 1);
         assert(ownerBalanceAfter > ownerBalanceBefore);
