@@ -29,7 +29,7 @@ contract GrinderAIScript is Script {
         vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
 
-        grinderAI = new GrinderAI(address(poolsNFT));
+        grinderAI = new GrinderAI();
     
         poolsNFT.setGrinderAI(address(grinderAI));
 

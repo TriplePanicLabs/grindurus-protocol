@@ -9,6 +9,7 @@ import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strate
 import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
 import {GrinderAI} from "src/GrinderAI.sol";
+import {IntentsNFT} from "src/IntentsNFT.sol";
 
 // $ forge test --match-path test/PoolsNFT.t.sol
 contract PoolsNFTTest is Test {
@@ -27,6 +28,8 @@ contract PoolsNFTTest is Test {
     PoolsNFTLens public poolsNFTLens;
 
     GRETH public greth;
+
+    IntentsNFT public intentsNFT;
 
     GrinderAI public grinderAI;
 
@@ -50,7 +53,10 @@ contract PoolsNFTTest is Test {
         
         greth = new GRETH(address(poolsNFT), wethArbitrum);
 
-        grinderAI = new GrinderAI(address(poolsNFT));
+        intentsNFT = new IntentsNFT(address(poolsNFT));
+
+        grinderAI = new GrinderAI();
+        grinderAI.init(address(poolsNFT), address(intentsNFT));
 
         oracleRegistry = new RegistryArbitrum(address(poolsNFT));
 

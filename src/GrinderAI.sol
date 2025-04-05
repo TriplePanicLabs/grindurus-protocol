@@ -7,7 +7,7 @@ import {IStrategy, IURUS} from "src/interfaces/IStrategy.sol";
 import {Ownable2Step, Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IGrinderAI} from "src/interfaces/IGrinderAI.sol";
-
+import {IIntentsNFT} from "src/interfaces/IIntentsNFT.sol";
 
 /// @title GrinderAI
 /// @notice provide transpanet mechanism for effective interaction with GrindURUS protocol via AI agent
@@ -16,6 +16,9 @@ contract GrinderAI is IGrinderAI {
 
     /// @dev address of poolsNFT
     IPoolsNFT public poolsNFT;
+
+    /// @dev address of intentNFT
+    IIntentsNFT public intentsNFT;
 
     /// @dev address of account => is agent
     mapping (address account => bool) public isAgent;
@@ -28,10 +31,11 @@ contract GrinderAI is IGrinderAI {
         uint256 invested;
     }
 
-    /// @param _poolsNFT address of poolsNFT
-    constructor (address _poolsNFT)  {
+    /// @notice initialize function
+    function init(address _poolsNFT, address _intentsNFT) public {
+        require(address(poolsNFT) == address(0) && address(intentsNFT) == address(0));
         poolsNFT = IPoolsNFT(_poolsNFT);
-        isAgent[owner()] = true;
+        intentsNFT = IIntentsNFT(_intentsNFT);
     }
 
     /// @notice return owner of grinderAI
@@ -65,18 +69,32 @@ contract GrinderAI is IGrinderAI {
         isAgent[_agent] = _isAgent;
     }
 
+    /// @notice sets pools NFT
+    /// @param _poolsNFT address poolsNFT 
+    function setPoolsNFT(address _poolsNFT) public {
+        _onlyOwner();
+        poolsNFT = IPoolsNFT(_poolsNFT);
+    }
+
+    /// @notice sets intents NFT
+    /// @param _intentsNFT address intentsNFT 
+    function setIntentsNFT(address _intentsNFT) public {
+        _onlyOwner();
+        intentsNFT = IIntentsNFT(_intentsNFT);
+    }
+
     /// @notice AI deposit
     /// @param strategyId id of strategy
     /// @param baseToken address of base token
     /// @param quoteToken address of quote token
     /// @param quoteTokenAmounts array of quote token amounts
-    function mint(
+    function deposit(
         uint16 strategyId,
         address quoteToken,
         address baseToken,
         uint256[] memory quoteTokenAmounts
     ) public returns (uint256[] memory poolIds) {
-        poolIds = mintTo(
+        poolIds = depositTo(
             msg.sender,
             strategyId,
             quoteToken,
@@ -90,7 +108,7 @@ contract GrinderAI is IGrinderAI {
     /// @param baseToken address of base token
     /// @param quoteToken address of quote token
     /// @param quoteTokenAmounts array of quote token amounts
-    function mintTo(
+    function depositTo(
         address receiver,   
         uint16 strategyId,
         address baseToken,

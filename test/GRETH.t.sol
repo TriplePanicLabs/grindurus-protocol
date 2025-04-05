@@ -7,6 +7,7 @@ import {GRETH} from "src/GRETH.sol";
 import {IWETH9} from "src/interfaces/IWETH9.sol";
 import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
 import {GrinderAI} from "src/GrinderAI.sol";
+import {IntentsNFT} from "src/IntentsNFT.sol";
 
 // $ forge test --match-path test/GRETH.t.sol -vvv
 contract GRETHTest is Test {
@@ -20,6 +21,8 @@ contract GRETHTest is Test {
     
     GRETH public greth;
 
+    IntentsNFT public intentsNFT;
+
     GrinderAI public grinderAI;
 
     function setUp() public {
@@ -32,7 +35,10 @@ contract GRETHTest is Test {
 
         poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
         greth = new GRETH(address(poolsNFT), wethArbitrum);
-        grinderAI = new GrinderAI(address(poolsNFT));
+        intentsNFT = new IntentsNFT(address(poolsNFT));
+        grinderAI = new GrinderAI();
+        grinderAI.init(address(poolsNFT), address(intentsNFT));
+
 
         poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
 

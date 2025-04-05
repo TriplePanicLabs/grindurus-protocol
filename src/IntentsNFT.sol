@@ -3,16 +3,16 @@ pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {IIntentNFT} from "src/interfaces/IIntentNFT.sol";
+import {IIntentsNFT} from "src/interfaces/IIntentsNFT.sol";
 import {Base64} from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
 import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 
-/// @title IntentNFT
+/// @title IntentsNFT
 /// @notice pseudoSoulBoundToken
 /// @dev store intents for grind onchain. Used by GrinderAI
-contract IntentNFT is IIntentNFT, ERC721 {
+contract IntentsNFT is IIntentsNFT, ERC721 {
     using SafeERC20 for IToken;
     using Base64 for bytes;
     using Strings for uint256;
@@ -257,7 +257,7 @@ contract IntentNFT is IIntentNFT, ERC721 {
     )
         public
         view
-        override(ERC721, IIntentNFT)
+        override(ERC721, IIntentsNFT)
         returns (string memory uri)
     {
         _requireOwned(intentId);

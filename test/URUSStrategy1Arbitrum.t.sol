@@ -11,6 +11,7 @@ import {MockSwapRouterArbitrum} from "test/mock/MockSwapRouterArbitrum.sol";
 import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
 import {GrinderAI} from "src/GrinderAI.sol";
+import {IntentsNFT} from "src/IntentsNFT.sol";
 
 // $ forge test --match-path test/URUSStrategy1Arbitrum.t.sol -vvv
 contract URUSStrategy1ArbitrumTest is Test {
@@ -32,6 +33,8 @@ contract URUSStrategy1ArbitrumTest is Test {
     PoolsNFTLens public poolsNFTLens;
     
     GRETH public grETH;
+
+    IntentsNFT public intentsNFT;
 
     GrinderAI public grinderAI;
 
@@ -59,7 +62,10 @@ contract URUSStrategy1ArbitrumTest is Test {
         
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
-        grinderAI = new GrinderAI(address(poolsNFT));
+        intentsNFT = new IntentsNFT(address(poolsNFT));
+
+        grinderAI = new GrinderAI();
+        grinderAI.init(address(poolsNFT), address(intentsNFT));
 
         oracleRegistry = new RegistryArbitrum(address(poolsNFT));
         strategy1 = new Strategy1Arbitrum();

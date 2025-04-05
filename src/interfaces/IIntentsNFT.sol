@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.28;
 
-interface IIntentNFT {
+interface IIntentsNFT {
 
     error NotOwner();
     error NotPaymentToken();
-    error BelowMinPeriod();
 
     event SetRatePerGrind(address token, uint256 _ratePerGrind);
     event Mint(uint256 intentId, address to, uint256 grinds);

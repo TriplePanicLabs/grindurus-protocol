@@ -18,14 +18,14 @@ interface IGrinderAI {
 
     function setAgent(address _agent, bool _isAgent) external;
 
-    function mint(
+    function deposit(
         uint16 strategyId,
         address quoteToken,
         address baseToken,
         uint256[] memory quoteTokenAmounts
     ) external returns (uint256[] memory poolIds);
 
-    function mintTo(
+    function depositTo(
         address receiver,   
         uint16 strategyId,
         address baseToken,

@@ -3,11 +3,11 @@ pragma solidity =0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
-import {IntentNFT} from "src/IntentNFT.sol";
+import {IntentsNFT} from "src/IntentsNFT.sol";
 import {IToken} from "src/interfaces/IToken.sol";
 
-// $ forge test --match-path test/IntentNFT.t.sol -vvv
-contract IntentNFTTest is Test {
+// $ forge test --match-path test/IntentsNFT.t.sol -vvv
+contract IntentsNFTTest is Test {
     address oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
     address oraleWbtcUsdArbitrum = 0x6ce185860a4963106506C203335A2910413708e9;
 
@@ -22,7 +22,7 @@ contract IntentNFTTest is Test {
 
     PoolsNFT public poolsNFT;
 
-    IntentNFT public intentNFT;
+    IntentsNFT public intentsNFT;
 
 
     function setUp() public {
@@ -31,9 +31,9 @@ contract IntentNFTTest is Test {
         vm.txGasPrice(0.05 gwei);
 
         poolsNFT = new PoolsNFT();
-        intentNFT = new IntentNFT(address(poolsNFT));
-        intentNFT.setRatePerGrind(address(0), 1e12); // 0.000001 ETH
-        intentNFT.setRatePerGrind(usdtArbitrum, 1e6); // 1 USDT
+        intentsNFT = new IntentsNFT(address(poolsNFT));
+        intentsNFT.setRatePerGrind(address(0), 1e12); // 0.000001 ETH
+        intentsNFT.setRatePerGrind(usdtArbitrum, 1e6); // 1 USDT
         vm.stopBroadcast();
     }
 
@@ -42,11 +42,11 @@ contract IntentNFTTest is Test {
         vm.startBroadcast(user);
         deal(user, 1e18);
         uint256 grinds = 600;
-        uint256 paymentAmount = intentNFT.calcPayment(address(0), grinds);
+        uint256 paymentAmount = intentsNFT.calcPayment(address(0), grinds);
         //console.log("paymentAmount: ", paymentAmount);
         
         uint256 ownerBalanceBefore = owner.balance;
-        uint256 intentId = intentNFT.mint{value: paymentAmount}(address(0), grinds);
+        uint256 intentId = intentsNFT.mint{value: paymentAmount}(address(0), grinds);
         uint256 ownerBalanceAfter = owner.balance;
 
         assert(ownerBalanceAfter > ownerBalanceBefore);
@@ -58,13 +58,13 @@ contract IntentNFTTest is Test {
         vm.startBroadcast(user);
         deal(usdtArbitrum, user, 1000e6);
         uint256 grinds = 600;
-        uint256 paymentAmount = intentNFT.calcPayment(usdtArbitrum, grinds);
+        uint256 paymentAmount = intentsNFT.calcPayment(usdtArbitrum, grinds);
 
         IToken usdt = IToken(usdtArbitrum);
-        usdt.approve(address(intentNFT), paymentAmount);
+        usdt.approve(address(intentsNFT), paymentAmount);
 
         uint256 ownerBalanceBefore = usdt.balanceOf(owner);
-        uint256 intentId = intentNFT.mint(usdtArbitrum, grinds);
+        uint256 intentId = intentsNFT.mint(usdtArbitrum, grinds);
         uint256 ownerBalanceAfter = usdt.balanceOf(owner);
 
         assert(ownerBalanceAfter > ownerBalanceBefore);
@@ -76,20 +76,20 @@ contract IntentNFTTest is Test {
         vm.startBroadcast(user);
         deal(usdtArbitrum, user, 1000e6);
         uint256 grinds = 600;
-        uint256 paymentAmount = intentNFT.calcPayment(usdtArbitrum, grinds);
+        uint256 paymentAmount = intentsNFT.calcPayment(usdtArbitrum, grinds);
 
         IToken usdt = IToken(usdtArbitrum);
-        usdt.approve(address(intentNFT), paymentAmount);
+        usdt.approve(address(intentsNFT), paymentAmount);
 
         uint256 ownerBalanceBefore = usdt.balanceOf(owner);
-        uint256 intentId = intentNFT.mint(usdtArbitrum, grinds);
+        uint256 intentId = intentsNFT.mint(usdtArbitrum, grinds);
         uint256 ownerBalanceAfter = usdt.balanceOf(owner);
         assert(intentId == 1);
         assert(ownerBalanceAfter > ownerBalanceBefore);
 
-        intentNFT.transfer(receiver, intentId);
-        uint256 intentIdOfUser = intentNFT.intentIdOf(user);
-        uint256 intentIdOfReceiver = intentNFT.intentIdOf(receiver);
+        intentsNFT.transfer(receiver, intentId);
+        uint256 intentIdOfUser = intentsNFT.intentIdOf(user);
+        uint256 intentIdOfReceiver = intentsNFT.intentIdOf(receiver);
         assert(intentIdOfUser == 0);
         assert(intentIdOfReceiver == intentId);
 
