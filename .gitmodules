@@ -13,6 +13,3 @@
 [submodule "lib/layerzero-v2"]
 	path = lib/layerzero-v2
 	url = https://github.com/LayerZero-Labs/layerzero-v2
-[submodule "lib/universal-router"]
-	path = lib/universal-router
-	url = https://github.com/uniswap/universal-router
