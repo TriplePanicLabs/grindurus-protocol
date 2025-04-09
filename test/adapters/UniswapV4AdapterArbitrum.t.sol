@@ -2,7 +2,7 @@
 pragma solidity =0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
-import {UniswapV4AdapterArbitrum, IToken} from "../../src/adapters/dexes/UniswapV4AdapterArbitrum.sol";
+import {UniswapV4AdapterArbitrum, IToken} from "src/adapters/dexes/UniswapV4AdapterArbitrum.sol";
 
 contract TestUniswapV4AdapterArbitrum is UniswapV4AdapterArbitrum {
     function swap(
