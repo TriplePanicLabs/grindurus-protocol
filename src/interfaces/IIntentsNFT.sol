@@ -5,6 +5,7 @@ interface IIntentsNFT {
 
     error NotOwner();
     error NotPaymentToken();
+    error Owned();
 
     event SetRatePerGrind(address token, uint256 _ratePerGrind);
     event Mint(uint256 intentId, address to, uint256 grinds);
@@ -42,13 +43,13 @@ interface IIntentsNFT {
 
     function getIntentBy(uint256 poolId) external view returns ( 
         address _account,
-        uint256 _expire, 
+        uint256 _grinds, 
         uint256[] memory _poolIds
     );
 
     function getIntentOf(address account) external view returns ( 
         address _account,
-        uint256 _expire, 
+        uint256 _grinds, 
         uint256[] memory _poolIds
     );
 

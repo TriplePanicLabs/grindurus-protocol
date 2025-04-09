@@ -119,11 +119,11 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     function _mintTo(address to, uint256 _grinds) internal returns (uint256 intentId) {
         if (balanceOf(to) == 0) {
             intentId = totalIntents;
+            _mint(to, intentId);
             intentIdOf[to] = intentId;
             if (grindsOf[to] == 0) {
                 grinds[intentId] += freemiumGrinds;
             }
-            _mint(to, intentId);
             totalIntents++;
         } else {
             intentId = intentIdOf[to];
@@ -146,6 +146,9 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @param tokenId id of intent id
     /// @param auth authenticated sender
     function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
+        if (balanceOf(to) > 0) {
+            revert Owned();
+        }
         address previousOwner = super._update(to, tokenId, auth);
         if (to == address(0)) {
             return previousOwner;

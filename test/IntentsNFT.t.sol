@@ -3,6 +3,7 @@ pragma solidity =0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
+import {IIntentsNFT} from "src/interfaces/IIntentsNFT.sol";
 import {IntentsNFT} from "src/IntentsNFT.sol";
 import {IToken} from "src/interfaces/IToken.sol";
 
@@ -48,7 +49,25 @@ contract IntentsNFTTest is Test {
         uint256 ownerBalanceBefore = owner.balance;
         uint256 intentId = intentsNFT.mint{value: paymentAmount}(address(0), grinds);
         uint256 ownerBalanceAfter = owner.balance;
+        assert(intentId == 1);
+        assert(ownerBalanceAfter > ownerBalanceBefore);
 
+        vm.stopBroadcast();
+    }
+
+    function test_doubleMint() public {
+        vm.startBroadcast(user);
+        deal(user, 1e18);
+        uint256 grinds = 600;
+        uint256 paymentAmount = intentsNFT.calcPayment(address(0), grinds);
+        //console.log("paymentAmount: ", paymentAmount);
+        
+        uint256 ownerBalanceBefore = owner.balance;
+        uint256 intentId = intentsNFT.mint{value: paymentAmount}(address(0), grinds);
+        uint256 intentId2 = intentsNFT.mint{value: paymentAmount}(address(0), grinds);
+        uint256 ownerBalanceAfter = owner.balance;
+        assert(intentId == 1);
+        assert(intentId == intentId2);
         assert(ownerBalanceAfter > ownerBalanceBefore);
 
         vm.stopBroadcast();
@@ -66,7 +85,7 @@ contract IntentsNFTTest is Test {
         uint256 ownerBalanceBefore = usdt.balanceOf(owner);
         uint256 intentId = intentsNFT.mint(usdtArbitrum, grinds);
         uint256 ownerBalanceAfter = usdt.balanceOf(owner);
-
+        assert(intentId == 1);
         assert(ownerBalanceAfter > ownerBalanceBefore);
 
         vm.stopBroadcast();
@@ -96,6 +115,66 @@ contract IntentsNFTTest is Test {
         vm.stopBroadcast();
     }
 
+    function test_userMint_receiverMint_userTransferToReceiver() public {
+        vm.startBroadcast(user);
+        deal(usdtArbitrum, user, 1000e6);
+        uint256 grinds = 600;
+        uint256 paymentAmount = intentsNFT.calcPayment(usdtArbitrum, grinds);
+
+        IToken usdt = IToken(usdtArbitrum);
+        usdt.approve(address(intentsNFT), paymentAmount);
+
+        uint256 ownerBalanceBefore = usdt.balanceOf(owner);
+        uint256 intentId = intentsNFT.mint(usdtArbitrum, grinds);
+        uint256 ownerBalanceAfter = usdt.balanceOf(owner);
+        assert(intentId == 1);
+        assert(ownerBalanceAfter > ownerBalanceBefore);
+        vm.stopBroadcast();
+
+        vm.startBroadcast(receiver);
+        deal(usdtArbitrum, receiver, 1000e6);
+        grinds = 600;
+        paymentAmount = intentsNFT.calcPayment(usdtArbitrum, grinds);
+
+        usdt = IToken(usdtArbitrum);
+        usdt.approve(address(intentsNFT), paymentAmount);
+
+        ownerBalanceBefore = usdt.balanceOf(owner);
+        intentId = intentsNFT.mint(usdtArbitrum, grinds);
+        ownerBalanceAfter = usdt.balanceOf(owner);
+        assert(intentId == 2);
+        assert(ownerBalanceAfter > ownerBalanceBefore);
+        vm.stopBroadcast();
     
+        vm.startBroadcast(user);
+
+        vm.expectRevert(IIntentsNFT.Owned.selector);
+        intentsNFT.transfer(receiver, intentId);
+
+        vm.stopBroadcast();
+    }
+
+    function test_userMint_userTransferToOwner() public {
+        vm.startBroadcast(user);
+        deal(usdtArbitrum, user, 1000e6);
+        uint256 grinds = 600;
+        uint256 freemiumGrinds = 5;
+        uint256 paymentAmount = intentsNFT.calcPayment(usdtArbitrum, grinds);
+
+        IToken usdt = IToken(usdtArbitrum);
+        usdt.approve(address(intentsNFT), paymentAmount);
+
+        uint256 ownerBalanceBefore = usdt.balanceOf(owner);
+        uint256 intentId = intentsNFT.mint(usdtArbitrum, grinds);
+        uint256 ownerBalanceAfter = usdt.balanceOf(owner);
+        assert(intentId == 1);
+        assert(ownerBalanceAfter > ownerBalanceBefore);
+        assert(intentsNFT.grinds(1) == grinds + freemiumGrinds);
+
+        vm.expectRevert(IIntentsNFT.Owned.selector);
+        intentsNFT.transfer(owner, intentId);
+
+        vm.stopBroadcast();
+    }
 
 }

@@ -4,12 +4,9 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "lib/v4-core"]
-	path = lib/v4-core
-	url = https://github.com/uniswap/v4-core
-[submodule "lib/v4-periphery"]
-	path = lib/v4-periphery
-	url = https://github.com/Uniswap/v4-periphery
+[submodule "lib/devtools"]
+	path = lib/devtools
+	url = https://github.com/LayerZero-Labs/devtools
 [submodule "lib/layerzero-v2"]
 	path = lib/layerzero-v2
 	url = https://github.com/LayerZero-Labs/layerzero-v2
