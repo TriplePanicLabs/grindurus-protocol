@@ -30,7 +30,7 @@ contract PoolsNFTLensScript is Script {
 
         poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
         
-        poolsNFT.setPoolsNFTLens(address(poolsNFTLens));
+        // poolsNFT.setPoolsNFTLens(address(poolsNFTLens));
 
         vm.stopBroadcast();
     }
