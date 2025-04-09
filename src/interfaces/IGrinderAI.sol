@@ -33,6 +33,10 @@ interface IGrinderAI {
         uint256[] memory quoteTokenAmounts
     ) external returns (uint256[] memory poolIds);
 
+    function mint() external returns (uint256 grai);
+
+    function mintTo(address account) external returns (uint256 grai);
+
     function grind(uint256 poolId) external returns (bool);
 
     function batchGrind(uint256[] memory poolIds) external;

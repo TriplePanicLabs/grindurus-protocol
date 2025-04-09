@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
@@ -6,6 +6,7 @@ import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {IStrategy, IURUS} from "src/interfaces/IStrategy.sol";
 import {Ownable2Step, Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IGRAI} from "src/interfaces/IGRAI.sol";
 import {IGrinderAI} from "src/interfaces/IGrinderAI.sol";
 import {IIntentsNFT} from "src/interfaces/IIntentsNFT.sol";
 
@@ -20,22 +21,21 @@ contract GrinderAI is IGrinderAI {
     /// @dev address of intentNFT
     IIntentsNFT public intentsNFT;
 
+    /// @dev address of grAI
+    IGRAI public grAI;
+
     /// @dev address of account => is agent
     mapping (address account => bool) public isAgent;
 
-    /// @dev address of account 
-    mapping (address account => mapping (address quoteToken => uint256)) public depositPositions;
-
-    struct DepositPosition {
-        uint256 deposit;
-        uint256 invested;
-    }
+    /// @dev address of account => amount of minted grAI
+    mapping (address account => uint256) public mintedGrinds;
 
     /// @notice initialize function
-    function init(address _poolsNFT, address _intentsNFT) public {
-        require(address(poolsNFT) == address(0) && address(intentsNFT) == address(0));
+    function init(address _poolsNFT, address _intentsNFT, address _grAI) public {
+        require(address(poolsNFT) == address(0) && address(intentsNFT) == address(0) && address(grAI) == address(0));
         poolsNFT = IPoolsNFT(_poolsNFT);
         intentsNFT = IIntentsNFT(_intentsNFT);
+        grAI = IGRAI(_grAI);
     }
 
     /// @notice return owner of grinderAI
@@ -81,6 +81,30 @@ contract GrinderAI is IGrinderAI {
     function setIntentsNFT(address _intentsNFT) public {
         _onlyOwner();
         intentsNFT = IIntentsNFT(_intentsNFT);
+    }
+
+    /// @notice sets GRAI token
+    /// @param _grAI address of grAI
+    function setGRAI(address _grAI) public {
+        _onlyOwner();
+        grAI = IGRAI(_grAI);
+    }
+
+    /// @notice mints grAI token to the `msg.sender` of grinds
+    function mint() public returns (uint256) {
+        return mintTo(msg.sender);
+    }
+
+    /// @notice mints grAI token to the `account` of grinds
+    /// @param account address of account
+    function mintTo(address account) public returns (uint256 graiAmount) {
+        (,uint256 grinds,) = intentsNFT.getIntentOf(account);
+        if (mintedGrinds[account] < grinds) {
+            uint256 gap = grinds - mintedGrinds[account];
+            graiAmount = gap * 1e18;
+            grAI.mint(account, graiAmount);
+            mintedGrinds[account] += gap;
+        }
     }
 
     /// @notice AI deposit
