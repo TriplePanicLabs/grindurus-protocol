@@ -6,11 +6,16 @@ import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
 import {IWETH9} from "src/interfaces/IWETH9.sol";
 import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
+import {GRAI} from "src/GRAI.sol";
 import {GrinderAI} from "src/GrinderAI.sol";
 import {IntentsNFT} from "src/IntentsNFT.sol";
+import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
 
 // $ forge test --match-path test/GRETH.t.sol -vvv
 contract GRETHTest is Test {
+    // https://docs.layerzero.network/v2/deployments/deployed-contracts
+    address lzEndpointArbitrum = 0x1a44076050125825900e736c501f859c50fE728c;
 
     address usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
     address wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
@@ -22,6 +27,10 @@ contract GRETHTest is Test {
     GRETH public greth;
 
     IntentsNFT public intentsNFT;
+
+    GRAI public grAI;
+
+    TransparentUpgradeableProxy public proxyGrinderAI;
 
     GrinderAI public grinderAI;
 
@@ -37,8 +46,14 @@ contract GRETHTest is Test {
         greth = new GRETH(address(poolsNFT), wethArbitrum);
         intentsNFT = new IntentsNFT(address(poolsNFT));
         grinderAI = new GrinderAI();
-        grinderAI.init(address(poolsNFT), address(intentsNFT));
 
+        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), address(this), "");
+        
+        grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
+
+        grinderAI = GrinderAI(payable(proxyGrinderAI));
+
+        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
 
         poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
 

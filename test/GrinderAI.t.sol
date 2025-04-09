@@ -11,6 +11,10 @@ import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/
 
 // $ forge test --match-path test/GrinderAI.t.sol -vvv
 contract GrinderAITest is Test {
+
+    // https://docs.layerzero.network/v2/deployments/deployed-contracts
+    address lzEndpointArbitrum = 0x1a44076050125825900e736c501f859c50fE728c;
+
     address oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
     address oraleWbtcUsdArbitrum = 0x6ce185860a4963106506C203335A2910413708e9;
 
@@ -22,9 +26,6 @@ contract GrinderAITest is Test {
     address owner = 0xC185CDED750dc34D1b289355Fe62d10e86BEDDee;
     address user = 0xA51afAFe0263b40EdaEf0Df8781eA9aa03E381a3;
     address receiver = 0xBD4B3DD090C819FE3779946AEc199dd1b9E65CA8;
-
-    // https://docs.layerzero.network/v2/deployments/deployed-contracts
-    address lzEndpointArbitrum = 0x1a44076050125825900e736c501f859c50fE728c;
 
     PoolsNFT public poolsNFT;
 
@@ -45,11 +46,11 @@ contract GrinderAITest is Test {
         intentsNFT = new IntentsNFT(address(poolsNFT));
         
         grinderAI = new GrinderAI();
-        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), owner, "");
+        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), address(this), "");
 
         grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
         
-        grinderAI = GrinderAI(address(proxyGrinderAI));
+        grinderAI = GrinderAI(payable(proxyGrinderAI));
         grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
 
         vm.stopBroadcast();

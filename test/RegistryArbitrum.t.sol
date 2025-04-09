@@ -19,8 +19,6 @@ contract RegistryArbitrumTest is Test {
 
     RegistryArbitrum public registry;
 
-    uint256 dingoDongo;
-
     function setUp() public {
         vm.createSelectFork("arbitrum");
         vm.txGasPrice(0.05 gwei);
@@ -54,7 +52,6 @@ contract RegistryArbitrumTest is Test {
         usdcArbitrumIndex = registry.baseTokenIndex(usdcArbitrum);
         assert(usdcArbitrumIndex == 2);
         
-        dingoDongo++;
     }
 
     function test_setOracle() public {
