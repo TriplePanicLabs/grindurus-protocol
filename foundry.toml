@@ -7,6 +7,13 @@ evm_version = "cancun"
 optimizer = true
 optimizer_runs = 200
 
+remappings = [
+    '@layerzerolabs/oft-evm/=lib/devtools/packages/oft-evm/',
+    '@layerzerolabs/oapp-evm/=lib/devtools/packages/oapp-evm/',
+    '@layerzerolabs/lz-evm-protocol-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/protocol',
+    '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/',
+]
+
 [rpc_endpoints]
 arbitrum = "https://arb1.arbitrum.io/rpc"
 polygon = "https://polygon-rpc.com"
