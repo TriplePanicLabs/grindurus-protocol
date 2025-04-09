@@ -5,6 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
+import {GRAI} from "src/GRAI.sol";
 import {GrinderAI} from "src/GrinderAI.sol";
 
 // Test purposes:

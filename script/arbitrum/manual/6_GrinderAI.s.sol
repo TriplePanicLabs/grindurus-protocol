@@ -4,6 +4,7 @@ pragma solidity =0.8.28;
 import {Script, console} from "forge-std/Script.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {IntentsNFT} from "src/IntentsNFT.sol";
+import {GRAI} from "src/GRAI.sol";
 import {GrinderAI} from "src/GrinderAI.sol";
 import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
@@ -40,7 +41,7 @@ contract GrinderAIScript is Script {
         grinderAI = new GrinderAI();
 
         proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), deployer, "");
-        grinderAI = GrinderAI(address(proxyGrinderAI));
+        grinderAI = GrinderAI(payable(proxyGrinderAI));
 
         grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
         
