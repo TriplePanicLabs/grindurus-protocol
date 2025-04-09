@@ -193,6 +193,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @notice sets grETH token
     /// @dev callable only by owner
     function init(address _poolsNFTLens, address _grETH, address _grinderAI) external override {
+        _onlyOwner();
         require(address(poolsNFTLens) == address(0) && address(grETH) == address(0) && address(grinderAI) == address(0));
         poolsNFTLens = IPoolsNFTLens(_poolsNFTLens);
         grETH = IGRETH(_grETH);
