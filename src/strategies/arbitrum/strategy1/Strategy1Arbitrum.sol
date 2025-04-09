@@ -178,7 +178,11 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     }
 
     /// @notice execute any transaction
-
+    /// @param target address of target contract
+    /// @param value amount of ETH
+    /// @param data data to execute on target contract
+    /// @return success true if transaction was successful
+    /// @return result data returned from target contract
     function execute(address target, uint256 value, bytes calldata data) public override returns (bool success, bytes memory result) {
         _onlyOwner();
         (success, result) = target.call{value: value}(data);
