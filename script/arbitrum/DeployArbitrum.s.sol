@@ -4,12 +4,15 @@ pragma solidity =0.8.28;
 import {Script, console} from "forge-std/Script.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
 import {GRETH} from "src/GRETH.sol";
+
 import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 import {IntentsNFT} from "src/IntentsNFT.sol";
 import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
+import {GRAI} from "src/GRAI.sol";
 import {GrinderAI} from "src/GrinderAI.sol";
+import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // Test purposes:
 // $ forge script script/arbitrum/DeployArbitrum.s.sol:DeployArbitrumScript
@@ -36,7 +39,10 @@ import {GrinderAI} from "src/GrinderAI.sol";
 
 
 contract DeployArbitrumScript is Script {
-    address public weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+    address public wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+
+    // https://docs.layerzero.network/v2/deployments/deployed-contracts
+    address lzEndpointArbitrum = 0x1a44076050125825900e736c501f859c50fE728c;
 
     PoolsNFT public poolsNFT;
 
@@ -46,7 +52,11 @@ contract DeployArbitrumScript is Script {
 
     IntentsNFT public intentsNFT;
 
+    GRAI public grAI;
+
     GrinderAI public grinderAI;
+
+    TransparentUpgradeableProxy public proxyGrinderAI;
 
     RegistryArbitrum public registry;
 
@@ -67,14 +77,20 @@ contract DeployArbitrumScript is Script {
 
         poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
         
-        grETH = new GRETH(address(poolsNFT), weth);
+        grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
         intentsNFT = new IntentsNFT(address(poolsNFT));
 
         grinderAI = new GrinderAI();
-        grinderAI.init(address(poolsNFT), address(intentsNFT));
 
-        poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
+        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), deployer, "");
+        
+        grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
+
+        grinderAI = GrinderAI(payable(proxyGrinderAI));
+        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
+
+        poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
 
         registry = new RegistryArbitrum(address(poolsNFT));
 
