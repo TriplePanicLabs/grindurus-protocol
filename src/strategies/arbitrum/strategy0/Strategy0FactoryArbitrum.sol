@@ -48,8 +48,8 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
         registry = IRegistry(_registry);
         defaultConfig = IURUS.Config({
             // maxLiquidity = initLiquidity * (extraCoef + 1) ** (longNumberMax - 1)
-            longNumberMax: 4,
-            hedgeNumberMax: 4,
+            longNumberMax: 3,
+            hedgeNumberMax: 3,
             priceVolatilityPercent: 1_00, // 1%
             extraCoef: 2_00, // x2.00
             returnPercentLongSell: 100_50, // 100.50% // returnPercent = (amountInvested + profit) * 100 / amountInvested
@@ -155,5 +155,16 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
     /// @notice returns strategy id of factory
     function strategyId() public pure override returns (uint16) {
         return 0;
+    }
+
+    /// @notice execute any transaction
+    /// @param target address of target contract
+    /// @param value amount of ETH
+    /// @param data data to execute on target contract
+    /// @return success true if transaction was successful
+    /// @return result data returned from target contract
+    function execute(address target, uint256 value, bytes calldata data) public override returns (bool success, bytes memory result) {
+        _onlyOwner();
+        (success, result) = target.call{value: value}(data);
     }
 }
