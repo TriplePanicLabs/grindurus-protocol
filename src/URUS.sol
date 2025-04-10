@@ -392,9 +392,7 @@ contract URUS is IURUS {
     /// @notice grab all assets from strategy and send it to owner
     /// @return quoteTokenAmount amount of quoteToken in exit
     /// @return baseTokenAmount amount of baseToken in exit
-    function exit()
-        public
-        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
+    function exit() public virtual override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
     {
         _onlyGateway();
         quoteTokenAmount = _take(quoteToken, type(uint256).max);

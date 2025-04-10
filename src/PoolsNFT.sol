@@ -510,6 +510,12 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
         quoteToken.forceApprove(address(pool), quoteTokenAmount);
         pool.deposit3(quoteTokenAmount);
+        emit Deposit3(
+            poolId,
+            address(pool),
+            address(quoteToken),
+            quoteTokenAmount
+        );
     }
 
     /// @dev make transfer from msg.sender, approve to pool, call deposit on pool
@@ -658,7 +664,10 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
 
         emit Rebalance(
             poolId0,
-            poolId1
+            poolId1,
+            rebalancedPrice,
+            newBaseTokenAmount0,
+            newBaseTokenAmount1
         );
     }
 

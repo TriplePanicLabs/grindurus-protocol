@@ -40,6 +40,12 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 baseTokenAmount,
         uint256 baseTokenPrice
     );
+    event Deposit3(
+        uint256 poolId,
+        address pool,
+        address quoteToken,
+        uint256 quoteTokenAmount
+    );
     event Withdraw(
         uint256 poolId,
         address to,
@@ -51,7 +57,13 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 quoteTokenAmount,
         uint256 baseTokenAmount
     );
-    event Rebalance(uint256 poolId0, uint256 poolId1);
+    event Rebalance(
+        uint256 poolId0, 
+        uint256 poolId1,
+        uint256 rebalancedPrice,
+        uint256 newBaseTokenAmount0,
+        uint256 newBaseTokenAmount1
+    );
 
     event Grind(
         uint256 poolId,
