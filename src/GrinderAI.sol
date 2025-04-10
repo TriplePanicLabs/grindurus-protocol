@@ -98,12 +98,21 @@ contract GrinderAI is IGrinderAI {
     /// @notice mints grAI token to the `account` of grinds
     /// @param account address of account
     function mintTo(address account) public returns (uint256 graiAmount) {
+        (uint256 graiAmount, uint256 grindsGap) = calcMintTo(account);
+        if (grindsGap > 0) {
+            try grAI.mint(account, graiAmount) {
+                mintedGrinds[account] += grindsGap;
+            } catch {}
+        }
+    }
+
+    /// @notice calculates grAI amount to mint
+    /// @param account address of account
+    function calcMintTo(address account) public view returns (uint256 graiAmount, uint256 grindsGap) {
         (,uint256 grinds,) = intentsNFT.getIntentOf(account);
         if (mintedGrinds[account] < grinds) {
-            uint256 gap = grinds - mintedGrinds[account];
-            graiAmount = gap * 1e18;
-            grAI.mint(account, graiAmount);
-            mintedGrinds[account] += gap;
+            grindsGap = grinds - mintedGrinds[account];
+            graiAmount = grindsGap * 1e18;
         }
     }
 
