@@ -4,7 +4,7 @@ pragma solidity =0.8.28;
 import {IToken} from "src/interfaces/IToken.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
-import {URUS, IERC5313} from "src/URUS.sol";
+import {IURUS, URUS, IERC5313} from "src/URUS.sol";
 import {IStrategy} from "src/interfaces/IStrategy.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IDexAdapter} from "src/interfaces/IDexAdapter.sol";
@@ -84,6 +84,13 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
                 revert NotAgent();
             }
         }
+    }
+
+    /// @notice exit funds from strategy
+    function exit() public override(URUS, IURUS) returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+        reinvest = false;
+        URUS.exit();
+        reinvest = true;
     }
 
     function _put(IToken token, uint256 amount) internal override(NoLendingAdapter, URUS) returns (uint256){

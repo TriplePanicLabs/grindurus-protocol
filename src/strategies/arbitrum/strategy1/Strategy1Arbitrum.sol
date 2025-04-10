@@ -102,6 +102,13 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
         reinvest = true;
     }
 
+    /// @notice exit funds from strategy
+    function exit() public override(URUS, IURUS) returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+        reinvest = false;
+        URUS.exit();
+        reinvest = true;
+    }
+
     /// @notice puts token to yield protocol
     /// @param token address of token
     /// @param amount amount of token to put
@@ -176,7 +183,7 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
         _onlyOwner();
         reinvest = !reinvest;
     }
-
+    
     /// @notice execute any transaction
     /// @param target address of target contract
     /// @param value amount of ETH
