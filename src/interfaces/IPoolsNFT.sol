@@ -33,6 +33,13 @@ interface IPoolsNFT is IERC721, IERC2981 {
         address quoteToken,
         uint256 quoteTokenAmount
     );
+    event Deposit2(
+        uint256 poolId,
+        address pool,
+        address baseToken,
+        uint256 baseTokenAmount,
+        uint256 baseTokenPrice
+    );
     event Withdraw(
         uint256 poolId,
         address to,
@@ -179,8 +186,16 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function deposit(
         uint256 poolId,
-        uint256 quoteTokenAmountx
-    ) external returns (uint256 deposited);
+        uint256 quoteTokenAmount
+    ) external returns (uint256 depositedQuoteTokenAmount);
+
+    function deposit2(
+        uint256 poolId,
+        uint256 baseTokenAmount,
+        uint256 baseTokenPrice
+    ) external returns (uint256 depositedBaseTokenAmount);
+
+    function deposit3(uint256 poolId, uint256 quoteTokenAmount) external;
 
     function withdraw(
         uint256 poolId,
@@ -200,8 +215,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function setAgent(address _agent, bool _agentApproval) external;
 
     function rebalance(uint256 poolIdLeft, uint256 poolIdRight, uint8 rebalanceLeft, uint8 rebalnceRight) external;
-
-    function dip(uint256 poolId, address token, uint256 tokenAmount) external;
 
     function grind(uint256 poolId) external returns (bool isGrinded);
 

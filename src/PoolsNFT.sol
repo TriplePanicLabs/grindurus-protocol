@@ -464,6 +464,54 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         return _deposit(poolId, quoteTokenAmount);
     }
 
+    /// @notice deposit `baseToken` to pool with `poolId`
+    /// @dev callable only by owner of poolId
+    /// @param poolId id of pool in array `pools`
+    /// @param baseTokenAmount amount of `baseToken`
+    /// @param baseTokenPrice price of baseToken
+    /// @return depositedBaseTokenAmount amount of deposited `quoteToken`
+    function deposit2(
+        uint256 poolId,
+        uint256 baseTokenAmount,
+        uint256 baseTokenPrice
+    ) external override returns (uint256 depositedBaseTokenAmount) {
+        if (!isDepositorOf(poolId, msg.sender)) {
+            revert NotDepositor();
+        }
+        IStrategy pool = IStrategy(pools[poolId]);
+        IToken baseToken = pool.baseToken();
+        baseToken.safeTransferFrom(
+            msg.sender,
+            address(this),
+            baseTokenAmount
+        );
+        baseToken.forceApprove(address(pool), baseTokenAmount);
+        depositedBaseTokenAmount = pool.deposit2(
+            baseTokenAmount,
+            baseTokenPrice
+        );
+        emit Deposit2(
+            poolId, 
+            address(pool), 
+            address(baseToken), 
+            baseTokenAmount, 
+            baseTokenPrice
+        );
+    }
+
+    /// @notice dip rebalance mechanism via quoteToken
+    /// @dev aggregate quoteTokenAmount to pool
+    /// @param poolId pool id of pool to dip
+    /// @param quoteTokenAmount quote token amount
+    function deposit3(uint256 poolId, uint256 quoteTokenAmount) external override {
+        require(isAgentOf(ownerOf(poolId), msg.sender) || isDepositorOf(poolId, msg.sender));
+        IStrategy pool = IStrategy(pools[poolId]);
+        IToken quoteToken = pool.quoteToken();
+        quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
+        quoteToken.forceApprove(address(pool), quoteTokenAmount);
+        pool.deposit3(quoteTokenAmount);
+    }
+
     /// @dev make transfer from msg.sender, approve to pool, call deposit on pool
     function _deposit(
         uint256 poolId,
@@ -612,19 +660,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             poolId0,
             poolId1
         );
-    }
-
-    /// @notice dip rebalance mechanism via quoteToken
-    /// @dev aggregate quoteTokenAmount to pool
-    /// @param poolId pool id of pool to dip
-    /// @param token address of token
-    /// @param tokenAmount quote token amount
-    function dip(uint256 poolId, address token, uint256 tokenAmount) external override {
-        require(isAgentOf(ownerOf(poolId), msg.sender) || isDepositorOf(poolId, msg.sender));
-        IStrategy pool = IStrategy(pools[poolId]);
-        IToken(token).safeTransferFrom(msg.sender, address(this), tokenAmount);
-        IToken(token).forceApprove(address(pool), tokenAmount);
-        pool.dip(token, tokenAmount);
     }
 
     /// @notice grind the pool with `poolId`

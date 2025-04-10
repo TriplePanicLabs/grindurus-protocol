@@ -253,20 +253,89 @@ contract URUS is IURUS {
     //// ONLY GATEWAY //////////////////////////////////////////////////////////////////////////
 
     /// @notice deposit the quote token to strategy
-    /// @dev callable only by pools NFT. This made for accounting the amount of input tokens
+    /// @dev callable only by poolsNFT. This made for accounting the amount of input tokens
     /// @param quoteTokenAmount raw amount of `quoteToken`
-    /// @return depositedAmount quoteToken amount
+    /// @return depositedQuoteTokenAmount quoteToken amount
     function deposit(
         uint256 quoteTokenAmount
-    ) public override returns (uint256 depositedAmount) {
+    ) external override returns (uint256 depositedQuoteTokenAmount) {
         _onlyGateway(); 
+        require(long.number == 0);
         quoteToken.safeTransferFrom(
             msg.sender,
             address(this),
             quoteTokenAmount
         );
         _invest(quoteTokenAmount);
-        depositedAmount = _put(quoteToken, quoteTokenAmount);
+        depositedQuoteTokenAmount = _put(quoteToken, quoteTokenAmount);
+    }
+
+    /// @notice deposit the base token to strategy
+    /// @dev callable only by poolsNFT. This made for accounting the amount of input tokens
+    /// @param baseTokenAmount raw amount of `baseToken`
+    /// @return depositBaseTokenAmount baseToken amount
+    function deposit2(
+        uint256 baseTokenAmount,
+        uint256 baseTokenPrice
+    ) external override returns (uint256 depositBaseTokenAmount) {
+        _onlyGateway();
+        require(long.number == 0 || (long.number > 0 && long.number == long.numberMax));
+        if (hedge.number > 0) {
+            revert Hedged();
+        }
+        baseToken.safeTransferFrom(
+            msg.sender,
+            address(this),
+            baseTokenAmount
+        );
+        
+        depositBaseTokenAmount = _put(baseToken, baseTokenAmount);
+        long.price = ((long.qty * long.price) + (baseTokenAmount * baseTokenPrice)) / (long.qty + baseTokenAmount);
+        long.qty += baseTokenAmount;
+        if (long.number == 0) {
+            long.number = 1;
+            long.numberMax = 1;
+            long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
+            _invest(long.liquidity);
+        } else { 
+            long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
+            helper.initLiquidity = (long.liquidity * helper.coefMultiplier) / helper.investCoef;
+        }
+        long.priceMin = calcLongPriceMin();
+    }
+
+    /// @notice deposit the quote token to strategy when unrealized loss in sufficient
+    /// @dev executed by gateway.
+    /// @param quoteTokenAmount amount of quote token
+    function deposit3(
+        uint256 quoteTokenAmount
+    ) external override {
+        _onlyGateway();
+        require(long.number == long.numberMax);
+        if (hedge.number > 0) {
+            revert Hedged();
+        }
+        quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
+        uint256 baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
+        uint256 swapPrice = calcSwapPrice(quoteTokenAmount, baseTokenAmount);
+        if (long.number == 0) {
+            long.number = 1;
+            long.numberMax = 1;
+        } else {
+            (
+                /** uint256 thresholdHigh */,
+                uint256 thresholdLow
+            ) = calcHedgeSellInitBounds();
+            if (swapPrice >= thresholdLow) {
+                revert DipUpperThreshold();
+            }
+        }
+        _invest(quoteTokenAmount);
+        baseTokenAmount = _put(baseToken, baseTokenAmount);
+
+        long.price = ((long.qty * long.price) + (baseTokenAmount * swapPrice)) / (long.qty + baseTokenAmount);
+        long.qty += baseTokenAmount;
+        long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
     }
 
     /// @notice take `quoteTokenAmount` from lending, deinvest `quoteTokenAmount` and transfer it to `to`
@@ -476,7 +545,9 @@ contract URUS is IURUS {
         uint256 gasStart = gasleft();
         // 0. Verify that number != 0
         require(long.number > 0);
-        require(hedge.number == 0);
+        if (hedge.number > 0) {
+            revert Hedged();
+        }
 
         // 1. Take all qty from lending protocol
         baseTokenAmount = long.qty;
@@ -637,8 +708,7 @@ contract URUS is IURUS {
     {
         uint256 gasStart = gasleft();
         // 0. Verify that hedge is activated
-        uint8 hedgeNumber = hedge.number;
-        require(hedgeNumber > 0);
+        require(hedge.number > 0);
 
         // 1.1. Define how much to rebuy
         quoteTokenAmount = hedge.liquidity;
@@ -749,7 +819,9 @@ contract URUS is IURUS {
         returns (uint256 baseTokenAmount, uint256 price)
     {
         _onlyGateway();
-        require(hedge.number == 0);
+        if (hedge.number > 0) {
+            revert Hedged();
+        }
         require(long.number == long.numberMax);
         if (long.qty > 0) {
             baseTokenAmount = _take(baseToken, long.qty);
@@ -787,38 +859,6 @@ contract URUS is IURUS {
             });
         }
         helper.initLiquidity = (long.liquidity * helper.coefMultiplier) / helper.investCoef;
-    }
-
-    /// @notice dip rebalance mechanism
-    /// @dev executed by gateway.
-    /// @dev dip baseToken, if you completely sure that you earn baseToken for free
-    /// @param tokenAmount amount of quote token
-    function dip(address token, uint256 tokenAmount) external override {
-        _onlyGateway();
-        require(long.number == long.numberMax);
-        require(hedge.number == 0);
-        IToken(token).safeTransferFrom(msg.sender, address(this), tokenAmount);
-        uint256 baseTokenAmount;
-        uint256 swapPrice;
-        if (token == address(quoteToken)) {
-            baseTokenAmount = _swap(quoteToken, baseToken, tokenAmount);
-            swapPrice = calcSwapPrice(tokenAmount, baseTokenAmount);
-            ( ,uint256 thresholdLow) = calcHedgeSellInitBounds();
-            if (swapPrice >= thresholdLow) {
-                revert DipUpperThreshold();
-            }
-            _invest(tokenAmount);
-        } else if (token == address(baseToken)) {
-            baseTokenAmount = tokenAmount;
-            // swapPrice = 0;
-            // no invest, as no quote token is surplused
-        } else {
-            revert ();
-        }
-        baseTokenAmount = _put(baseToken, baseTokenAmount);
-        long.price = ((long.qty * long.price) + (baseTokenAmount * swapPrice)) / (long.qty + baseTokenAmount);
-        long.qty += baseTokenAmount;
-        long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

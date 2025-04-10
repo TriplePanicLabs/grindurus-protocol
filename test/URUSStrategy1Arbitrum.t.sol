@@ -371,8 +371,8 @@ contract URUSStrategy1ArbitrumTest is Test {
         uint256 amount2 = 2000 * 10**6;
         IToken(usdtArbitrum).approve(address(poolsNFT), amount2);
         mockSwapRouter.setRate(2970 * 10 ** 8);
-        poolsNFT.dip(poolId0, usdtArbitrum, amount2);
-        console.log("2) Dip");
+        poolsNFT.deposit3(poolId0, amount2);
+        console.log("2) Deposit3");
         printLongPosition(poolId0);
 
         mockSwapRouter.setRate(3000 * 10 ** 8);
