@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
 import { OFT } from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 import { IGRAI, MessagingFee, SendParam } from "src/interfaces/IGRAI.sol";
 import { IGrinderAI } from "src/interfaces/IGrinderAI.sol";
@@ -146,6 +145,7 @@ contract GRAI is IGRAI, OFT {
             oftCmd: ""
         });
     }
+
     /// @notice Forms the parameters for bridging to another chain
     /// @param sendParam SendParam struct
     function formMessagingFeeForBridgeTo(SendParam memory sendParam) public view override returns (MessagingFee memory) {

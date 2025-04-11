@@ -11,32 +11,42 @@ remappings = [
     '@layerzerolabs/oft-evm/=lib/devtools/packages/oft-evm/',
     '@layerzerolabs/oapp-evm/=lib/devtools/packages/oapp-evm/',
     '@layerzerolabs/lz-evm-protocol-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/protocol',
+    '@layerzerolabs/lz-evm-messagelib-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/messagelib',
+    'solidity-bytes-utils/=lib/solidity-bytes-utils',
     '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/',
 ]
 
 [rpc_endpoints]
+sepolia = "https://eth-sepolia.public.blastapi.io"
+bsc_testnet = "https://data-seed-prebsc-1-s1.binance.org:8545"
 arbitrum = "https://arb1.arbitrum.io/rpc"
 polygon = "https://polygon-rpc.com"
 base = "https://1rpc.io/base"
 optimism = "https://1rpc.io/op"
 
 [profile.scan_endpoints]
+sepolia = "https://api-sepolia.etherscan.io/api"
+bsc_testnet = "https://api-testnet.bscscan.com/api"
 arbiscan = "https://api.arbiscan.io/api"
 polygonscan = ""
 basescan = ""
 optimismscan = ""
 
 [profile.networks]
+sepolia = { chain_id=11155111, url = "${rpc_endpoints.sepolia}" }
+bsc_testnet = { chain_id=97, url = "${rpc_endpoints.bsc_testnet}" }
 arbitrum = { chain_id = 42161, url = "${rpc_endpoints.arbitrum}" }
 polygon = { chain_id=137, url = "${rpc_endpoints.polygon}" }
 base = { chain_id=8453, url = "${rpc_endpoints.base}" }
 optimism = { chain_id=10 , url = "${rpc_endpoints.optimism}" }
 
 [etherscan]
-arbitrum = { key = "${ARBITRUMSCAN_API_KEY}", url = "${scan_endpoints.arbiscan}",  chain="arbitrum" }
-polygon = { key = "${POLYGONSCAN_API_KEY}", url = "${scan_endpoints.polygonscan}",  chain="polygon" }
-base = { key = "${BASESCAN_API_KEY}", url = "${scan_endpoints.base}",  chain="base" }
-optimism = { key = "${OPTIMISMSCAN_API_KEY}", url = "${scan_endpoints.optimismscan}",  chain="optimism" }
+sepolia = { key = "${ETHERSCAN_API_KEY}", url = "${scan_endpoints.sepolia}",  chain=11155111 }
+bsc_testnet = { key = "${BSCSCAN_API_KEY}", url = "${scan_endpoints.bsc_testnet}",  chain=97 }
+arbitrum = { key = "${ARBITRUMSCAN_API_KEY}", url = "${scan_endpoints.arbiscan}",  chain=42161 }
+polygon = { key = "${POLYGONSCAN_API_KEY}", url = "${scan_endpoints.polygonscan}",  chain=137 }
+base = { key = "${BASESCAN_API_KEY}", url = "${scan_endpoints.base}",  chain=8453 }
+optimism = { key = "${OPTIMISMSCAN_API_KEY}", url = "${scan_endpoints.optimismscan}",  chain=10 }
 
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
