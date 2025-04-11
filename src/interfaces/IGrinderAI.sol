@@ -18,6 +18,20 @@ interface IGrinderAI {
 
     function setAgent(address _agent, bool _isAgent) external;
 
+    function setLzReceivOptions(uint128 _bridgeGasLimit, uint128 _bridgeValue) external;
+
+    function setMultiplierNumerator(uint256 _multiplierNumerator) external;
+
+    function setNativeBridgeFee(uint256 _nativeBridgeFeeNumerator) external;
+
+    function setPeer(uint32 eid, bytes32 peer) external;
+
+    function mint() external returns (uint256 graiAmount, uint256 grindsGap);
+
+    function mintTo(address account) external returns (uint256 graiAmount, uint256 grindsGap);
+
+    function calcMintTo(address account) external view returns (uint256 graiAmount, uint256 grindsGap);
+
     function deposit(
         uint16 strategyId,
         address quoteToken,
@@ -32,10 +46,6 @@ interface IGrinderAI {
         address quoteToken,
         uint256[] memory quoteTokenAmounts
     ) external returns (uint256[] memory poolIds);
-
-    function mint() external returns (uint256 grai);
-
-    function mintTo(address account) external returns (uint256 grai);
 
     function grind(uint256 poolId) external returns (bool);
 

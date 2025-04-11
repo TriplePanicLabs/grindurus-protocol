@@ -90,15 +90,48 @@ contract GrinderAI is IGrinderAI {
         grAI = IGRAI(_grAI);
     }
 
+    /// @notice sets bridge gas limit and value
+    /// @param _bridgeGasLimit gas limit for the bridge
+    /// @param _bridgeValue value for the bridge
+    function setLzReceivOptions(uint128 _bridgeGasLimit, uint128 _bridgeValue) public override{
+        _onlyOwner();
+        grAI.setLzReceivOptions(_bridgeGasLimit, _bridgeValue);
+    }
+
+    /// @notice sets multiplier numerator on grAI
+    /// @dev denominator is 100% = 100_00
+    /// @param _multiplierNumerator numerator of multiplier
+    function setMultiplierNumerator(uint256 _multiplierNumerator) public override {
+        _onlyOwner();
+        grAI.setMultiplierNumerator(_multiplierNumerator);
+    }
+
+    /// @notice sets native bridge fee numerator on grAI
+    /// @dev denominator is 100% = 100_00
+    /// @param _nativeBridgeFeeNumerator numerator of native bridge fee
+    function setNativeBridgeFee(uint256 _nativeBridgeFeeNumerator) public override {
+        _onlyOwner();
+        grAI.setNativeBridgeFee(_nativeBridgeFeeNumerator);
+    }
+
+    /// @notice sets peer address on grAI
+    /// @param eid id of the peer
+    /// @param peer address of the peer
+    /// @dev peer is a bytes32 to accommodate non-evm chains
+    function setPeer(uint32 eid, bytes32 peer) public override {
+        _onlyOwner();
+        grAI.setPeer(eid, peer);
+    }
+
     /// @notice mints grAI token to the `msg.sender` of grinds
-    function mint() public returns (uint256) {
+    function mint() public returns (uint256, uint256) {
         return mintTo(msg.sender);
     }
 
     /// @notice mints grAI token to the `account` of grinds
     /// @param account address of account
-    function mintTo(address account) public returns (uint256 graiAmount) {
-        (uint256 graiAmount, uint256 grindsGap) = calcMintTo(account);
+    function mintTo(address account) public returns (uint256 graiAmount, uint256 grindsGap) {
+        (graiAmount, grindsGap) = calcMintTo(account);
         if (grindsGap > 0) {
             try grAI.mint(account, graiAmount) {
                 mintedGrinds[account] += grindsGap;
@@ -108,7 +141,7 @@ contract GrinderAI is IGrinderAI {
 
     /// @notice calculates grAI amount to mint
     /// @param account address of account
-    function calcMintTo(address account) public view returns (uint256 graiAmount, uint256 grindsGap) {
+    function calcMintTo(address account) public view override returns (uint256 graiAmount, uint256 grindsGap) {
         (,uint256 grinds,) = intentsNFT.getIntentOf(account);
         if (mintedGrinds[account] < grinds) {
             grindsGap = grinds - mintedGrinds[account];
