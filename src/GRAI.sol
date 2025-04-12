@@ -22,11 +22,8 @@ contract GRAI is IGRAI, OFT {
     /// @dev numerator of native bridge fee percent
     uint256 public nativeBridgeFeeNumerator;
 
-    /// @dev bridge gas limit
-    uint128 public bridgeGasLimit = 100_000;
-
-    /// @dev bridge value
-    uint128 public bridgeValue = 0; 
+    /// @dev endpoint id => tuple of bridge gas limit and value
+    mapping (uint32 endpointId => LzReceiveOptions) public lzReceiveOptions;
 
     constructor(
         address _lzEndpoint,
@@ -35,6 +32,12 @@ contract GRAI is IGRAI, OFT {
         grinderAI = IGrinderAI(_delegate);
         multiplierNumerator = DENOMINATOR; // x1.0
         nativeBridgeFeeNumerator = 0; // 0% native bridge fee percentage
+        /// default bridge gas limit and value for EVM chains
+        uint32 defaultEndpointId = 0;
+        lzReceiveOptions[defaultEndpointId] = LzReceiveOptions({
+            gasLimit: 100_000,
+            value: 0
+        });
     }
 
     /// @notice check that msg.sender is grinderAI
@@ -45,12 +48,15 @@ contract GRAI is IGRAI, OFT {
     }
 
     /// @notice sets bridge gas limit and value
-    /// @param _bridgeGasLimit gas limit for the bridge
-    /// @param _bridgeValue value for the bridge
-    function setLzReceivOptions(uint128 _bridgeGasLimit, uint128 _bridgeValue) public override {
+    /// @param gasLimit gas limit for the bridge
+    /// @param value value for the bridge
+    function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) public override {
         _onlyGrinderAI();
-        bridgeGasLimit = _bridgeGasLimit;
-        bridgeValue = _bridgeValue;
+        lzReceiveOptions[endpointId] = LzReceiveOptions({
+            gasLimit: gasLimit,
+            value: value
+        });
+
     }
 
     /// @notice sets multiplier numerator
@@ -133,8 +139,9 @@ contract GRAI is IGRAI, OFT {
         bytes32 toAddress,
         uint256 amount
     ) public view override returns (SendParam memory sendParam) {
+        (uint128 gasLimit, uint128 value) = getLzReceiveOptions(dstChainId);
         bytes memory options = OptionsBuilder.newOptions();
-        options = OptionsBuilder.addExecutorLzReceiveOption(options, bridgeGasLimit, bridgeValue);
+        options = OptionsBuilder.addExecutorLzReceiveOption(options, gasLimit, value);
         sendParam = SendParam({
             dstEid: dstChainId,
             to: toAddress,
@@ -198,6 +205,20 @@ contract GRAI is IGRAI, OFT {
         uint256 nativeFee
     ) public view override returns (uint256) {
        return (nativeFee * nativeBridgeFeeNumerator) / DENOMINATOR;
+    }
+
+    /// @notice gets bridge gas limit and value
+    /// @param endpointId id of the endpoint
+    function getLzReceiveOptions(uint32 endpointId) public view returns (uint128 gasLimit, uint128 value) {
+        LzReceiveOptions memory options = lzReceiveOptions[endpointId];
+        if (options.gasLimit > 0) {
+            gasLimit = options.gasLimit;
+            value = options.value;
+        } else {
+            LzReceiveOptions memory defaultOptions = lzReceiveOptions[0];
+            gasLimit = defaultOptions.gasLimit;
+            value = defaultOptions.value;
+        }
     }
 
     /// @notice converts address to bytes32

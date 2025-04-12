@@ -18,7 +18,7 @@ interface IGrinderAI {
 
     function setAgent(address _agent, bool _isAgent) external;
 
-    function setLzReceivOptions(uint128 _bridgeGasLimit, uint128 _bridgeValue) external;
+    function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) external;
 
     function setMultiplierNumerator(uint256 _multiplierNumerator) external;
 

@@ -6,6 +6,11 @@ import { MessagingFee } from "@layerzerolabs/oapp-evm/contracts/oapp/OAppSender.
 
 interface IGRAI is IOFT {
 
+    struct LzReceiveOptions {
+        uint128 gasLimit;
+        uint128 value;
+    }
+
     error NotGrinderAI();
     error InsufficientNativeFee();
 
@@ -13,7 +18,7 @@ interface IGRAI is IOFT {
 
     function nativeBridgeFeeNumerator() external view returns (uint256);
 
-    function setLzReceivOptions(uint128 _bridgeGasLimit, uint128 _bridgeValue) external;
+    function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) external;
 
     function setMultiplierNumerator(uint256 _multiplierNumerator) external;
 

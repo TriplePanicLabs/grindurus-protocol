@@ -91,27 +91,28 @@ contract GrinderAI is IGrinderAI {
     }
 
     /// @notice sets bridge gas limit and value
-    /// @param _bridgeGasLimit gas limit for the bridge
-    /// @param _bridgeValue value for the bridge
-    function setLzReceivOptions(uint128 _bridgeGasLimit, uint128 _bridgeValue) public override{
+    /// @param endpointId id of the endpoint
+    /// @param gasLimit gas limit for the bridge
+    /// @param value value for the bridge
+    function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) public override{
         _onlyOwner();
-        grAI.setLzReceivOptions(_bridgeGasLimit, _bridgeValue);
+        grAI.setLzReceivOptions(endpointId, gasLimit, value);
     }
 
     /// @notice sets multiplier numerator on grAI
     /// @dev denominator is 100% = 100_00
-    /// @param _multiplierNumerator numerator of multiplier
-    function setMultiplierNumerator(uint256 _multiplierNumerator) public override {
+    /// @param multiplierNumerator numerator of multiplier
+    function setMultiplierNumerator(uint256 multiplierNumerator) public override {
         _onlyOwner();
-        grAI.setMultiplierNumerator(_multiplierNumerator);
+        grAI.setMultiplierNumerator(multiplierNumerator);
     }
 
     /// @notice sets native bridge fee numerator on grAI
     /// @dev denominator is 100% = 100_00
-    /// @param _nativeBridgeFeeNumerator numerator of native bridge fee
-    function setNativeBridgeFee(uint256 _nativeBridgeFeeNumerator) public override {
+    /// @param nativeBridgeFeeNumerator numerator of native bridge fee
+    function setNativeBridgeFee(uint256 nativeBridgeFeeNumerator) public override {
         _onlyOwner();
-        grAI.setNativeBridgeFee(_nativeBridgeFeeNumerator);
+        grAI.setNativeBridgeFee(nativeBridgeFeeNumerator);
     }
 
     /// @notice sets peer address on grAI
