@@ -255,6 +255,7 @@ contract GrinderAI is IGrinderAI {
     /// @param poolIds array of poolIds
     /// @param configs array of configs
     function batchSetConfig(uint256[] memory poolIds, IURUS.Config[] memory configs) public override {
+        _onlyAgent();
         if (poolIds.length != configs.length) {
             revert InvalidLength();
         }
@@ -267,7 +268,11 @@ contract GrinderAI is IGrinderAI {
 
     /// @notice set config
     function _setConfig(uint256 poolId, IURUS.Config memory config) private {
-        IStrategy(poolsNFT.pools(poolId)).setConfig(config);
+        try IStrategy(poolsNFT.pools(poolId)).setConfig(config) {
+            // do nothing
+        } catch { 
+            // skip, backend will check
+        }
     }
 
     /// @notice sets long number max
