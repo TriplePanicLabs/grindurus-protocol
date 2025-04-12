@@ -14,6 +14,15 @@ interface IGRAI is IOFT {
     error NotGrinderAI();
     error InsufficientNativeFee();
 
+    event Bridge(
+        address initiator,
+        uint32 dstChainId,
+        bytes32 toAddress,
+        uint256 amount,
+        uint256 nativeFee,
+        uint256 nativeBridgeFee
+    );
+
     function multiplierNumerator() external view returns (uint256);
 
     function nativeBridgeFeeNumerator() external view returns (uint256);

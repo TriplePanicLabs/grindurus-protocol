@@ -56,7 +56,6 @@ contract GRAI is IGRAI, OFT {
             gasLimit: gasLimit,
             value: value
         });
-
     }
 
     /// @notice sets multiplier numerator
@@ -127,6 +126,14 @@ contract GRAI is IGRAI, OFT {
             sendParam, 
             fee,
             msg.sender
+        );
+        emit Bridge(
+            msg.sender,
+            dstChainId,
+            toAddress,
+            amount,
+            nativeFee,
+            nativeBridgeFee
         );
     }
 
