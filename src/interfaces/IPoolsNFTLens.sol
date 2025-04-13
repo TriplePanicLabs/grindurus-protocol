@@ -66,7 +66,8 @@ interface IPoolsNFTLens {
         uint256 activeCapital;
         /// yield and trade profits
         uint256 startTimestamp;
-        IURUS.TotalProfits totalProfits;
+        IURUS.Profits profits;
+        IURUS.Profits totalProfits;
         ROI roi;
         Thresholds thresholds;
         /// royalty params

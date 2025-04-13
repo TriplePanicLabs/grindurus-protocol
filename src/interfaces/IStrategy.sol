@@ -12,8 +12,6 @@ interface IStrategy is IURUS {
 
     function poolId() external view returns (uint256);
 
-    function startTimestamp() external view returns (uint256);
-
     function reinvest() external view returns (bool);
 
     function switchReinvest() external;
@@ -31,16 +29,6 @@ interface IStrategy is IURUS {
     function getQuoteTokenAmount() external view returns (uint256);
 
     function getBaseTokenAmount() external view returns (uint256);
-
-    function getTotalProfits()
-        external
-        view
-        returns (
-            uint256 quoteTokenYieldProfit,
-            uint256 baseTokenYieldProfit,
-            uint256 quoteTokenTradeProfit,
-            uint256 baseTokenTradeProfit
-        );
 
     function execute(address target, uint256 value, bytes calldata data) external returns (bool success, bytes memory result);
 

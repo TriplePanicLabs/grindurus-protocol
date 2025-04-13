@@ -122,6 +122,8 @@ contract AAVEV3AdapterBase is ILendingAdapter {
             // no withdraw, take token on this smart contract
             if (amount <= token.balanceOf(address(this))) {
                 takeAmount = amount;
+            } else {
+                takeAmount = token.balanceOf(address(this));
             }
         }
         if (investedAmount[token] >= takeAmount) {

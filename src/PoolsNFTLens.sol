@@ -246,6 +246,12 @@ contract PoolsNFTLens is IPoolsNFTLens {
             uint256 baseTokenYieldProfit,
             uint256 quoteTokenTradeProfit,
             uint256 baseTokenTradeProfit
+        ) = pool.getProfits();
+        (
+            uint256 totalQuoteTokenYieldProfit,
+            uint256 totalBaseTokenYieldProfit,
+            uint256 totalQuoteTokenTradeProfit,
+            uint256 totalBaseTokenTradeProfit
         ) = pool.getTotalProfits();
         poolInfo = PoolNFTInfo({
             poolId: poolId,
@@ -270,11 +276,17 @@ contract PoolsNFTLens is IPoolsNFTLens {
             baseTokenAmount: pool.getBaseTokenAmount(),
             activeCapital: pool.getActiveCapital(),
             startTimestamp: pool.startTimestamp(),
-            totalProfits: IURUS.TotalProfits({
+            profits: IURUS.Profits({
                 quoteTokenYieldProfit: quoteTokenYieldProfit,
                 baseTokenYieldProfit: baseTokenYieldProfit,
                 quoteTokenTradeProfit: quoteTokenTradeProfit,
                 baseTokenTradeProfit: baseTokenTradeProfit
+            }),
+            totalProfits: IURUS.Profits({
+                quoteTokenYieldProfit: totalQuoteTokenYieldProfit,
+                baseTokenYieldProfit: totalBaseTokenYieldProfit,
+                quoteTokenTradeProfit: totalQuoteTokenTradeProfit,
+                baseTokenTradeProfit: totalBaseTokenTradeProfit
             }),
             roi: getROI(poolId),
             thresholds: getThresholds(poolId),

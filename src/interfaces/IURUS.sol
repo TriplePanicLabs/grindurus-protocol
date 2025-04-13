@@ -87,7 +87,7 @@ interface IURUS is IERC5313 {
         uint256 feePrice; // [feePrice] = quoteToken/feeToken OR baseToken/feeToken
     }
 
-    struct TotalProfits {
+    struct Profits {
         uint256 quoteTokenYieldProfit; // [quoteTokenYieldProfit] = quoteToken
         uint256 baseTokenYieldProfit; // [baseTokenYieldProfit] = baseToken
         uint256 quoteTokenTradeProfit; // [quoteTokenTradeProfit] = quoteToken
@@ -97,6 +97,8 @@ interface IURUS is IERC5313 {
     function MIN_LONG_NUMBER_MAX() external view returns (uint8);
 
     function MIN_HEDGE_NUMBER_MAX() external view returns (uint8);
+
+    function startTimestamp() external view returns (uint256);
 
     function oracleQuoteTokenPerFeeToken() external view returns (AggregatorV3Interface);
 
@@ -306,6 +308,26 @@ interface IURUS is IERC5313 {
             uint256 longSellFeeCoef,
             uint256 hedgeSellFeeCoef,
             uint256 hedgeRebuyFeeCoef
+        );
+
+    function getProfits()
+        external
+        view
+        returns (
+            uint256 quoteTokenYieldProfit,
+            uint256 baseTokenYieldProfit,
+            uint256 quoteTokenTradeProfit,
+            uint256 baseTokenTradeProfit
+        );
+
+    function getTotalProfits()
+        external
+        view
+        returns (
+            uint256 quoteTokenYieldProfit,
+            uint256 baseTokenYieldProfit,
+            uint256 quoteTokenTradeProfit,
+            uint256 baseTokenTradeProfit
         );
 
 }

@@ -25,14 +25,21 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     /// @dev index of position in `poolsNFT`
     uint256 public poolId;
 
-    /// @dev timestamp of deployment
-    uint256 public startTimestamp;
-
     /// @dev true - reinvest, false - not reinvest
     bool public reinvest;
 
     constructor () {}
 
+    /// @dev constuctor of PoolStrategy0
+    /// @param _poolsNFT address of poolsNFT
+    /// @param _poolId id of poolNFT
+    /// @param _oracleQuoteTokenPerFeeToken address of oracle of quoteToken per fee token
+    /// @param _oracleQuoteTokenPerBaseToken address of oracle of quoteToken per base token
+    /// @param _feeToken address of fee token
+    /// @param _baseToken address of base token
+    /// @param _quoteToken address of quote token
+    /// @param _config config for URUS algorithm
+    /// @param _dexArgs encoded data for dex adapter
     function init(
         address _poolsNFT,
         uint256 _poolId,
@@ -87,7 +94,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     }
 
     /// @notice exit funds from strategy
-    function exit() public override(URUS, IURUS) returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+    function exit() public override(URUS, IURUS) returns (uint256 /** quoteTokenAmount */, uint256 /** baseTokenAmount */) {
         reinvest = false;
         URUS.exit();
         reinvest = true;
@@ -103,6 +110,10 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
 
     function _swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) internal override(UniswapV3AdapterArbitrum, URUS) returns (uint256) {
         return UniswapV3AdapterArbitrum._swap(tokenIn, tokenOut, amountIn);
+    }
+
+    function getPendingYield(IToken token) public view override (URUS, NoLendingAdapter) returns (uint256) {
+        return NoLendingAdapter.getPendingYield(token);
     }
 
     function _distributeYieldProfit(
@@ -167,24 +178,6 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         (success, result) = target.call{value: value}(data);
     }
 
-    /// @notice return total profits of strategy pool
-    function getTotalProfits()
-        public
-        view
-        override
-        returns (
-            uint256 quoteTokenYieldProfit,
-            uint256 baseTokenYieldProfit,
-            uint256 quoteTokenTradeProfit,
-            uint256 baseTokenTradeProfit
-        )
-    {
-        quoteTokenYieldProfit = totalProfits.quoteTokenYieldProfit + getPendingYield(quoteToken);
-        baseTokenYieldProfit = totalProfits.baseTokenYieldProfit + getPendingYield(baseToken);
-        quoteTokenTradeProfit = totalProfits.quoteTokenTradeProfit;
-        baseTokenTradeProfit = totalProfits.baseTokenTradeProfit;
-    }
-
     /// @notice calculates return of investment of strategy pool.
     /// @dev returns the numerator and denominator of ROI. ROI = ROINumerator / ROIDenominator
     function ROI()
@@ -202,20 +195,20 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
                 baseToken.balanceOf(address(this)),
                 baseTokenPrice
             );
-        uint256 profits = 0 + // trade profits + yield profits + pending yield profits
-            totalProfits.quoteTokenTradeProfit +
+        uint256 profitsSum = 0 + // trade profits + yield profits + pending yield profits
+            profits.quoteTokenTradeProfit +
             calcQuoteTokenByBaseToken(
-                totalProfits.baseTokenTradeProfit,
+                profits.baseTokenTradeProfit,
                 baseTokenPrice
             ) +
-            totalProfits.quoteTokenYieldProfit +
+            profits.quoteTokenYieldProfit +
             calcQuoteTokenByBaseToken(
-                totalProfits.baseTokenYieldProfit,
+                profits.baseTokenYieldProfit,
                 baseTokenPrice
             ) +
             getPendingYield(quoteToken) +
             getPendingYield(baseToken);
-        ROINumerator = profits;
+        ROINumerator = profitsSum;
         ROIDenominator = investment;
         ROIPeriod = block.timestamp - startTimestamp;
     }

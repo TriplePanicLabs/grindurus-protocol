@@ -17,6 +17,9 @@ contract URUS is IURUS {
     /// @dev minimum value of `hedgeNumberMax` in `config`
     uint8 public constant MIN_HEDGE_NUMBER_MAX = 2;
 
+    /// @dev timestamp of deployment
+    uint256 public startTimestamp;
+
     /// @dev price feed of fee token. [oracle] = quoteToken/feeToken
     ///      for Ethereum mainnet = ETH, for BSC = BNB, Optimism = ETH, etc
     AggregatorV3Interface public oracleQuoteTokenPerFeeToken;
@@ -48,8 +51,11 @@ contract URUS is IURUS {
     /// @dev set of hedge position params
     Position public hedge;
 
+    /// @dev profits of pool
+    Profits public profits;
+
     /// @dev total profits of pool
-    TotalProfits public totalProfits;
+    Profits public totalProfits;
 
     constructor() {} // only for verification simplification. As constructor call initURUS()
 
@@ -258,9 +264,10 @@ contract URUS is IURUS {
     /// @return depositedQuoteTokenAmount quoteToken amount
     function deposit(
         uint256 quoteTokenAmount
-    ) external override returns (uint256 depositedQuoteTokenAmount) {
+    ) public virtual override returns (uint256 depositedQuoteTokenAmount) {
         _onlyGateway(); 
         require(long.number == 0);
+        startTimestamp = block.timestamp;
         quoteToken.safeTransferFrom(
             msg.sender,
             address(this),
@@ -277,7 +284,7 @@ contract URUS is IURUS {
     function deposit2(
         uint256 baseTokenAmount,
         uint256 baseTokenPrice
-    ) external override returns (uint256 depositBaseTokenAmount) {
+    ) public virtual override returns (uint256 depositBaseTokenAmount) {
         _onlyGateway();
         require(long.number == 0 || (long.number > 0 && long.number == long.numberMax));
         if (hedge.number > 0) {
@@ -293,6 +300,7 @@ contract URUS is IURUS {
         long.price = ((long.qty * long.price) + (baseTokenAmount * baseTokenPrice)) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
         if (long.number == 0) {
+            startTimestamp = block.timestamp;
             long.number = 1;
             long.numberMax = 1;
             long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
@@ -309,7 +317,7 @@ contract URUS is IURUS {
     /// @param quoteTokenAmount amount of quote token
     function deposit3(
         uint256 quoteTokenAmount
-    ) external override {
+    ) public virtual override {
         _onlyGateway();
         require(long.number == long.numberMax);
         if (hedge.number > 0) {
@@ -319,6 +327,7 @@ contract URUS is IURUS {
         uint256 baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
         uint256 swapPrice = calcSwapPrice(quoteTokenAmount, baseTokenAmount);
         if (long.number == 0) {
+            startTimestamp = block.timestamp;
             long.number = 1;
             long.numberMax = 1;
         } else {
@@ -346,7 +355,7 @@ contract URUS is IURUS {
     function withdraw(
         address to,
         uint256 quoteTokenAmount
-    ) public override returns (uint256 withdrawn) {
+    ) public virtual override returns (uint256 withdrawn) {
         _onlyGateway();
         require(long.number == 0);
         withdrawn = _take(quoteToken, quoteTokenAmount);
@@ -428,6 +437,13 @@ contract URUS is IURUS {
             feeQty: 0,
             feePrice: 0
         });
+        startTimestamp = 0;
+        profits = Profits({
+            baseTokenYieldProfit: 0,
+            quoteTokenYieldProfit: 0,
+            baseTokenTradeProfit: 0,
+            quoteTokenTradeProfit: 0
+        });
     }
 
     /// @notice distribute yield profit
@@ -438,8 +454,10 @@ contract URUS is IURUS {
         uint256 profit
     ) internal virtual {
         if (token == baseToken) {
+            profits.baseTokenYieldProfit += profit;
             totalProfits.baseTokenYieldProfit += profit;
         } else if (token == quoteToken) {
+            profits.quoteTokenYieldProfit += profit;
             totalProfits.quoteTokenYieldProfit += profit;
         }
         _distributeProfit(token, profit);
@@ -453,8 +471,10 @@ contract URUS is IURUS {
         uint256 profit
     ) internal virtual {
         if (token == baseToken) {
+            profits.baseTokenTradeProfit += profit;
             totalProfits.baseTokenTradeProfit += profit;
         } else if (token == quoteToken) {
+            profits.quoteTokenTradeProfit += profit;
             totalProfits.quoteTokenTradeProfit += profit;
         }
         _distributeProfit(token, profit);
@@ -474,6 +494,8 @@ contract URUS is IURUS {
     function _take(IToken token, uint256 amount) internal virtual returns (uint256 takeAmount) {}
 
     function _swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) internal virtual returns (uint256 tokenOutAmount) {}
+
+    function getPendingYield(IToken token) public view virtual returns (uint256 pendingYield) {}
 
     /// @notice makes long_buy
     function long_buy()
@@ -813,7 +835,7 @@ contract URUS is IURUS {
     /// @return baseTokenAmount base token amount that take part in rebalance
     /// @return price base token price scaled by price multuplier
     function beforeRebalance()
-        external
+        public virtual override
         returns (uint256 baseTokenAmount, uint256 price)
     {
         _onlyGateway();
@@ -831,7 +853,7 @@ contract URUS is IURUS {
 
     /// @notice third step for rebalance the positions via poolsNFT
     /// @dev called after rebalance by poolsNFT
-    function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) external {
+    function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public virtual override {
         _onlyGateway();
         if (baseTokenAmount > 0) {
             baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
@@ -1059,7 +1081,7 @@ contract URUS is IURUS {
          *      L = q * sp + fee + profit = q * sp + q * fee / q + q * profit / q = q * sp + q * sp1 + q * sp2 = q * (sp + sp1 + sp2)
          *      L - this is quote token amount after swap
          *      So, we get:
-         *      (h.q + q) * tp <= h.q * h.p + L - fee - profit
+         *      (h.q + q) * tp <=xf h.q * h.p + L - fee - profit
          *      (h.q + q) * tp - h.q * h.p + fee + profit <= L
          *      So, criteria: (h.q + q) * tp - h.q * h.p + fee + profit <= L
          *      Rewrite profit for more convinient form in ReturnPercent as we did in long sell:
@@ -1364,7 +1386,7 @@ contract URUS is IURUS {
 
     /// @notice return config of strategy
     function getConfig()
-        public
+        external
         view
         override
         returns (
@@ -1388,7 +1410,7 @@ contract URUS is IURUS {
 
     /// @notice return fee config of strategy
     function getFeeConfig()
-        public
+        external
         view
         override
         returns (
@@ -1400,6 +1422,42 @@ contract URUS is IURUS {
         longSellFeeCoef = feeConfig.longSellFeeCoef;
         hedgeSellFeeCoef = feeConfig.hedgeSellFeeCoef;
         hedgeRebuyFeeCoef = feeConfig.hedgeRebuyFeeCoef;
+    }
+
+    /// @notice return profits of strategy pool
+    function getProfits()
+        external
+        view
+        override
+        returns (
+            uint256 quoteTokenYieldProfit,
+            uint256 baseTokenYieldProfit,
+            uint256 quoteTokenTradeProfit,
+            uint256 baseTokenTradeProfit
+        )
+    {
+        quoteTokenYieldProfit = profits.quoteTokenYieldProfit + getPendingYield(quoteToken);
+        baseTokenYieldProfit = profits.baseTokenYieldProfit + getPendingYield(baseToken);
+        quoteTokenTradeProfit = profits.quoteTokenTradeProfit;
+        baseTokenTradeProfit = profits.baseTokenTradeProfit;
+    }
+
+    /// @notice return total profits of strategy pool
+    function getTotalProfits()
+        external
+        view
+        override
+        returns (
+            uint256 quoteTokenYieldProfit,
+            uint256 baseTokenYieldProfit,
+            uint256 quoteTokenTradeProfit,
+            uint256 baseTokenTradeProfit
+        )
+    {
+        quoteTokenYieldProfit = totalProfits.quoteTokenYieldProfit + getPendingYield(quoteToken);
+        baseTokenYieldProfit = totalProfits.baseTokenYieldProfit + getPendingYield(baseToken);
+        quoteTokenTradeProfit = totalProfits.quoteTokenTradeProfit;
+        baseTokenTradeProfit = totalProfits.baseTokenTradeProfit;
     }
 
     /// @notice returns the owner of strategy pool

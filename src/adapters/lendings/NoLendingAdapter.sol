@@ -30,7 +30,7 @@ contract NoLendingAdapter is ILendingAdapter {
         uint256 profit
     ) internal virtual {}
 
-    function getPendingYield(IToken token) public override pure returns (uint256) {
+    function getPendingYield(IToken token) public view virtual override returns (uint256) {
         token;
         return 0;
     }

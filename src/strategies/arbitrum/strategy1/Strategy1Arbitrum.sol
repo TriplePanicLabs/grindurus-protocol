@@ -24,9 +24,6 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     /// @dev index of position in `poolsNFT`
     uint256 public poolId;
 
-    /// @dev timestamp of deployment
-    uint256 public startTimestamp;
-
     /// @dev true - reinvest, false - not reinvest
     bool public reinvest;
 
@@ -65,9 +62,9 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     /// @param _feeToken address of fee token
     /// @param _baseToken address of base token
     /// @param _quoteToken address of quote token
+    /// @param _config config for URUS algorithm
     /// @param _lendingArgs encoded data for lending adapter
     /// @param _dexArgs encoded data for dex adapter
-    /// @param _config config for URUS algorithm
     function init(
         address _poolsNFT,
         uint256 _poolId,
@@ -98,12 +95,11 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
 
         poolsNFT = IPoolsNFT(_poolsNFT);
         poolId = _poolId;
-        startTimestamp = block.timestamp;
         reinvest = true;
     }
 
     /// @notice exit funds from strategy
-    function exit() public override(URUS, IURUS) returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+    function exit() public override(URUS, IURUS) returns (uint256 /** quoteTokenAmount */, uint256 /** baseTokenAmount */) {
         reinvest = false;
         URUS.exit();
         reinvest = true;
@@ -129,6 +125,12 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     /// @param amountIn amount of `tokenIn`
     function _swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) internal override(UniswapV3AdapterArbitrum, URUS) returns (uint256 amountOut) {
         amountOut = UniswapV3AdapterArbitrum._swap(tokenIn, tokenOut, amountIn);
+    }
+
+    /// @notice returns pending yield of token
+    /// @param token address of token
+    function getPendingYield(IToken token) public view override(AAVEV3AdapterArbitrum, URUS) returns (uint256 yield) {
+        yield = AAVEV3AdapterArbitrum.getPendingYield(token);
     }
 
     /// @notice distribute yield profit
@@ -195,24 +197,6 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
         (success, result) = target.call{value: value}(data);
     }
 
-    /// @notice return total profits of strategy pool
-    function getTotalProfits()
-        public
-        view
-        override
-        returns (
-            uint256 quoteTokenYieldProfit,
-            uint256 baseTokenYieldProfit,
-            uint256 quoteTokenTradeProfit,
-            uint256 baseTokenTradeProfit
-        )
-    {
-        quoteTokenYieldProfit = totalProfits.quoteTokenYieldProfit + getPendingYield(quoteToken);
-        baseTokenYieldProfit = totalProfits.baseTokenYieldProfit + getPendingYield(baseToken);
-        quoteTokenTradeProfit = totalProfits.quoteTokenTradeProfit;
-        baseTokenTradeProfit = totalProfits.baseTokenTradeProfit;
-    }
-
     /// @notice calculates return of investment of strategy pool.
     /// @dev returns the numerator and denominator of ROI. ROI = ROINumerator / ROIDenominator
     function ROI()
@@ -231,15 +215,15 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
                     investedAmount[baseToken],
                     baseTokenPrice
                 );
-            uint256 profits = 0 + // trade profits + yield profits + pending yield profits
-                totalProfits.quoteTokenTradeProfit +
+            uint256 profitsSum = 0 + // trade profits + yield profits + pending yield profits
+                profits.quoteTokenTradeProfit +
                 calcQuoteTokenByBaseToken(
-                    totalProfits.baseTokenTradeProfit,
+                    profits.baseTokenTradeProfit,
                     baseTokenPrice
                 ) + // yield profits
-                totalProfits.quoteTokenYieldProfit +
+                profits.quoteTokenYieldProfit +
                 calcQuoteTokenByBaseToken(
-                    totalProfits.baseTokenYieldProfit,
+                    profits.baseTokenYieldProfit,
                     baseTokenPrice
                 ) + // pending yield profits
                 getPendingYield(quoteToken) +
@@ -247,7 +231,7 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
                     getPendingYield(baseToken), 
                     baseTokenPrice
                 );
-            ROINumerator = profits;
+            ROINumerator = profitsSum;
             ROIDenominator = investment;
         } 
         ROIPeriod = block.timestamp - startTimestamp;
