@@ -350,6 +350,33 @@ contract URUSStrategy1ArbitrumTest is Test {
 
     }
 
+    function test_deposit2() public {
+        uint256 baseTokenAmount1 = 10 * 10**18;
+        uint256 baseTokenPrice1 = 3000 * 10**8;
+
+        pool0.setLongNumberMax(1);
+        pool0.setHedgeNumberMax(2);
+        pool0.setExtraCoef(2_00); // x2.00
+        pool0.setPriceVolatilityPercent(1_00); // 1%
+        
+        (uint256 qty1, uint256 price1) = printLongPosition(poolId0);
+        assert(qty1 == 0); // no long position
+        IToken(wethArbitrum).approve(address(poolsNFT), baseTokenAmount1);
+        uint256 depositedBaseTokenAmount = poolsNFT.deposit2(poolId0, baseTokenAmount1, baseTokenPrice1);
+
+        (uint256 qty2, uint256 price2) = printLongPosition(poolId0);
+        assert(qty2 == baseTokenAmount1); // make fist buy
+
+        uint256 baseTokenAmount2 = 10 * 10**18;
+        uint256 baseTokenPrice2 = 2000 * 10**8;
+        IToken(wethArbitrum).approve(address(poolsNFT), baseTokenAmount2);
+        depositedBaseTokenAmount = poolsNFT.deposit2(poolId0, baseTokenAmount2, baseTokenPrice2);
+
+        (uint256 qty3, uint256 price3) = printLongPosition(poolId0);
+        assert(qty3 == baseTokenAmount1 + baseTokenAmount2); // make second buy
+
+    }
+
     function test_dip_and_undip() public {
         pool0.setSwapRouter(address(mockSwapRouter));
         
