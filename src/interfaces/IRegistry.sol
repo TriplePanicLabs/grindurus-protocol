@@ -3,16 +3,29 @@ pragma solidity ^0.8.0;
 
 interface IRegistry {
     error NotOwner();
-    error NotStrategiest();
     error QuoteTokenNotListed();
     error BaseTokenNotListed();
     error StrategyIdExist();
+    error EndpointIdExist();
+    error NotMatchingStrategyId();
+    error NotMatchingEndpointId();
+    error GRAIExist();
     error StrategyIdNotExist();
     error InvalidOracle();
 
-    function strategyIdIndex(uint16 strategyId) external view returns (uint256);
+    struct StrategyInfo {
+        uint16 strategyId;
+        address factory;
+        string description;
+    }
 
-    function strategyDescription(uint16 strategyId) external view returns (string memory);
+    struct GRAIInfo {
+        uint32 endpointId;
+        address grai;
+        string description;
+    }
+
+    function strategyIdIndex(uint16 strategyId) external view returns (uint256);
 
     function quoteTokenIndex(address quoteToken) external view returns (uint256);
 
@@ -30,11 +43,17 @@ interface IRegistry {
 
     function setStrategyPair(uint16 strategyId, address quoteToken, address baseToken, bool strategyPair) external;
 
-    function addStrategyId(uint16 strategyId, string memory _strategyDescription) external;
+    function addStrategyInfo(uint16 strategyId, address factory, string memory description) external;
 
-    function modifyStrategyDescription(uint16 strategyId, string memory _strategyDescription) external;
+    function altStrategyInfo(uint16 strategyId, address factory, string memory description) external;
 
-    function removeStrategyId(uint16 strategyId) external;
+    function removeStrategyInfo(uint16 strategyId) external;
+
+    function addGRAIInfo(uint32 endpointId, address grai, string memory description) external;
+
+    function altGRAIInfo(uint32 endpointId, address grai, string memory description) external;
+
+    function removeGRAIInfo(uint32 endpointId) external;
 
     function getOracle(address quoteToken, address baseToken) external view returns (address);
 
@@ -44,18 +63,20 @@ interface IRegistry {
 
     function hasOracle(address quoteToken, address baseToken) external view returns (bool);
 
-    function getStrategyIds() external view returns (uint256, uint16[] memory);
+    function getQuoteTokens() external view returns (address[] memory);
 
-    function getStrategiesDescriptions(uint16[] memory _strategyIds) external view returns (string[] memory descriptions);
+    function getBaseTokens() external view returns (address[] memory);
 
-    function getQuoteTokens() external view returns (uint256, address[] memory);
+    function getStrategyInfos() external view returns (StrategyInfo[] memory);
+    
+    function getGRAIInfos() external view returns (GRAIInfo[] memory);
 
-    function getBaseTokens() external view returns (uint256, address[] memory);
+    function getStrategyInfosBy(uint256[] memory strategyIds) external view returns (StrategyInfo[] memory);
 
-    function getStrategyIds(uint256 fromId, uint256 toId) external view returns (uint256, uint16[] memory);
+    function getGRAIInfosBy(uint256[] memory graiInfosIds) external view returns (GRAIInfo[] memory _graiInfos);
 
-    function getQuoteTokens(uint256 fromId, uint256 toId) external view returns (uint256, address[] memory);
+    function getQuoteTokensBy(uint256[] memory quoteTokensIds) external view returns (address[] memory);
 
-    function getBaseTokens(uint256 fromId, uint256 toId) external view returns (uint256, address[] memory);
+    function getBaseTokensBy(uint256[] memory baseTokensIds) external view returns (address[] memory);
 
 }

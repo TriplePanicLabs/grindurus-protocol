@@ -16,20 +16,23 @@ contract Registry is IRegistry {
     /// @dev address of oracle, that return 1:1 price
     address public priceOracleSelf;
 
-    /// @dev array of strategy ids
-    uint16[] public strategyIds;
-
     /// @dev set of quote token
     address[] public quoteTokens;
 
     /// @dev set of base token
     address[] public baseTokens;
 
-    /// @dev strategy id => index of strategy in array `strategyIds`
+    /// @dev array of strategy infos
+    StrategyInfo[] public strategyInfos;
+
+    /// @dev array of endpoint ids of GRAI
+    GRAIInfo[] public graiInfos;
+
+    /// @dev strategy id => index in `strategyInfos` array
     mapping (uint16 strategyId => uint256) public strategyIdIndex;
 
-    /// @dev strategy id => description of strategy
-    mapping (uint16 strategyId => string) public strategyDescription;
+    /// @dev endpoint id => index in `graiInfos` array
+    mapping (uint32 endpointId => uint256) public graiIdIndex;
 
     /// @dev quote token address => index of quote token in array `quoteTokens`
     mapping (address quoteToken => uint256) public quoteTokenIndex;
@@ -82,11 +85,20 @@ contract Registry is IRegistry {
         } else {
             poolsNFT = IPoolsNFT(_poolsNFT);
         }
-        PriceOracleSelf _priceOracleSelf = new PriceOracleSelf();
-        priceOracleSelf = address(_priceOracleSelf);
+        priceOracleSelf = address(new PriceOracleSelf());
+        strategyInfos.push(StrategyInfo({
+            strategyId: 0,
+            factory: address(0),
+            description: ""
+        }));
+        graiInfos.push(GRAIInfo({
+            endpointId: 0,
+            grai: address(0),
+            description: ""
+        }));
     }
 
-      /// @notice checks that msg.sender is owner
+    /// @notice checks that msg.sender is owner
     function _onlyOwner() internal view {
         if (msg.sender != owner()) {
             revert NotOwner();
@@ -98,7 +110,6 @@ contract Registry is IRegistry {
     function setPoolsNFT(address _poolsNFT) public {
         _onlyOwner();
         poolsNFT = IPoolsNFT(_poolsNFT);
-
     }
 
     /// @notice sets oracle and deploy inverse oracle
@@ -161,42 +172,91 @@ contract Registry is IRegistry {
 
     /// @notice add strategy id to `strategyIds` array
     /// @param strategyId id of strategy
-    /// @param _strategyDescription description of strategy
-    function addStrategyId(uint16 strategyId, string memory _strategyDescription) public {
+    /// @param factory address of factory
+    /// @param description description of strategy
+    function addStrategyInfo(uint16 strategyId, address factory, string memory description) public override {
         _onlyOwner();
-        if (strategyIds[strategyIdIndex[strategyId]] == strategyId) {
+        if (strategyInfos[strategyIdIndex[strategyId]].strategyId == strategyId) {
             revert StrategyIdExist();
         }
-        strategyIdIndex[strategyId] = strategyIds.length;
-        strategyIds.push(strategyId);
-        strategyDescription[strategyId] = _strategyDescription;
+        strategyIdIndex[strategyId] = strategyInfos.length;
+        strategyInfos.push(StrategyInfo({
+            strategyId: strategyId, 
+            factory: factory,
+            description: description
+        }));
     }
 
     /// @notice modify strategy description
     /// @param strategyId id of strategy
-    /// @param _strategyDescription description of strategy
-    function modifyStrategyDescription(uint16 strategyId, string memory _strategyDescription) public {
+    /// @param factory address of factory
+    /// @param description description of strategy
+    function altStrategyInfo(uint16 strategyId, address factory, string memory description) public override{
         _onlyOwner();
-        if (strategyIds[strategyIdIndex[strategyId]] != strategyId) {
-            revert StrategyIdNotExist();
+
+        uint256 _strategyIdIndex = strategyIdIndex[strategyId];
+        if (strategyInfos[_strategyIdIndex].strategyId != strategyId) {
+            revert NotMatchingStrategyId();
         }
-        strategyDescription[strategyId] = _strategyDescription;
+        strategyInfos[_strategyIdIndex].factory = factory;
+        strategyInfos[_strategyIdIndex].description = description;
     }
 
     /// @notice remove strategy id from `strategyIds`
     /// @param strategyId id of strategy
-    function removeStrategyId(uint16 strategyId) public override {
+    function removeStrategyInfo(uint16 strategyId) public override {
         _onlyOwner();
         uint256 _strategyIdIndex = strategyIdIndex[strategyId];
-        if (strategyIds[_strategyIdIndex] != strategyId) {
-            revert StrategyIdNotExist();
-        }
-        uint256 lastStrategyIdIndex = strategyIds.length - 1;
+        uint256 lastStrategyIdIndex = strategyInfos.length - 1;
         if (_strategyIdIndex != lastStrategyIdIndex) {
-            strategyIds[_strategyIdIndex] = strategyIds[lastStrategyIdIndex];
+            strategyInfos[_strategyIdIndex] = strategyInfos[lastStrategyIdIndex];
         }
-        strategyIds.pop();
-        delete strategyDescription[strategyId];
+        strategyIdIndex[strategyId] = 0;
+        strategyInfos.pop();
+    }
+
+    /// @notice add strategy id to `strategyIds` array
+    /// @param endpointId id of layer zero endpoint
+    /// @param grai address of GRAI
+    /// @param description description of strategy
+    function addGRAIInfo(uint32 endpointId, address grai, string memory description) public override {
+        _onlyOwner();
+        if (graiInfos[graiIdIndex[endpointId]].endpointId == endpointId) {
+            revert EndpointIdExist();
+        }
+        graiIdIndex[endpointId] = graiInfos.length;
+        graiInfos.push(GRAIInfo({
+            endpointId: endpointId,
+            grai: grai,
+            description: description
+        }));
+    }
+
+    /// @notice modify strategy description
+    /// @param endpointId id of strategy
+    /// @param grai address of GRAI
+    /// @param description description of strategy
+    function altGRAIInfo(uint32 endpointId, address grai, string memory description) public override {
+        _onlyOwner();
+        uint256 _graiIdIndex = graiIdIndex[endpointId];
+        if (graiInfos[_graiIdIndex].endpointId != endpointId) {
+            revert NotMatchingEndpointId();
+        }
+        graiInfos[_graiIdIndex].grai = grai;
+        graiInfos[_graiIdIndex].description = description;
+    }
+
+    /// @notice remove strategy id from `strategyIds`
+    /// @param endpointId id of layerZero endpoint
+    function removeGRAIInfo(uint32 endpointId) public override {
+        _onlyOwner();
+        uint256 _graiIdIndex = graiIdIndex[endpointId];
+        uint256 lastGraiIdIndex = graiInfos.length - 1;
+        if (_graiIdIndex != lastGraiIdIndex) {
+            graiInfos[_graiIdIndex] = graiInfos[lastGraiIdIndex];
+        }
+        graiIdIndex[endpointId] = 0;
+        graiInfos.pop();
     }
 
     /// @notice returns oracle address of base token in terms of quote token
@@ -236,71 +296,66 @@ contract Registry is IRegistry {
         return oracles[quoteToken][baseToken] != address(0);
     }
 
-    /// @notice returns `strategyIds` array
-    function getStrategyIds() public view override returns (uint256, uint16[] memory) {
-        return (strategyIds.length, strategyIds);
-    }
-
-    /// @notice returns array of strategy descriptions
-    function getStrategiesDescriptions(uint16[] memory _strategyIds) public view override returns (string[] memory descriptions) {
-        uint256 len = _strategyIds.length;
-        descriptions = new string[](len);
-        for (uint16 i; i < len;) {
-            descriptions[i] = strategyDescription[_strategyIds[i]]; 
-            unchecked { ++i; }
-        }
-    }
-
     /// @notice returns `quoteTokens` array
-    function getQuoteTokens() public view override returns (uint256, address[] memory) {
-        return (quoteTokens.length, quoteTokens);
+    function getQuoteTokens() public view override returns (address[] memory){
+        return quoteTokens;
     }
 
     /// @notice returns `baseTokens` array
-    function getBaseTokens() public view override returns (uint256, address[] memory) {
-        return (baseTokens.length, baseTokens);
+    function getBaseTokens() public view override returns (address[] memory) {
+        return baseTokens;
     }
 
-    /// @notice returns `strategyIds` array
-    /// @param fromId index from in `quoteTokens` array
-    /// @param toId index to in `quoteTokens` array
-    function getStrategyIds(uint256 fromId, uint256 toId) public view override returns (uint256, uint16[] memory) {
-        require(fromId <= toId);
-        uint256 len = toId - fromId + 1;
-        uint16[] memory _strategyIds = new uint16[](len);
+    /// @notice returns `strategyInfos` array
+    function getStrategyInfos() public view override returns (StrategyInfo[] memory) {
+        return strategyInfos;
+    }
+
+    /// @notice returns `GRAIInfos` array
+    function getGRAIInfos() public view override returns (GRAIInfo[] memory) {
+        return graiInfos;
+    }
+
+    /// @notice returns `strategyInfos` array
+    function getStrategyInfosBy(uint256[] memory strategyInfosIds) public view override returns (StrategyInfo[] memory _strategyInfos) {
+        uint256 len = strategyInfosIds.length;
+        _strategyInfos = new StrategyInfo[](len);
         for (uint256 i; i < len;) {
-            _strategyIds[i] = strategyIds[fromId + i];
+            _strategyInfos[i] = strategyInfos[strategyInfosIds[i]];
             unchecked { ++i; }
         }
-        return (len, _strategyIds);
+    }
+
+    /// @notice returns `graiInfos` array
+    function getGRAIInfosBy(uint256[] memory graiInfosIds) public view override returns (GRAIInfo[] memory _graiInfos) {
+        uint256 len = graiInfosIds.length;
+        _graiInfos = new GRAIInfo[](len);
+        for (uint256 i; i < len;) {
+            _graiInfos[i] = graiInfos[graiInfosIds[i]];
+            unchecked { ++i; }
+        }
     }
 
     /// @notice returns length and slice array `quoteTokens` from index `from` to index `to`
-    /// @param fromId index from in `quoteTokens` array
-    /// @param toId index to in `quoteTokens` array
-    function getQuoteTokens(uint256 fromId, uint256 toId) public view override returns (uint256, address[] memory) {
-        require(fromId <= toId);
-        uint256 len = toId - fromId + 1;
-        address[] memory _quoteTokens = new address[](len);
+    /// @param quoteTokenIds array of index`es of `quoteTokens` 
+    function getQuoteTokensBy(uint256[] memory quoteTokenIds) public view override returns (address[] memory _quoteTokens) {
+        uint256 len = quoteTokenIds.length;
+        _quoteTokens = new address[](len);
         for (uint256 i; i < len;) {
-            _quoteTokens[i] = quoteTokens[fromId + i];
+            _quoteTokens[i] = quoteTokens[quoteTokenIds[i]];
             unchecked { ++i; }
         }
-        return (len, _quoteTokens);
     }
 
     /// @notice returns length and slice array `baseTokens` from index `from` to index `to`
-    /// @param fromId index from in `baseTokens` array
-    /// @param toId index to in `baseTokens` array
-    function getBaseTokens(uint256 fromId, uint256 toId) public view override returns (uint256, address[] memory) {
-        require(fromId <= toId);
-        uint256 len = toId - fromId + 1;
-        address[] memory _baseTokens = new address[](len);
+    /// @param baseTokenIds array of index`es of `baseTokens` 
+    function getBaseTokensBy(uint256[] memory baseTokenIds) public view override returns (address[] memory _baseTokens) {
+        uint256 len = baseTokenIds.length;
+        _baseTokens = new address[](len);
         for (uint256 i; i < len;) {
-            _baseTokens[i] = baseTokens[fromId + i];
+            _baseTokens[i] = baseTokens[baseTokenIds[i]];
             unchecked { ++i; }
         }
-        return (len, _baseTokens);
     }
 
 }

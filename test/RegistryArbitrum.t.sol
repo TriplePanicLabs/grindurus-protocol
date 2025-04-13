@@ -2,6 +2,7 @@
 pragma solidity =0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
+import {IRegistry} from "src/interfaces/IRegistry.sol";
 import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 import {PriceOracleInverse} from "src/oracles/PriceOracleInverse.sol";
 import {PriceOracleSelf} from "src/oracles/PriceOracleSelf.sol";
@@ -56,12 +57,12 @@ contract RegistryArbitrumTest is Test {
 
     function test_setOracle() public {
 
-        (uint256 baseTokensLenBefore,) = registry.getBaseTokens();
+        address[] memory baseTokensBefore = registry.getBaseTokens();
 
         registry.setOracle(usdtArbitrum, wbtcArbitrum, oraleWbtcUsdArbitrum);
 
-        (uint256 baseTokensLenAfter,) = registry.getBaseTokens();
-        assert(baseTokensLenBefore + 1 == baseTokensLenAfter);
+        address[] memory baseTokensAfter = registry.getBaseTokens();
+        assert(baseTokensBefore.length + 1 == baseTokensAfter.length);
 
         bool _hasOracle = registry.hasOracle(usdtArbitrum, wbtcArbitrum);
         assert(_hasOracle);
@@ -72,14 +73,14 @@ contract RegistryArbitrumTest is Test {
 
         uint256 usdcCoherenceBefore = registry.quoteTokenCoherence(usdcArbitrum);
         assert(usdcCoherenceBefore == 1);
-        (uint256 quoteTokensLenBefore,) = registry.getQuoteTokens();
+        address[] memory quoteTokensBefore = registry.getQuoteTokens();
 
         registry.unsetOracle(usdcArbitrum, wethArbitrum, oracleWethUsdArbitrum);
 
         uint256 usdcCoherenceAfter = registry.quoteTokenCoherence(usdcArbitrum);
         assert(usdcCoherenceAfter == 0);
-        (uint256 quoteTokensLenAfter,) = registry.getQuoteTokens();
-        assert(quoteTokensLenBefore == quoteTokensLenAfter + 1);
+        address[] memory quoteTokensAfter = registry.getQuoteTokens();
+        assert(quoteTokensBefore.length == quoteTokensAfter.length + 1);
 
     }
 
@@ -89,15 +90,86 @@ contract RegistryArbitrumTest is Test {
 
         uint256 usdtCoherenceBefore = registry.quoteTokenCoherence(usdtArbitrum);
         assert(usdtCoherenceBefore == 2);
-        (uint256 quoteTokensLenBefore,) = registry.getQuoteTokens();
+        address[] memory quoteTokensBefore = registry.getQuoteTokens();
 
         registry.unsetOracle(usdtArbitrum, wbtcArbitrum, oraleWbtcUsdArbitrum);
 
         uint256 usdtCoherenceAfter = registry.quoteTokenCoherence(usdtArbitrum);
         assert(usdtCoherenceAfter == 1);
-        (uint256 quoteTokensLenAfter,) = registry.getQuoteTokens();
-        assert(quoteTokensLenBefore == quoteTokensLenAfter);
+        address[] memory quoteTokensAfter = registry.getQuoteTokens();
+        assert(quoteTokensBefore.length == quoteTokensAfter.length);
+    }
 
+    function test_addStrategyInfo() public {
+        uint16 strategyId = 2;
+        address factory = address(0x123);
+        string memory description = "Test Strategy";
+        registry.addStrategyInfo(strategyId, factory, description);
+        
+        vm.expectRevert(IRegistry.StrategyIdExist.selector);
+        registry.addStrategyInfo(strategyId, factory, description);
+    }
+
+    function test_addAndAltStrategyInfo() public {
+        uint16 strategyId = 2;
+        address factory = address(0x123);
+        string memory description = "Test Strategy";
+        registry.addStrategyInfo(strategyId, factory, description);
+        
+        factory = address(0x456);
+        description = "Test2 Strategy2";
+        registry.altStrategyInfo(strategyId, factory, description);
+        uint256[] memory a = new uint256[](1);
+        a[0] = 1;
+        IRegistry.StrategyInfo[] memory strat = registry.getStrategyInfosBy(a);
+        assert(strat[0].factory == factory);
+    }
+
+    function test_addAndRemoveStrategyInfo() public {
+        uint16 strategyId = 2;
+        address factory = address(0x123);
+        string memory description = "Test Strategy";
+        registry.addStrategyInfo(strategyId, factory, description);
+        
+        assert(registry.strategyIdIndex(strategyId) == 1);    
+        registry.removeStrategyInfo(strategyId);
+        assert(registry.strategyIdIndex(strategyId) == 0);
+    }
+
+    function test_addGRAIInfo() public {
+        uint32 endpointId = 1;
+        address grai = address(0x123);
+        string memory description = "Test GRAI";
+        registry.addGRAIInfo(endpointId, grai, description);
+        
+        vm.expectRevert(IRegistry.EndpointIdExist.selector);
+        registry.addGRAIInfo(endpointId, grai, description);
+    }
+
+    function test_addAndAltGRAIInfo() public {
+        uint32 endpointId = 1;
+        address grai = address(0x123);
+        string memory description = "Test GRAI";
+        registry.addGRAIInfo(endpointId, grai, description);
+        
+        grai = address(0x456);
+        description = "Test2 GRAI2";
+        registry.altGRAIInfo(endpointId, grai, description);
+        uint256[] memory a = new uint256[](1);
+        a[0] = 1;
+        IRegistry.GRAIInfo[] memory strat = registry.getGRAIInfosBy(a);
+        assert(strat[0].grai == grai);
+    }
+
+    function test_addAndRemoveGRAIInfo() public {
+        uint32 endpointId = 1;
+        address grai = address(0x123);
+        string memory description = "Test GRAI";
+        registry.addGRAIInfo(endpointId, grai, description);
+        
+        assert(registry.graiIdIndex(endpointId) == 1);    
+        registry.removeGRAIInfo(endpointId);
+        assert(registry.graiIdIndex(endpointId) == 0);
     }
 
 }
