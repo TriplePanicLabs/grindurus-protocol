@@ -109,7 +109,7 @@ contract GRETH is IGRETH, ERC20 {
         emit Mint(actors, amounts, totalShares);
     }
 
-    /// @notice burns grETH and get token
+    /// @notice burns grETH and get weth
     /// @param amount amount of grETH
     function burn(uint256 amount) public override returns (uint256 tokenAmount) {
         tokenAmount = burn(amount, address(weth));
