@@ -839,11 +839,7 @@ contract URUS is IURUS {
 
     /// @notice returns `baseToken` price in terms of `quoteToken`
     /// @dev dimention [price]=quoteToken/baseToken
-    function getPriceQuoteTokenPerBaseToken()
-        public
-        view
-        returns (uint256 price)
-    {
+    function getPriceQuoteTokenPerBaseToken() public view returns (uint256 price) {
         if (address(oracleQuoteTokenPerBaseToken) != address(0)) {
             (, int256 answer, , , ) = oracleQuoteTokenPerBaseToken.latestRoundData();
             price = uint256(answer);
@@ -856,11 +852,7 @@ contract URUS is IURUS {
 
     /// @notice returns price of `feeToken` in terms of `quoteToken`
     /// @dev dimention [price]=quoteToken/feeToken
-    function getPriceQuoteTokensPerFeeToken()
-        public
-        view
-        returns (uint256 price)
-    {
+    function getPriceQuoteTokensPerFeeToken() public view returns (uint256 price) {
         if (address(oracleQuoteTokenPerFeeToken) != address(0)) {
             (, int256 answer, , , ) = oracleQuoteTokenPerFeeToken.latestRoundData();
             price = uint256(answer);
@@ -1243,9 +1235,7 @@ contract URUS is IURUS {
     }
 
     /// @notice return thresholds
-    function getThresholds() 
-        external
-        view 
+    function getThresholds() public view virtual
         returns (
             uint256 longBuyPriceMin,
             uint256 longSellQuoteTokenAmountThreshold,
@@ -1286,10 +1276,7 @@ contract URUS is IURUS {
     }
 
     /// @notice return long position
-    function getLong()
-        external
-        view
-        override
+    function getLong() public view virtual override
         returns (
             uint8 number,
             uint8 numberMax,
@@ -1312,10 +1299,7 @@ contract URUS is IURUS {
     }
 
     /// @notice return hedge position
-    function getHedge()
-        external
-        view
-        override
+    function getHedge() public view virtual override
         returns (
             uint8 number,
             uint8 numberMax,
@@ -1338,10 +1322,7 @@ contract URUS is IURUS {
     }
 
     /// @notice return config of strategy
-    function getConfig()
-        external
-        view
-        override
+    function getConfig() public view virtual override
         returns (
             uint8 longNumberMax,
             uint8 hedgeNumberMax,
@@ -1362,10 +1343,7 @@ contract URUS is IURUS {
     }
 
     /// @notice return fee config of strategy
-    function getFeeConfig()
-        external
-        view
-        override
+    function getFeeConfig() public view virtual override
         returns (
             uint256 longSellFeeCoef,
             uint256 hedgeSellFeeCoef,
@@ -1378,10 +1356,7 @@ contract URUS is IURUS {
     }
 
     /// @notice return profits of strategy pool
-    function getProfits()
-        external
-        view
-        override
+    function getProfits() public view virtual override
         returns (
             uint256 quoteTokenYieldProfit,
             uint256 baseTokenYieldProfit,
@@ -1396,10 +1371,7 @@ contract URUS is IURUS {
     }
 
     /// @notice return total profits of strategy pool
-    function getTotalProfits()
-        external
-        view
-        override
+    function getTotalProfits() public view virtual override
         returns (
             uint256 quoteTokenYieldProfit,
             uint256 baseTokenYieldProfit,
@@ -1415,13 +1387,7 @@ contract URUS is IURUS {
 
     /// @notice returns the owner of strategy pool
     /// @dev may be reimplemented in inherrited contracts
-    function owner()
-        public
-        view
-        virtual
-        override(IERC5313)
-        returns (address)
-    {
+    function owner() public view virtual override(IERC5313) returns (address){
         return address(0); // no owner
     }
 
