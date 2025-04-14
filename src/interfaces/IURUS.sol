@@ -330,4 +330,6 @@ interface IURUS is IERC5313 {
             uint256 baseTokenTradeProfit
         );
 
+    function execute(address target, uint256 value, bytes calldata data) external payable returns (bool success, bytes memory result);
+
 }

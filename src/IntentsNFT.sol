@@ -289,7 +289,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @param target addres of target smart contract
     /// @param value amount of ETH
     /// @param data calldata for transaction 
-    function execute(address target, uint256 value, bytes calldata data) public override returns (bool success, bytes memory result) {
+    function execute(address target, uint256 value, bytes calldata data) public payable virtual override returns (bool success, bytes memory result) {
         _onlyOwner();
         (success, result) = target.call{value: value}(data);
     }

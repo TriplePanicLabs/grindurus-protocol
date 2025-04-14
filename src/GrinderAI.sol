@@ -330,18 +330,18 @@ contract GrinderAI is IGrinderAI {
         IStrategy(poolsNFT.pools(poolId)).setOpFeeCoef(op, feeCoef);
     }
 
+    /// @notice return version of GrinderAI
+    function version() external pure returns (uint256) {
+        return 0;
+    }
+
     /// @notice execute any transaction
     /// @param target address of target
     /// @param value amount of ETH
     /// @param data calldata to target
-    function execute(address target, uint256 value, bytes calldata data) public override returns (bool success, bytes memory result) {
+    function execute(address target, uint256 value, bytes calldata data) external payable virtual override returns (bool success, bytes memory result) {
         _onlyOwner();
         (success, result) = target.call{value: value}(data);
-    }
-
-    /// @notice return version of GrinderAI
-    function version() external pure returns (uint256) {
-        return 0;
     }
 
     receive() external payable {

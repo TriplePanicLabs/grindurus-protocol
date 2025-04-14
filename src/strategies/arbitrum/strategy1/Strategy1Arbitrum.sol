@@ -30,19 +30,19 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     constructor () {}
 
     /// @dev checks that msg.sender is owner
-    function _onlyOwner() internal view override(URUS) {
+    function _onlyOwner() internal view virtual {
         if (msg.sender != owner()) {
             revert NotOwner();
         }
     }
 
     /// @dev checks that msg.sender is gateway
-    function _onlyGateway() internal view override(URUS) {
+    function _onlyGateway() internal view virtual {
         require(msg.sender == address(poolsNFT));
     }
 
     /// @dev checks that msg.sender is agent
-    function _onlyAgent() internal view override(URUS, AAVEV3AdapterArbitrum, UniswapV3AdapterArbitrum) {
+    function _onlyAgent() internal view virtual override(AAVEV3AdapterArbitrum, UniswapV3AdapterArbitrum) {
         try poolsNFT.isAgentOf(owner(), msg.sender) returns (bool isAgent) {
             if (!isAgent) {
                 revert NotAgent();
@@ -98,11 +98,83 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
         reinvest = true;
     }
 
+    function setConfig(Config memory conf) public override(URUS, IURUS) {
+        _onlyAgent();
+        URUS.setConfig(conf);
+    }
+
+    function setLongNumberMax(uint8 longNumberMax) public override(URUS, IURUS) {
+        _onlyAgent(); 
+        URUS.setLongNumberMax(longNumberMax);
+    }
+
+    function setHedgeNumberMax(uint8 hedgeNumberMax) public override(URUS, IURUS) {
+        _onlyAgent();
+        URUS.setHedgeNumberMax(hedgeNumberMax);
+    }
+
+    function setExtraCoef(uint256 extraCoef) public override(URUS, IURUS) {
+        _onlyAgent();
+        URUS.setExtraCoef(extraCoef);
+    }
+
+    function setPriceVolatilityPercent(uint256 priceVolatilityPercent) public override(URUS, IURUS) {
+        _onlyAgent();
+        URUS.setPriceVolatilityPercent(priceVolatilityPercent);
+    }
+
+    function setOpReturnPercent(uint8 op, uint256 returnPercent) public override(URUS, IURUS) {
+        _onlyAgent();
+        URUS.setOpReturnPercent(op, returnPercent);
+    }
+
+    function setOpFeeCoef(uint8 op, uint256 _feeCoef) public override(URUS, IURUS) {
+        _onlyAgent();
+        URUS.setOpFeeCoef(op, _feeCoef);
+    }
+
+    function deposit(uint256 quoteTokenAmount) public override(URUS, IURUS) returns (uint256 depositedQuoteTokenAmount) {
+        _onlyGateway(); 
+        return deposit(quoteTokenAmount);
+    }
+
+    function deposit2(
+        uint256 baseTokenAmount,
+        uint256 baseTokenPrice
+    ) public override(URUS, IURUS) returns (uint256 depositedBaseTokenAmount) {
+        _onlyGateway();
+        return deposit2(baseTokenAmount, baseTokenPrice);
+    }
+
+    function deposit3(uint256 quoteTokenAmount) public override(URUS, IURUS) {
+        _onlyGateway();
+        URUS.deposit3(quoteTokenAmount);
+    }
+
+    function withdraw(
+        address to,
+        uint256 quoteTokenAmount
+    ) public override(URUS, IURUS) returns (uint256 withdrawn) {
+        _onlyGateway();
+        return URUS.withdraw(to, quoteTokenAmount);
+    }
+
     /// @notice exit funds from strategy
-    function exit() public override(URUS, IURUS) returns (uint256 /** quoteTokenAmount */, uint256 /** baseTokenAmount */) {
+    function exit() public override(URUS, IURUS) returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
+        _onlyGateway();
         reinvest = false;
-        URUS.exit();
+        (quoteTokenAmount, baseTokenAmount) = URUS.exit();
         reinvest = true;
+    }
+
+    function beforeRebalance() public override(URUS, IURUS) returns (uint256 baseTokenAmount, uint256 price) {
+        _onlyGateway();
+        return URUS.beforeRebalance();
+    }
+
+    function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public override(URUS, IURUS) {
+        _onlyGateway();
+        return URUS.afterRebalance(baseTokenAmount, newPrice);
     }
 
     /// @notice puts token to yield protocol
@@ -185,14 +257,14 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
         _onlyOwner();
         reinvest = !reinvest;
     }
-    
+
     /// @notice execute any transaction
     /// @param target address of target contract
     /// @param value amount of ETH
     /// @param data data to execute on target contract
     /// @return success true if transaction was successful
     /// @return result data returned from target contract
-    function execute(address target, uint256 value, bytes calldata data) public override returns (bool success, bytes memory result) {
+    function execute(address target, uint256 value, bytes calldata data) public payable override(URUS, IURUS) returns (bool success, bytes memory result) {
         _onlyOwner();
         (success, result) = target.call{value: value}(data);
     }

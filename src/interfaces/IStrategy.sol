@@ -30,6 +30,4 @@ interface IStrategy is IURUS {
 
     function getBaseTokenAmount() external view returns (uint256);
 
-    function execute(address target, uint256 value, bytes calldata data) external returns (bool success, bytes memory result);
-
 }

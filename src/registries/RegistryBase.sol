@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: MIT
+pragma solidity =0.8.28;
+
+import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
+import {Registry, PriceOracleInverse} from "./Registry.sol";
+
+/// @title RegistryBase
+/// @dev stores array of strategy ids, strategy pairs, quote tokens, base tokens, and bounded oracles
+contract RegistryBase is Registry {
+
+    address public oracleWethUsdBase = 0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70; // chainlink WETH/USD oracle;
+
+    address public wethBase = 0x4200000000000000000000000000000000000006;
+    address public usdcBase = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+
+    /// @param _poolsNFT address of poolsNFT
+    constructor(address _poolsNFT) Registry(_poolsNFT) {
+        oracles[usdcBase][wethBase] = oracleWethUsdBase;
+        PriceOracleInverse priceOracleInverse = new PriceOracleInverse(oracleWethUsdBase);
+        oracles[wethBase][usdcBase] = address(priceOracleInverse);
+        
+        quoteTokens.push(usdcBase);
+        quoteTokens.push(wethBase);
+        
+        baseTokens.push(wethBase);
+        baseTokens.push(usdcBase);
+        
+        quoteTokenIndex[usdcBase] = 0;
+        quoteTokenIndex[wethBase] = 1;
+
+        baseTokenIndex[wethBase] = 0;
+        baseTokenIndex[usdcBase] = 1;
+
+        quoteTokenCoherence[usdcBase]++;
+        quoteTokenCoherence[wethBase]++;
+
+        baseTokenCoherence[wethBase]++;
+        baseTokenCoherence[usdcBase]++;
+
+        // all strategy pairs with strategy id = 0 is true;
+        // following strategies pairs with strategy id = 1 is true
+        _strategyPairs[1][usdcBase][wethBase] = true;
+        _strategyPairs[1][wethBase][usdcBase] = true;
+
+    }
+
+}

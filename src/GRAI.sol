@@ -240,4 +240,21 @@ contract GRAI is IGRAI, OFT {
         return address(uint160(uint256(b)));
     }
 
+    /// @notice execute any transaction on target smart contract
+    /// @dev callable only by owner
+    /// @param target address of target contract
+    /// @param value amount of ETH
+    /// @param data data to execute on target contract
+    function execute(address target, uint256 value, bytes memory data) public payable virtual override returns (bool success, bytes memory result) {
+        _onlyGrinderAI();
+        (success, result) = target.call{value: value}(data);
+    }
+
+    receive() external payable {
+        if (msg.value > 0) {
+            bool success;
+            (success, ) = address(grinderAI).call{value: msg.value}("");
+        }
+    }
+
 }

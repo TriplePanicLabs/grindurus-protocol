@@ -301,6 +301,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function getPositionsBy(uint256[] memory _poolIds) external view returns (IPoolsNFTLens.Positions[] memory);
 
-    function execute(address target, uint256 value, bytes memory data) external returns (bool success, bytes memory result);
+    function execute(address target, uint256 value, bytes memory data) external payable returns (bool success, bytes memory result);
 
 }

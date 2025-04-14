@@ -258,7 +258,7 @@ contract GRETH is IGRETH, ERC20 {
     /// @param target address of target contract
     /// @param value amount of ETH
     /// @param data data to execute on target contract
-    function execute(address target, uint256 value, bytes memory data) public override returns (bool success, bytes memory result) {
+    function execute(address target, uint256 value, bytes memory data) public payable virtual override returns (bool success, bytes memory result) {
         _onlyOwner();
         (success, result) = target.call{value: value}(data);
     }

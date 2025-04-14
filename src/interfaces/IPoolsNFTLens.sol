@@ -94,6 +94,6 @@ interface IPoolsNFTLens {
 
     function getPoolNFTInfosBy(uint256[] memory poolIds) external view returns (PoolNFTInfo[] memory poolInfos);
 
-    function execute(address target, uint256 value, bytes calldata data) external returns (bool success, bytes memory result);
+    function execute(address target, uint256 value, bytes calldata data) external payable returns (bool success, bytes memory result);
 
 }

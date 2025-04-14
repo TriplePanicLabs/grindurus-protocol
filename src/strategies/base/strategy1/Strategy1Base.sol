@@ -2,20 +2,19 @@
 pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
-import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
-import {IURUS, URUS, IERC5313} from "src/URUS.sol";
 import {IStrategy} from "src/interfaces/IStrategy.sol";
+import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
+import {AAVEV3AdapterBase} from "src/adapters/lendings/AAVEV3AdapterBase.sol";
+import {UniswapV3AdapterBase} from "src/adapters/dexes/UniswapV3AdapterBase.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IDexAdapter} from "src/interfaces/IDexAdapter.sol";
-import {NoLendingAdapter} from "src/adapters/lendings/NoLendingAdapter.sol";
-import {UniswapV3AdapterArbitrum} from "src/adapters/dexes/UniswapV3AdapterArbitrum.sol";
+import {IURUS, URUS, IERC5313} from "src/URUS.sol";
 
-/// @title Strategy0
-/// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
-/// @notice strategy pool, that implements pure URUS algorithm
-/// @dev Pure URUS algorithm on UniswapV3. Stores tokens on Strategy0 and hadles tokens swaps
-contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3AdapterArbitrum {
+/// @title Strategy1
+/// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
+/// @notice strategy pool, that put and take baseToken and quouteToken on AAVEV3 and swaps tokens on UniswapV3
+/// @dev stores the tokens LP and handles tokens swaps
+contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBase { 
     using SafeERC20 for IToken;
 
     /// @dev address of NFT collection of pools
@@ -43,7 +42,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     }
 
     /// @dev checks that msg.sender is agent
-    function _onlyAgent() internal view override(NoLendingAdapter, UniswapV3AdapterArbitrum) {
+    function _onlyAgent() internal view override(AAVEV3AdapterBase, UniswapV3AdapterBase) {
         try poolsNFT.isAgentOf(owner(), msg.sender) returns (bool isAgent) {
             if (!isAgent) {
                 revert NotAgent();
@@ -55,7 +54,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         }
     }
 
-    /// @dev constuctor of PoolStrategy0
+    /// @dev constuctor of PoolStrategy1
     /// @param _poolsNFT address of poolsNFT
     /// @param _poolId id of poolNFT
     /// @param _oracleQuoteTokenPerFeeToken address of oracle of quoteToken per fee token
@@ -64,6 +63,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     /// @param _baseToken address of base token
     /// @param _quoteToken address of quote token
     /// @param _config config for URUS algorithm
+    /// @param _lendingArgs encoded data for lending adapter
     /// @param _dexArgs encoded data for dex adapter
     function init(
         address _poolsNFT,
@@ -74,7 +74,8 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         address _baseToken,
         address _quoteToken,
         Config memory _config,
-        bytes memory _dexArgs
+        bytes calldata _lendingArgs,
+        bytes calldata _dexArgs
     ) public {
         require(address(poolsNFT) == address(0));
         initURUS(
@@ -85,11 +86,15 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
             _quoteToken,
             _config
         );
-        initDex(_dexArgs);
+        initLending(
+            _lendingArgs
+        );
+        initDex(
+            _dexArgs
+        );
 
         poolsNFT = IPoolsNFT(_poolsNFT);
         poolId = _poolId;
-        startTimestamp = block.timestamp;
         reinvest = true;
     }
 
@@ -172,29 +177,43 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         return URUS.afterRebalance(baseTokenAmount, newPrice);
     }
 
-    function _put(IToken token, uint256 amount) internal override(NoLendingAdapter, URUS) returns (uint256){
-        return NoLendingAdapter._put(token, amount);
+    /// @notice puts token to yield protocol
+    /// @param token address of token
+    /// @param amount amount of token to put
+    function _put(IToken token, uint256 amount) internal override(AAVEV3AdapterBase, URUS) returns (uint256 putAmount){
+        putAmount = AAVEV3AdapterBase._put(token, amount);
     }
 
-    function _take(IToken token, uint256 amount) internal override(NoLendingAdapter, URUS) returns (uint256) {
-        return NoLendingAdapter._take(token, amount);
+    /// @notice takes token from yield protocol
+    /// @param token address of token
+    /// @param amount amount of token to take
+    function _take(IToken token, uint256 amount) internal override(AAVEV3AdapterBase, URUS) returns (uint256 takeAmount) {
+        takeAmount = AAVEV3AdapterBase._take(token, amount);
     }
 
-    function _swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) internal override(UniswapV3AdapterArbitrum, URUS) returns (uint256) {
-        return UniswapV3AdapterArbitrum._swap(tokenIn, tokenOut, amountIn);
+    /// @notice swaps from `tokenIn` to `tokenOut` on DEX
+    /// @param tokenIn address of `tokenIn`
+    /// @param tokenOut address of `tokenOut`
+    /// @param amountIn amount of `tokenIn`
+    function _swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) internal override(UniswapV3AdapterBase, URUS) returns (uint256 amountOut) {
+        amountOut = UniswapV3AdapterBase._swap(tokenIn, tokenOut, amountIn);
     }
 
-    function getPendingYield(IToken token) public view override (URUS, NoLendingAdapter) returns (uint256) {
-        return NoLendingAdapter.getPendingYield(token);
+    /// @notice returns pending yield of token
+    /// @param token address of token
+    function getPendingYield(IToken token) public view override(AAVEV3AdapterBase, URUS) returns (uint256 yield) {
+        yield = AAVEV3AdapterBase.getPendingYield(token);
     }
 
+    /// @notice distribute yield profit
     function _distributeYieldProfit(
         IToken token,
         uint256 profit
-    ) internal override (URUS, NoLendingAdapter) {
+    ) internal override (URUS, AAVEV3AdapterBase) {
         URUS._distributeYieldProfit(token, profit);
     } 
 
+    /// @notice distribute trade profit
     function _distributeTradeProfit(
         IToken token,
         uint256 profit
@@ -238,7 +257,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         _onlyOwner();
         reinvest = !reinvest;
     }
-
+    
     /// @notice execute any transaction
     /// @param target address of target contract
     /// @param value amount of ETH
@@ -262,26 +281,31 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         )
     {
         uint256 baseTokenPrice = getPriceQuoteTokenPerBaseToken();
-        uint256 investment = quoteToken.balanceOf(address(this)) +
-            calcQuoteTokenByBaseToken(
-                baseToken.balanceOf(address(this)),
-                baseTokenPrice
-            );
-        uint256 profitsSum = 0 + // trade profits + yield profits + pending yield profits
-            profits.quoteTokenTradeProfit +
-            calcQuoteTokenByBaseToken(
-                profits.baseTokenTradeProfit,
-                baseTokenPrice
-            ) +
-            profits.quoteTokenYieldProfit +
-            calcQuoteTokenByBaseToken(
-                profits.baseTokenYieldProfit,
-                baseTokenPrice
-            ) +
-            getPendingYield(quoteToken) +
-            getPendingYield(baseToken);
-        ROINumerator = profitsSum;
-        ROIDenominator = investment;
+        if (baseTokenPrice > 0) {
+            uint256 investment = investedAmount[quoteToken] +
+                calcQuoteTokenByBaseToken(
+                    investedAmount[baseToken],
+                    baseTokenPrice
+                );
+            uint256 profitsSum = 0 + // trade profits + yield profits + pending yield profits
+                profits.quoteTokenTradeProfit +
+                calcQuoteTokenByBaseToken(
+                    profits.baseTokenTradeProfit,
+                    baseTokenPrice
+                ) + // yield profits
+                profits.quoteTokenYieldProfit +
+                calcQuoteTokenByBaseToken(
+                    profits.baseTokenYieldProfit,
+                    baseTokenPrice
+                ) + // pending yield profits
+                getPendingYield(quoteToken) +
+                calcQuoteTokenByBaseToken(
+                    getPendingYield(baseToken), 
+                    baseTokenPrice
+                );
+            ROINumerator = profitsSum;
+            ROIDenominator = investment;
+        } 
         ROIPeriod = block.timestamp - startTimestamp;
     }
 
@@ -289,17 +313,17 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     /// @dev [activeCapital] = quoteToken
     function getActiveCapital() external view returns (uint256) {
         return 
-            quoteToken.balanceOf(address(this)) + 
+            investedAmount[quoteToken] + 
             calcQuoteTokenByBaseToken(long.qty, long.price) +
             calcQuoteTokenByBaseToken(hedge.qty, hedge.price);
     }
 
     /// @notice returns strategy id
     function strategyId() external pure override returns (uint16) {
-        return 0;
+        return 1;
     }
 
-    /// @notice returns the owner of strategy
+    /// @notice returns the owner of strategy pool
     function owner() public view override(URUS, IERC5313) returns (address) {
         try poolsNFT.ownerOf(poolId) returns (address _owner) {
             return _owner;
@@ -309,23 +333,23 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     }
 
     /// @notice returns quote token
-    function getQuoteToken() public view override(UniswapV3AdapterArbitrum, IStrategy) returns (IToken) {
+    function getQuoteToken() public view override(UniswapV3AdapterBase, IStrategy) returns (IToken) {
         return quoteToken;
     }
 
     /// @notice returns base token
-    function getBaseToken() public view override(UniswapV3AdapterArbitrum, IStrategy) returns (IToken) {
+    function getBaseToken() public view override(UniswapV3AdapterBase, IStrategy) returns (IToken) {
         return baseToken;
     }
 
     /// @notice returns quoteToken amount
     function getQuoteTokenAmount() public view override returns (uint256) {
-        return quoteToken.balanceOf(address(this));
+        return investedAmount[quoteToken];
     }
 
     /// @notice returns base token amount
     function getBaseTokenAmount() public view override returns (uint256) {
-        return baseToken.balanceOf(address(this));
+        return investedAmount[baseToken];
     }
 
 }

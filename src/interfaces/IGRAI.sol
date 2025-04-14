@@ -75,4 +75,6 @@ interface IGRAI is IOFT {
 
     function bytes32ToAddress(bytes32 b) external pure returns (address);
 
+    function execute(address target, uint256 value, bytes memory data) external payable returns (bool success, bytes memory result);
+
 }

@@ -85,6 +85,7 @@ contract URUS is IURUS {
         baseToken = IToken(_baseToken);
         quoteToken = IToken(_quoteToken);
 
+        // default fee config
         feeConfig = FeeConfig({
             longSellFeeCoef: 1_00, // x1.00
             hedgeSellFeeCoef: 1_00, // x1.00
@@ -148,20 +149,6 @@ contract URUS is IURUS {
         helper.initLiquidity = (maxLiquidity * helper.coefMultiplier) / helper.investCoef;
     }
 
-    /// @notice checks that msg.sender is owner
-    /// @dev should be reinitialized in inherited contracts, or anybody can call functionality
-    function _onlyOwner() internal view virtual {
-        if (owner() == address(0)) { // no owner
-            return;
-        }
-    }
-
-    /// @dev should be reinitialized in nested contracts!
-    function _onlyGateway() internal view virtual {}
-
-    /// @dev should be reinitialized in nested contracts!
-    function _onlyAgent() internal view virtual {}
-
     /// @dev checks config
     function _checkConfig(Config memory conf) private pure {
         require(conf.longNumberMax > 0);
@@ -174,8 +161,7 @@ contract URUS is IURUS {
 
     /// @notice sets config of strategy pool
     /// @param conf config structure
-    function setConfig(Config memory conf) public override {
-        _onlyAgent();
+    function setConfig(Config memory conf) public virtual override {
         _checkConfig(conf);
         if (long.number > 0) {
             require(conf.longNumberMax == config.longNumberMax);
@@ -187,8 +173,7 @@ contract URUS is IURUS {
 
     /// @notice sets long number max
     /// @param longNumberMax new long number max
-    function setLongNumberMax(uint8 longNumberMax) public override {
-        _onlyAgent();
+    function setLongNumberMax(uint8 longNumberMax) public virtual override {
         require(longNumberMax >= MIN_LONG_NUMBER_MAX);
         config.longNumberMax = longNumberMax;
         _setHelperInvestCoefAndInitLiquidity();
@@ -196,16 +181,14 @@ contract URUS is IURUS {
 
     /// @notice sets hedge number max
     /// @param hedgeNumberMax new hedge number max
-    function setHedgeNumberMax(uint8 hedgeNumberMax) public override {
-        _onlyAgent();
+    function setHedgeNumberMax(uint8 hedgeNumberMax) public virtual override {
         require(hedgeNumberMax >= MIN_HEDGE_NUMBER_MAX);
         config.hedgeNumberMax = hedgeNumberMax;
     }
 
     /// @notice sets extra coef
     /// @param extraCoef new extra coef
-    function setExtraCoef(uint256 extraCoef) public override {
-        _onlyAgent();
+    function setExtraCoef(uint256 extraCoef) public virtual override {
         require(extraCoef > 0);
         require(long.number == 0);
         config.extraCoef = extraCoef;
@@ -215,8 +198,7 @@ contract URUS is IURUS {
     /// @notice sets price volatility
     /// @dev example: priceVolatilityPercent = 1%, that means that priceVolatilityPercent = 1_00
     /// @param priceVolatilityPercent price volatility. [priceVolatilityPercent]=%
-    function setPriceVolatilityPercent(uint256 priceVolatilityPercent) public override {
-        _onlyAgent();
+    function setPriceVolatilityPercent(uint256 priceVolatilityPercent) public virtual override {
         require(priceVolatilityPercent < helper.percentMultiplier);
         config.priceVolatilityPercent = priceVolatilityPercent;
     }
@@ -225,8 +207,7 @@ contract URUS is IURUS {
     /// @dev if realRoi == 100.5%=1.005, than returnPercent == realRoi * helper.percentMultiplier
     /// @param op operation in Op enumeration
     /// @param returnPercent return scaled by helper.percentMultiplier
-    function setOpReturnPercent(uint8 op, uint256 returnPercent) public override {
-        _onlyAgent();
+    function setOpReturnPercent(uint8 op, uint256 returnPercent) public virtual override {
         require(returnPercent >= helper.percentMultiplier);
         if (op == uint8(Op.LONG_SELL)) {
             config.returnPercentLongSell = returnPercent;
@@ -243,8 +224,7 @@ contract URUS is IURUS {
     /// @dev if realFeeCoef = 1.61, than feeConfig = realFeeCoef * helper.feeCoeficientMultiplier
     /// @param op operation in Op enumeration
     /// @param _feeCoef fee coeficient scaled by helper.feeCoeficientMultiplier
-    function setOpFeeCoef(uint8 op, uint256 _feeCoef) public override {
-        _onlyAgent();
+    function setOpFeeCoef(uint8 op, uint256 _feeCoef) public virtual override {
         if (op == uint8(Op.LONG_SELL)) {
             feeConfig.longSellFeeCoef = _feeCoef;
         } else if (op == uint8(Op.HEDGE_SELL)) {
@@ -265,7 +245,6 @@ contract URUS is IURUS {
     function deposit(
         uint256 quoteTokenAmount
     ) public virtual override returns (uint256 depositedQuoteTokenAmount) {
-        _onlyGateway(); 
         require(long.number == 0);
         startTimestamp = block.timestamp;
         quoteToken.safeTransferFrom(
@@ -280,12 +259,11 @@ contract URUS is IURUS {
     /// @notice deposit the base token to strategy
     /// @dev callable only by poolsNFT. This made for accounting the amount of input tokens
     /// @param baseTokenAmount raw amount of `baseToken`
-    /// @return depositBaseTokenAmount baseToken amount
+    /// @return depositedBaseTokenAmount baseToken amount
     function deposit2(
         uint256 baseTokenAmount,
         uint256 baseTokenPrice
-    ) public virtual override returns (uint256 depositBaseTokenAmount) {
-        _onlyGateway();
+    ) public virtual override returns (uint256 depositedBaseTokenAmount) {
         require(long.number == 0 || (long.number > 0 && long.number == long.numberMax));
         if (hedge.number > 0) {
             revert Hedged();
@@ -296,7 +274,7 @@ contract URUS is IURUS {
             baseTokenAmount
         );
         
-        depositBaseTokenAmount = _put(baseToken, baseTokenAmount);
+        depositedBaseTokenAmount = _put(baseToken, baseTokenAmount);
         long.price = ((long.qty * long.price) + (baseTokenAmount * baseTokenPrice)) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
         if (long.number == 0) {
@@ -312,13 +290,12 @@ contract URUS is IURUS {
         long.priceMin = calcLongPriceMin();
     }
 
-    /// @notice deposit the quote token to strategy when unrealized loss in sufficient
+    /// @notice deposit the quote token to strategy when unrealized loss in sufficient (buy the dip)
     /// @dev executed by gateway.
     /// @param quoteTokenAmount amount of quote token
     function deposit3(
         uint256 quoteTokenAmount
     ) public virtual override {
-        _onlyGateway();
         require(long.number == long.numberMax);
         if (hedge.number > 0) {
             revert Hedged();
@@ -356,7 +333,6 @@ contract URUS is IURUS {
         address to,
         uint256 quoteTokenAmount
     ) public virtual override returns (uint256 withdrawn) {
-        _onlyGateway();
         require(long.number == 0);
         withdrawn = _take(quoteToken, quoteTokenAmount);
         _divest(withdrawn);
@@ -368,7 +344,7 @@ contract URUS is IURUS {
     /// @param investAmount amount of `quoteToken` to invest. Accumulates from fee
     function _invest(
         uint256 investAmount
-    ) internal returns (uint256 newMaxLiquidity) {
+    ) internal virtual returns (uint256 newMaxLiquidity) {
         /**
          * Example: longNumberMax == 4
          *         1) no liquidity deposited: invest:=50
@@ -390,7 +366,7 @@ contract URUS is IURUS {
     /// @param divestAmount amount of `quoteToken` to divest
     function _divest(
         uint256 divestAmount
-    ) internal returns (uint256 newMaxLiquidity) {
+    ) internal virtual returns (uint256 newMaxLiquidity) {
         uint256 maxLiqudity = calcMaxLiquidity();
         if (divestAmount <= maxLiqudity) {
             newMaxLiquidity = maxLiqudity - divestAmount;
@@ -401,9 +377,7 @@ contract URUS is IURUS {
     /// @notice grab all assets from strategy and send it to owner
     /// @return quoteTokenAmount amount of quoteToken in exit
     /// @return baseTokenAmount amount of baseToken in exit
-    function exit() public virtual override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
-    {
-        _onlyGateway();
+    function exit() public virtual override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         quoteTokenAmount = _take(quoteToken, type(uint256).max);
         baseTokenAmount = _take(baseToken, type(uint256).max);
         uint256 quoteTokenBalance = quoteToken.balanceOf(address(this));
@@ -498,11 +472,7 @@ contract URUS is IURUS {
     function getPendingYield(IToken token) public view virtual returns (uint256 pendingYield) {}
 
     /// @notice makes long_buy
-    function long_buy()
-        public
-        override
-        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
-    {
+    function long_buy() public virtual override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         uint256 gasStart = gasleft();
         // 0. verify that liquidity limit not exceeded
         uint8 longNumber = long.number;
@@ -557,11 +527,7 @@ contract URUS is IURUS {
     }
 
     /// @notice makes long_sell
-    function long_sell()
-        public
-        override
-        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
-    {
+    function long_sell() public override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         uint256 gasStart = gasleft();
         // 0. Verify that number != 0
         require(long.number > 0);
@@ -610,11 +576,7 @@ contract URUS is IURUS {
     }
 
     /// @notice makes hedge_sell
-    function hedge_sell()
-        public
-        override
-        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
-    {
+    function hedge_sell() public override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         uint256 gasStart = gasleft();
         // 0. Verify that hedge_sell can be executed
         require(long.number == long.numberMax);
@@ -721,11 +683,7 @@ contract URUS is IURUS {
     }
 
     /// @notice makes hedge_rebuy
-    function hedge_rebuy()
-        public
-        override
-        returns (uint256 quoteTokenAmount, uint256 baseTokenAmount)
-    {
+    function hedge_rebuy() public override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         uint256 gasStart = gasleft();
         // 0. Verify that hedge is activated
         require(hedge.number > 0);
@@ -834,11 +792,7 @@ contract URUS is IURUS {
     /// @dev called before rebalance by gateway
     /// @return baseTokenAmount base token amount that take part in rebalance
     /// @return price base token price scaled by price multuplier
-    function beforeRebalance()
-        public virtual override
-        returns (uint256 baseTokenAmount, uint256 price)
-    {
-        _onlyGateway();
+    function beforeRebalance() public virtual override returns (uint256 baseTokenAmount, uint256 price) {
         if (hedge.number > 0) {
             revert Hedged();
         }
@@ -854,7 +808,6 @@ contract URUS is IURUS {
     /// @notice third step for rebalance the positions via poolsNFT
     /// @dev called after rebalance by poolsNFT
     function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public virtual override {
-        _onlyGateway();
         if (baseTokenAmount > 0) {
             baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
             baseTokenAmount = _put(baseToken, baseTokenAmount);
@@ -1470,6 +1423,11 @@ contract URUS is IURUS {
         returns (address)
     {
         return address(0); // no owner
+    }
+
+    /// @notice execute a transaction
+    function execute(address target, uint256 value, bytes calldata data) public payable virtual override returns (bool success, bytes memory result) {
+        (success, result) = target.call{value: value}(data);
     }
 
     receive() external payable {
