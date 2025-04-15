@@ -12,11 +12,14 @@ Automated onchain yield harvesting and strategy trade protocol. Fully implemente
 Architeture:
 1. PoolsNFT - enumerates all strategy pools. The gateway to the standartized interaction with strategy pools.
 2. PoolsNFTLens - lens contract that retrieves data from PoolsNFT and Strategies
-3. URUSCore - implements all URUS algorithm logic
+3. URUS - implements all URUS algorithm logic
 4. Registry - storage of quote tokens, base tokens and oracles
-5. GRETH - ERC20 token that stands as incentivization for `grind` and implement the index of collected profit
-6. Strategy - logic that utilize URUSCore + interaction with onchain protocols
-7. FactoryStrategy - factory, that include strategy and deploys strategy as isolated smart contract
+5. GRETH - ERC20 token that stands as incentivization for `grind` and implements the index of collected profit
+6. Strategy - logic that utilize URUSCore + interaction with onchain protocols like AAVE and Uniswap
+7. StrategyFactory - factory, that and deploys ERC1967Proxy of strategy as isolated smart contract
+8. IntentsNFT - intents for grind, that reads data from PoolsNFT
+9. GRAI - ERC20 token, that tokenize grinds on intent
+10. GrinderAI - gateway for AI agent to interact with PoolsNFT and GRAI 
 
 
 # PoolsNFT
