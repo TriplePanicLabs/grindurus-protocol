@@ -38,11 +38,15 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @dev address of owner of intent => intent id
     mapping (address account => uint256) public intentIdOf;
 
-    /// @dev id of intent => grinds date
-    mapping (uint256 intentId => uint256) public grinds;
-
     /// @dev address of user => total grinds earned
     mapping (address user => uint256) public grindsOf;
+
+    /// @dev id of intent => grinds amount
+    mapping (uint256 intentId => uint256) public grinds;
+
+    /// @dev id of intent => spent grinds amount
+    /// @notice accumulated on grinderAI backend
+    mapping (uint256 intentId => uint256) public spentGrinds;
 
     /// @dev address of token => rate of token per one day
     /// @dev token is address(0), this is ETH. Else ERC20 token
@@ -70,6 +74,13 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         }
     }
 
+    /// @notice checks that msg.sender is grinderAI
+    function _onlyGrinderAI() private view {
+        if (msg.sender != address(poolsNFT.grinderAI())) {
+            revert NotGrinderAI();
+        }
+    }
+
     /// @notice sets freemium grinds
     /// @param _freemiumGrinds amount of free grinds
     function setFreemiumGrinds(uint256 _freemiumGrinds) public {
@@ -82,6 +93,26 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     function setFundsReceiver(address payable _fundsReceiver) public {
         _onlyOwner();
         fundsReceiver = _fundsReceiver;
+    }
+
+    /// @notice sets spent grinds
+    /// @param intentId id of intent
+    /// @param _spentGrinds address of spent grinds
+    function setSpentGrinds(uint256 intentId, uint256 _spentGrinds) public {
+        _onlyGrinderAI();
+        spentGrinds[intentId] = _spentGrinds;
+    }
+
+    /// @notice sets spent grinds
+    /// @param intentIds array of intent ids
+    /// @param _spentGrinds array of spent grinds
+    function batchSetSpentGrinds(uint256[] memory intentIds, uint256[] memory _spentGrinds) public {
+        _onlyGrinderAI();
+        uint256 len = intentIds.length;
+        for (uint256 i; i < len;) {
+            spentGrinds[intentIds[i]] = _spentGrinds[i];
+            unchecked { ++i; }
+        }
     }
 
     /// @param token address of token
@@ -276,6 +307,26 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @notice return true if `paymentToken` is payment token 
     function isPaymentToken(address paymentToken) public view override returns (bool) {
         return ratePerGrind[paymentToken] > 0;
+    }
+
+    /// @notice onchain function to get unspent grinds
+    function unspentGrinds(uint256 intentId) public view returns (uint256) {
+        if (spentGrinds[intentId] <= grinds[intentId]){
+            return grinds[intentId] - spentGrinds[intentId];
+        } else {
+            return 0;
+        }
+    }
+    /// @notice onchain function to get batch unspent grinds
+    /// @param intentIds array of intent ids
+    function batchUnspentGrinds(uint256[] memory intentIds) public view returns (uint256[] memory) {
+        uint256 len = intentIds.length;
+        uint256[] memory unspent = new uint256[](len);
+        for (uint256 i; i < len;) {
+            unspent[i] = unspentGrinds(intentIds[i]);
+            unchecked { ++i; }
+        }
+        return unspent;
     }
 
     /// @notice return chain id

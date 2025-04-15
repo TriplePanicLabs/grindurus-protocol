@@ -13,7 +13,7 @@ import {GrinderAI} from "src/GrinderAI.sol";
 import {IntentsNFT} from "src/IntentsNFT.sol";
 import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-// $ forge test --match-path test/PoolsNFT.t.sol
+// $ forge test --match-path test/PoolsNFT.t.sol -vvv
 contract PoolsNFTTest is Test {
     // https://docs.layerzero.network/v2/deployments/deployed-contracts
     address lzEndpointArbitrum = 0x1a44076050125825900e736c501f859c50fE728c;
@@ -44,7 +44,7 @@ contract PoolsNFTTest is Test {
 
     Strategy1Arbitrum public pool;
 
-    RegistryArbitrum public oracleRegistry;
+    RegistryArbitrum public registry;
 
     Strategy1Arbitrum public strategy1;
 
@@ -72,15 +72,16 @@ contract PoolsNFTTest is Test {
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
         grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
+        
+        poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
 
-        oracleRegistry = new RegistryArbitrum(address(poolsNFT));
+        registry = new RegistryArbitrum(address(poolsNFT));
 
         strategy1 = new Strategy1Arbitrum();
 
-        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry));
         factory1.setStrategyImplementation(address(strategy1));
 
-        poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
         poolsNFT.setStrategyFactory(address(factory1));
     }
 
@@ -238,6 +239,21 @@ contract PoolsNFTTest is Test {
         poolsNFT.transfer(receiver, poolId);
         address owner = poolsNFT.ownerOf(poolId);
         assert(owner == receiver);
+    }
+
+    function test_transferOwnership() public {
+        address payable newOwner = payable(address(0x777));
+        poolsNFT.transferOwnership(newOwner);
+        address owner = poolsNFT.owner();
+        address pendingOwner = poolsNFT.pendingOwner();
+        assert(owner == address(this));
+        assert(pendingOwner == newOwner);
+        
+        vm.startBroadcast(newOwner);
+        poolsNFT.transferOwnership(newOwner);
+        owner = poolsNFT.owner();
+        assert(owner == newOwner); 
+        vm.stopBroadcast();
     }
 
     receive() external payable {}

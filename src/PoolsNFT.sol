@@ -2,11 +2,8 @@
 pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
-import {IGRETH} from "src/interfaces/IGRETH.sol";
-import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
+import {IPoolsNFT, IPoolsNFTLens, IGRETH, IGrinderAI} from "src/interfaces/IPoolsNFT.sol";
 import {IStrategy, IURUS} from "src/interfaces/IStrategy.sol";
-import {IPoolsNFTLens} from "src/interfaces/IPoolsNFTLens.sol";
-import {IGrinderAI} from "src/interfaces/IGrinderAI.sol";
 import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
 import {IStrategyFactory} from "src/interfaces/IStrategyFactory.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -96,9 +93,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
 
     //// POOLSNFT DATA /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /// @notice total amount of pools
-    uint256 public totalPools;
-
     /// @notice address of poolsNFTLens
     IPoolsNFTLens public poolsNFTLens;
 
@@ -108,6 +102,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
 
     /// @dev address of grinderAI smart contract
     IGrinderAI public grinderAI;
+
+    /// @notice total amount of pools
+    uint256 public totalPools;
 
     /// @dev strategyId => address of grindurus pool strategy implementation
     mapping (uint16 strategyId => address) public strategyFactory;

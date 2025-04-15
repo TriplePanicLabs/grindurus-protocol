@@ -4,6 +4,7 @@ pragma solidity =0.8.28;
 interface IIntentsNFT {
 
     error NotOwner();
+    error NotGrinderAI();
     error NotPaymentToken();
     error Owned();
 

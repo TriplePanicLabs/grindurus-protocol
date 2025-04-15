@@ -49,6 +49,8 @@ interface IGrinderAI {
 
     function grind(uint256 poolId) external returns (bool);
 
+    function grindOp(uint256 poolId, uint8 op) external returns (bool);
+
     function batchGrind(uint256[] memory poolIds) external;
 
     function batchGrindOp(uint256[] memory poolIds, uint8[] memory ops) external;

@@ -6,6 +6,8 @@ import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721
 import {IERC2981} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
 import {IURUS} from "src/interfaces/IURUS.sol";
 import {IPoolsNFTLens} from "src/interfaces/IPoolsNFTLens.sol";
+import {IGRETH} from "src/interfaces/IGRETH.sol";
+import {IGrinderAI} from "src/interfaces/IGrinderAI.sol";
 
 interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
@@ -110,11 +112,15 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function owner() external view returns (address payable);
 
+    function poolsNFTLens() external view returns (IPoolsNFTLens);
+
+    function grETH() external view returns (IGRETH);
+
+    function grinderAI() external view returns (IGrinderAI);
+
     function isStrategyStopped(uint16 stratrgyId) external view returns (bool);
 
     function totalPools() external view returns (uint256);
-
-    function grETH() external view returns (IGRETH);
 
     function strategyFactory(uint16 strategyId) external view returns (address);
 

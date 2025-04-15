@@ -161,7 +161,7 @@ contract GrinderAI is IGrinderAI {
         address baseToken,
         uint256[] memory quoteTokenAmounts
     ) public returns (uint256[] memory poolIds) {
-        poolIds = mintPoolsTo(
+        poolIds = mintPoolsNFTTo(
             msg.sender,
             strategyId,
             quoteToken,
@@ -201,6 +201,25 @@ contract GrinderAI is IGrinderAI {
     function grind(uint256 poolId) public override returns (bool) {
         address grinder = owner();
         try poolsNFT.grindTo(poolId, grinder) returns (bool isGrinded) {
+            if (isGrinded) {
+                grAI.mint(grinder, 1e18);
+            }
+            return isGrinded;
+        } catch {
+            return false;
+        }
+    }
+    
+    /// @notice AI grind to
+    /// @dev can be called by anyone
+    /// @param poolId id of pool
+    /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy
+    function grindOp(uint256 poolId, uint8 op) public override returns (bool) {
+        address grinder = owner();
+        try poolsNFT.grindOpTo(poolId, op, grinder) returns (bool isGrinded) {
+            if (isGrinded) {
+                grAI.mint(grinder, 1e18);
+            }
             return isGrinded;
         } catch {
             return false;
@@ -215,7 +234,9 @@ contract GrinderAI is IGrinderAI {
         address grinder = owner();
         for (uint256 i = 0; i < len; ) {
             try poolsNFT.grindTo(poolIds[i], grinder) returns (bool isGrinded) {
-                isGrinded;
+                if (isGrinded) {
+                    grAI.mint(grinder, 1e18);
+                }
             } catch {
 
             }
@@ -235,7 +256,9 @@ contract GrinderAI is IGrinderAI {
         uint256 i;
         for (i = 0; i < len;) {
             try poolsNFT.grindOpTo(poolIds[i], ops[i], grinder) returns (bool isGrinded) {
-                isGrinded;
+                if (isGrinded) {
+                    grAI.mint(grinder, 1e18);
+                }
             } catch {
 
             }
