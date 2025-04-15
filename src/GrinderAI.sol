@@ -24,6 +24,9 @@ contract GrinderAI is IGrinderAI {
     /// @dev address of grAI
     IGRAI public grAI;
 
+    /// @dev grAI reward
+    uint256 public graiReward;
+
     /// @dev address of account => is agent
     mapping (address account => bool) public isAgent;
 
@@ -36,6 +39,7 @@ contract GrinderAI is IGrinderAI {
         poolsNFT = IPoolsNFT(_poolsNFT);
         intentsNFT = IIntentsNFT(_intentsNFT);
         grAI = IGRAI(_grAI);
+        graiReward = 1e18;
     }
 
     /// @notice return owner of grinderAI
@@ -64,30 +68,36 @@ contract GrinderAI is IGrinderAI {
     /// @notice sets 
     /// @param _agent address of agent
     /// @param _isAgent true - agent, false - not agent
-    function setAgent(address _agent, bool _isAgent) public {
+    function setAgent(address _agent, bool _isAgent) public override {
         _onlyOwner();
         isAgent[_agent] = _isAgent;
     }
 
     /// @notice sets pools NFT
     /// @param _poolsNFT address poolsNFT 
-    function setPoolsNFT(address _poolsNFT) public {
+    function setPoolsNFT(address _poolsNFT) public override {
         _onlyOwner();
         poolsNFT = IPoolsNFT(_poolsNFT);
     }
 
     /// @notice sets intents NFT
     /// @param _intentsNFT address intentsNFT 
-    function setIntentsNFT(address _intentsNFT) public {
+    function setIntentsNFT(address _intentsNFT) public override {
         _onlyOwner();
         intentsNFT = IIntentsNFT(_intentsNFT);
     }
 
     /// @notice sets GRAI token
     /// @param _grAI address of grAI
-    function setGRAI(address _grAI) public {
+    function setGRAI(address _grAI) public override {
         _onlyOwner();
         grAI = IGRAI(_grAI);
+    }
+
+    /// @notice sets GRAI reward
+    function setGRAIReward(uint256 _graiReward) public override {
+        _onlyOwner();
+        graiReward = _graiReward;
     }
 
     /// @notice sets bridge gas limit and value

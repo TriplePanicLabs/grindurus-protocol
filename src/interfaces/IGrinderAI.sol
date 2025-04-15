@@ -18,6 +18,14 @@ interface IGrinderAI {
 
     function setAgent(address _agent, bool _isAgent) external;
 
+    function setPoolsNFT(address _poolsNFT) external;
+
+    function setIntentsNFT(address _intentsNFT) external;
+
+    function setGRAI(address _grAI) external;
+
+    function setGRAIReward(uint256 _graiReward) external;
+
     function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) external;
 
     function setMultiplierNumerator(uint256 _multiplierNumerator) external;
