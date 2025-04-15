@@ -212,7 +212,7 @@ contract GrinderAI is IGrinderAI {
         address grinder = owner();
         try poolsNFT.grindTo(poolId, grinder) returns (bool isGrinded) {
             if (isGrinded) {
-                grAI.mint(grinder, 1e18);
+                grAI.mint(grinder, graiReward);
             }
             return isGrinded;
         } catch {
@@ -228,7 +228,7 @@ contract GrinderAI is IGrinderAI {
         address grinder = owner();
         try poolsNFT.grindOpTo(poolId, op, grinder) returns (bool isGrinded) {
             if (isGrinded) {
-                grAI.mint(grinder, 1e18);
+                grAI.mint(grinder, graiReward);
             }
             return isGrinded;
         } catch {
@@ -245,7 +245,7 @@ contract GrinderAI is IGrinderAI {
         for (uint256 i = 0; i < len; ) {
             try poolsNFT.grindTo(poolIds[i], grinder) returns (bool isGrinded) {
                 if (isGrinded) {
-                    grAI.mint(grinder, 1e18);
+                    grAI.mint(grinder, graiReward);
                 }
             } catch {
 
@@ -267,7 +267,7 @@ contract GrinderAI is IGrinderAI {
         for (i = 0; i < len;) {
             try poolsNFT.grindOpTo(poolIds[i], ops[i], grinder) returns (bool isGrinded) {
                 if (isGrinded) {
-                    grAI.mint(grinder, 1e18);
+                    grAI.mint(grinder, graiReward);
                 }
             } catch {
 
