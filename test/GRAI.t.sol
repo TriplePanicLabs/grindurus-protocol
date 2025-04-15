@@ -23,7 +23,7 @@ contract GRAITest is Test {
         grAI.setPeer(baseEndpointId, peer);
 
         grAI.mint(address(this), 100e18);
-        console.log("grAI balance:", grAI.balanceOf(address(this)));
+        // console.log("grAI balance:", grAI.balanceOf(address(this)));
     }
 
     function test_bridgeTo() public {
@@ -52,6 +52,16 @@ contract GRAITest is Test {
             uint256 totalNativeFee
         ) = grAI.getTotalFeesForBridgeTo(dstChainId, toAddress, amount);
         grAI.bridgeTo{value: totalNativeFee}(dstChainId, toAddress, amount);
+    }
+
+    function test_execute() public {
+        address target = address(0x333);
+        uint256 value = 1e18;
+        bytes memory data = "";
+        uint256 balanceBefore = target.balance;
+        grAI.execute{value: value}(target, value, data);
+        uint256 balanceAfter = target.balance;
+        assert(balanceAfter == balanceBefore + value);
     }
 
     receive() external payable {
