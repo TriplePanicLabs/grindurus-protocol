@@ -32,14 +32,14 @@ interface IGrinderAI {
 
     function calcMintTo(address account) external view returns (uint256 graiAmount, uint256 grindsGap);
 
-    function deposit(
+    function mintPoolsNFT(
         uint16 strategyId,
         address quoteToken,
         address baseToken,
         uint256[] memory quoteTokenAmounts
     ) external returns (uint256[] memory poolIds);
 
-    function depositTo(
+    function mintPoolsNFTTo(
         address receiver,   
         uint16 strategyId,
         address baseToken,

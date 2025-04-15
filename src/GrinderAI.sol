@@ -150,18 +150,18 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
-    /// @notice AI deposit
+    /// @notice AI mint pools
     /// @param strategyId id of strategy
     /// @param baseToken address of base token
     /// @param quoteToken address of quote token
     /// @param quoteTokenAmounts array of quote token amounts
-    function deposit(
+    function mintPoolsNFT(
         uint16 strategyId,
         address quoteToken,
         address baseToken,
         uint256[] memory quoteTokenAmounts
     ) public returns (uint256[] memory poolIds) {
-        poolIds = depositTo(
+        poolIds = mintPoolsTo(
             msg.sender,
             strategyId,
             quoteToken,
@@ -170,12 +170,12 @@ contract GrinderAI is IGrinderAI {
         );
     }
 
-    /// @notice AI deposit
+    /// @notice AI mint pools
     /// @param strategyId id of strategy
     /// @param baseToken address of base token
     /// @param quoteToken address of quote token
     /// @param quoteTokenAmounts array of quote token amounts
-    function depositTo(
+    function mintPoolsNFTTo(
         address receiver,   
         uint16 strategyId,
         address baseToken,
