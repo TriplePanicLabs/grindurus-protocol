@@ -368,6 +368,16 @@ contract GrinderAI is IGrinderAI {
         return 0;
     }
 
+    /// @notice execute any transaction on grAI
+    /// @dev callable only by owner
+    /// @param target address of target
+    /// @param value amount of ETH
+    /// @param data calldata to target
+    function executeGRAI(address target, uint256 value, bytes calldata data) external payable virtual override returns (bool success, bytes memory result) {
+        _onlyOwner();
+        grAI.execute{value: value}(target, value, data);
+    }
+
     /// @notice execute any transaction
     /// @param target address of target
     /// @param value amount of ETH
