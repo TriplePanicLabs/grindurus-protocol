@@ -133,7 +133,7 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
         URUS.setOpFeeCoef(op, _feeCoef);
     }
 
-    function deposit(uint256 quoteTokenAmount) public override(URUS, IURUS) returns (uint256 depositedQuoteTokenAmount) {
+    function deposit(uint256 quoteTokenAmount) public override(URUS, IURUS) returns (uint256) {
         _onlyGateway(); 
         return URUS.deposit(quoteTokenAmount);
     }
@@ -141,14 +141,14 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     function deposit2(
         uint256 baseTokenAmount,
         uint256 baseTokenPrice
-    ) public override(URUS, IURUS) returns (uint256 depositedBaseTokenAmount) {
+    ) public override(URUS, IURUS) returns (uint256) {
         _onlyGateway();
         return URUS.deposit2(baseTokenAmount, baseTokenPrice);
     }
 
-    function deposit3(uint256 quoteTokenAmount) public override(URUS, IURUS) {
+    function deposit3(uint256 quoteTokenAmount) public override(URUS, IURUS) returns (uint256) {
         _onlyGateway();
-        URUS.deposit3(quoteTokenAmount);
+        return URUS.deposit3(quoteTokenAmount);
     }
 
     function withdraw(

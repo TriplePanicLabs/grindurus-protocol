@@ -10,7 +10,11 @@ interface IURUS is IERC5313 {
     error NotOwner();
     error NotAgent();
     error InvalidOp();
+    error NotLongNumberMax();
+    error Longed();
+    error NotLonged();
     error Hedged();
+    error NotHedged();
     error BuyUpperPriceMin();
     error DipUpperThreshold();
     error NotProfitableLongSell();
@@ -71,7 +75,7 @@ interface IURUS is IERC5313 {
         uint256 oracleQuoteTokenPerFeeTokenMultiplier;
         uint256 coefMultiplier;
         uint256 percentMultiplier;
-        /// mutable data
+        // mutable data
         uint256 initLiquidity;
         uint256 investCoef;
     }
@@ -135,7 +139,7 @@ interface IURUS is IERC5313 {
 
     function deposit3(
         uint256 quoteTokenAmount
-    ) external;
+    ) external returns (uint256 swappedBaseTokenAmount);
 
     function withdraw(
         address to,

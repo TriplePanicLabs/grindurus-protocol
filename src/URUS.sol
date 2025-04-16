@@ -239,13 +239,13 @@ contract URUS is IURUS {
     //// ONLY GATEWAY //////////////////////////////////////////////////////////////////////////
 
     /// @notice deposit the quote token to strategy
-    /// @dev callable only by poolsNFT. This made for accounting the amount of input tokens
     /// @param quoteTokenAmount raw amount of `quoteToken`
-    /// @return depositedQuoteTokenAmount quoteToken amount
     function deposit(
         uint256 quoteTokenAmount
-    ) public virtual override returns (uint256 depositedQuoteTokenAmount) {
-        require(long.number == 0);
+    ) public virtual override returns (uint256) {
+        if (long.number > 0) {
+            revert Longed();
+        }
         startTimestamp = block.timestamp;
         quoteToken.safeTransferFrom(
             msg.sender,
@@ -253,17 +253,16 @@ contract URUS is IURUS {
             quoteTokenAmount
         );
         _invest(quoteTokenAmount);
-        depositedQuoteTokenAmount = _put(quoteToken, quoteTokenAmount);
+        quoteTokenAmount = _put(quoteToken, quoteTokenAmount);
+        return quoteTokenAmount;
     }
 
     /// @notice deposit the base token to strategy
-    /// @dev callable only by poolsNFT. This made for accounting the amount of input tokens
     /// @param baseTokenAmount raw amount of `baseToken`
-    /// @return depositedBaseTokenAmount baseToken amount
     function deposit2(
         uint256 baseTokenAmount,
         uint256 baseTokenPrice
-    ) public virtual override returns (uint256 depositedBaseTokenAmount) {
+    ) public virtual override returns (uint256) {
         require(long.number == 0 || (long.number > 0 && long.number == long.numberMax));
         if (hedge.number > 0) {
             revert Hedged();
@@ -274,7 +273,7 @@ contract URUS is IURUS {
             baseTokenAmount
         );
         
-        depositedBaseTokenAmount = _put(baseToken, baseTokenAmount);
+        baseTokenAmount = _put(baseToken, baseTokenAmount);
         long.price = ((long.qty * long.price) + (baseTokenAmount * baseTokenPrice)) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
         if (long.number == 0) {
@@ -285,23 +284,26 @@ contract URUS is IURUS {
             _invest(long.liquidity);
         } else { 
             long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
+            // invest analog
             helper.initLiquidity = (long.liquidity * helper.coefMultiplier) / helper.investCoef;
         }
         long.priceMin = calcLongPriceMin();
+        return baseTokenAmount;
     }
 
     /// @notice deposit the quote token to strategy when unrealized loss in sufficient (buy the dip)
-    /// @dev executed by gateway.
     /// @param quoteTokenAmount amount of quote token
     function deposit3(
         uint256 quoteTokenAmount
-    ) public virtual override {
-        require(long.number == long.numberMax);
+    ) public virtual override returns (uint256 baseTokenAmount) {
+        if (long.number != long.numberMax) {
+            revert NotLongNumberMax();
+        }
         if (hedge.number > 0) {
             revert Hedged();
         }
         quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
-        uint256 baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
+        baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
         uint256 swapPrice = calcSwapPrice(quoteTokenAmount, baseTokenAmount);
         if (long.number == 0) {
             startTimestamp = block.timestamp;
@@ -530,7 +532,9 @@ contract URUS is IURUS {
     function long_sell() public override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         uint256 gasStart = gasleft();
         // 0. Verify that number != 0
-        require(long.number > 0);
+        if (long.number == 0) {
+            revert NotLonged();
+        }
         if (hedge.number > 0) {
             revert Hedged();
         }
@@ -579,7 +583,9 @@ contract URUS is IURUS {
     function hedge_sell() public override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         uint256 gasStart = gasleft();
         // 0. Verify that hedge_sell can be executed
-        require(long.number == long.numberMax);
+        if (long.number != long.numberMax) {
+            revert NotLongNumberMax();
+        }
 
         uint8 hedgeNumber = hedge.number;
         uint8 hedgeNumberMaxMinusOne;
@@ -686,7 +692,9 @@ contract URUS is IURUS {
     function hedge_rebuy() public override returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         uint256 gasStart = gasleft();
         // 0. Verify that hedge is activated
-        require(hedge.number > 0);
+        if (hedge.number == 0) {
+            revert NotHedged();
+        }
 
         // 1.1. Define how much to rebuy
         quoteTokenAmount = hedge.liquidity;
@@ -796,7 +804,9 @@ contract URUS is IURUS {
         if (hedge.number > 0) {
             revert Hedged();
         }
-        require(long.number == long.numberMax);
+        if (long.number != long.numberMax) {
+            revert NotLongNumberMax();
+        }
         if (long.qty > 0) {
             baseTokenAmount = _take(baseToken, long.qty);
             baseToken.forceApprove(msg.sender, baseTokenAmount);
