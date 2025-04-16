@@ -152,8 +152,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function setPoolsNFTLens(address _poolsNFTLens) external;
 
-    function setGRETH(address _grETH) external;
-
     function setGrinderAI(address _grinderAI) external;
 
     function setMinDeposit(address token, uint256 _minDeposit) external;

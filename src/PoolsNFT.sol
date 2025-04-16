@@ -228,14 +228,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         require(address(poolsNFTLens.poolsNFT()) == address(this));
     }
 
-    /// @notice sets pools NFT Image
-    /// @param _grETH address of grETH
-    function setGRETH(address _grETH) external override {
-        _onlyOwner();
-        grETH = IGRETH(_grETH);
-        require(address(grETH.poolsNFT()) == address(this));
-    }
-
     /// @notice sets grinder AI
     /// @param _grinderAI address of grinder AI 
     function setGrinderAI(address _grinderAI) external override {
@@ -501,7 +493,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @param poolId pool id of pool to dip
     /// @param quoteTokenAmount quote token amount
     function deposit3(uint256 poolId, uint256 quoteTokenAmount) external override {
-        require(isAgentOf(ownerOf(poolId), msg.sender) || isDepositorOf(poolId, msg.sender));
+        if (!isDepositorOf(poolId, msg.sender)) {
+            revert NotDepositor();
+        }
         IStrategy pool = IStrategy(pools[poolId]);
         IToken quoteToken = pool.quoteToken();
         quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
