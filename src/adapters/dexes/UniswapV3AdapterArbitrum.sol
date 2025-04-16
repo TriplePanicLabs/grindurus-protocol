@@ -59,11 +59,8 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         (_swapRouter, _uniswapV3PoolFee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
     }
 
-    function _onlyAgent() internal view virtual {}
-
     /// @notice set swap router
-    function setSwapRouter(address _swapRouter) public {
-        _onlyAgent();
+    function setSwapRouter(address _swapRouter) public virtual {
         getBaseToken().forceApprove(address(swapRouter), 0);
         getQuoteToken().forceApprove(address(swapRouter), 0);
         swapRouter = ISwapRouterArbitrum(_swapRouter);
@@ -72,9 +69,9 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
     }
 
     /// @notice set fee
+    /// @dev only address(this) interacts with swapRouter
     /// @param _uniswapV3PoolFee fee for uniswapV3 pool
-    function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public {
-        _onlyAgent();
+    function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public virtual {
         uniswapV3PoolFee = _uniswapV3PoolFee;
     }
 

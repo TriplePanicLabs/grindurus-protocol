@@ -42,7 +42,7 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     }
 
     /// @dev checks that msg.sender is agent
-    function _onlyAgent() internal view virtual override(AAVEV3AdapterArbitrum, UniswapV3AdapterArbitrum) {
+    function _onlyAgent() internal view virtual {
         try poolsNFT.isAgentOf(owner(), msg.sender) returns (bool isAgent) {
             if (!isAgent) {
                 revert NotAgent();
@@ -177,6 +177,11 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
         return URUS.afterRebalance(baseTokenAmount, newPrice);
     }
 
+    function setAaveV3Pool(address _aaveV3Pool) public override(AAVEV3AdapterArbitrum) {
+        _onlyAgent();
+        AAVEV3AdapterArbitrum.setAaveV3Pool(_aaveV3Pool);
+    }
+
     /// @notice puts token to yield protocol
     /// @param token address of token
     /// @param amount amount of token to put
@@ -189,6 +194,16 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     /// @param amount amount of token to take
     function _take(IToken token, uint256 amount) internal override(AAVEV3AdapterArbitrum, URUS) returns (uint256 takeAmount) {
         takeAmount = AAVEV3AdapterArbitrum._take(token, amount);
+    }
+
+    function setSwapRouter(address _swapRouter) public override(UniswapV3AdapterArbitrum) {
+        _onlyAgent();
+        UniswapV3AdapterArbitrum.setSwapRouter(_swapRouter);
+    }
+
+    function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public override(UniswapV3AdapterArbitrum) {
+        _onlyAgent();
+        UniswapV3AdapterArbitrum.setUniswapV3PoolFee(_uniswapV3PoolFee);
     }
 
     /// @notice swaps from `tokenIn` to `tokenOut` on DEX

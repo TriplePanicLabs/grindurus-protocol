@@ -43,7 +43,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     }
 
     /// @dev checks that msg.sender is agent
-    function _onlyAgent() internal view override(NoLendingAdapter, UniswapV3AdapterArbitrum) {
+    function _onlyAgent() internal view virtual {
         try poolsNFT.isAgentOf(owner(), msg.sender) returns (bool isAgent) {
             if (!isAgent) {
                 revert NotAgent();
@@ -178,6 +178,16 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
 
     function _take(IToken token, uint256 amount) internal override(NoLendingAdapter, URUS) returns (uint256) {
         return NoLendingAdapter._take(token, amount);
+    }
+
+    function setSwapRouter(address _swapRouter) public override(UniswapV3AdapterArbitrum) {
+        _onlyAgent();
+        UniswapV3AdapterArbitrum.setSwapRouter(_swapRouter);
+    }
+
+    function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public override(UniswapV3AdapterArbitrum) {
+        _onlyAgent();
+        UniswapV3AdapterArbitrum.setUniswapV3PoolFee(_uniswapV3PoolFee);
     }
 
     function _swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) internal override(UniswapV3AdapterArbitrum, URUS) returns (uint256) {

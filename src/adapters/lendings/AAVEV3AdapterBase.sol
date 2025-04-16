@@ -45,14 +45,9 @@ contract AAVEV3AdapterBase is ILendingAdapter {
         (_aaveV3Pool) = abi.decode(args, (address));
     }
 
-    /// @notice checking ownership
-    /// @dev should be reimplemented in inherritant contract
-    function _onlyAgent() internal view virtual {}
-
     /// @notice sets pool
     /// @param _aaveV3Pool address of AAVEv3 pool
-    function setAaveV3Pool(address _aaveV3Pool) public {
-        _onlyAgent();
+    function setAaveV3Pool(address _aaveV3Pool) public virtual {
         aaveV3Pool = IAAVEV3PoolBase(_aaveV3Pool);
     }
 
