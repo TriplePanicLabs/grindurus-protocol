@@ -211,7 +211,7 @@ contract GrinderAI is IGrinderAI {
     function grind(uint256 poolId) public override returns (bool) {
         address grinder = owner();
         try poolsNFT.grindTo(poolId, grinder) returns (bool isGrinded) {
-            if (isGrinded) {
+            if (isGrinded && graiReward > 0) {
                 grAI.mint(grinder, graiReward);
             }
             return isGrinded;
@@ -219,7 +219,7 @@ contract GrinderAI is IGrinderAI {
             return false;
         }
     }
-    
+
     /// @notice AI grind to
     /// @dev can be called by anyone
     /// @param poolId id of pool
@@ -227,7 +227,7 @@ contract GrinderAI is IGrinderAI {
     function grindOp(uint256 poolId, uint8 op) public override returns (bool) {
         address grinder = owner();
         try poolsNFT.grindOpTo(poolId, op, grinder) returns (bool isGrinded) {
-            if (isGrinded) {
+            if (isGrinded && graiReward > 0) {
                 grAI.mint(grinder, graiReward);
             }
             return isGrinded;
@@ -244,7 +244,7 @@ contract GrinderAI is IGrinderAI {
         address grinder = owner();
         for (uint256 i = 0; i < len; ) {
             try poolsNFT.grindTo(poolIds[i], grinder) returns (bool isGrinded) {
-                if (isGrinded) {
+                if (isGrinded && graiReward > 0) {
                     grAI.mint(grinder, graiReward);
                 }
             } catch {
@@ -266,7 +266,7 @@ contract GrinderAI is IGrinderAI {
         uint256 i;
         for (i = 0; i < len;) {
             try poolsNFT.grindOpTo(poolIds[i], ops[i], grinder) returns (bool isGrinded) {
-                if (isGrinded) {
+                if (isGrinded && graiReward > 0) {
                     grAI.mint(grinder, graiReward);
                 }
             } catch {
