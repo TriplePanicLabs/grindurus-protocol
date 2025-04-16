@@ -295,8 +295,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         returns (string memory uri)
     {
         _requireOwned(intentId);
-        string memory path = string.concat(baseURI, intentId.toString());
-        uri = string.concat(path, ".json");
+        uri = baseURI;
     }
 
     /// @notice return total supply of NFTs
