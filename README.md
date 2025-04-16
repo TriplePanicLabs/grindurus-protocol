@@ -1,13 +1,15 @@
 # GrindURUS Protocol
 
-Automated onchain yield harvesting and strategy trade protocol. Fully implemented on smart contracts.
+Automated Market Taker
+
+Onchain yield harvesting and strategy trade protocol.
 
 ## Use Cases (whole protocol)
 1. **Automated Trading**: Implements a fully automated trading strategy based on mathematical and market-driven rules.
-2. **Risk Management**: Uses hedging and rebuying to mitigate losses and maintain profitability.
+2. **Risk Management**: Uses hedging and rebuying to mitigate unrealized loss
 3. **Capital Optimization**: Maximizes efficiency by dynamically adjusting liquidity and investment levels.
 
-## TLDR:
+## Architecture TLDR:
 
 Architeture:
 1. PoolsNFT - enumerates all strategy pools. The gateway to the standartized interaction with strategy pools.
@@ -15,8 +17,8 @@ Architeture:
 3. URUS - implements all URUS algorithm logic
 4. Registry - storage of quote tokens, base tokens and oracles
 5. GRETH - ERC20 token that stands as incentivization for `grind` and implements the index of collected profit
-6. Strategy - logic that utilize URUSCore + interaction with onchain protocols like AAVE and Uniswap
-7. StrategyFactory - factory, that and deploys ERC1967Proxy of strategy as isolated smart contract
+6. Strategy - logic that utilize URUS + interaction with onchain protocols like AAVE and Uniswap
+7. StrategyFactory - factory, that and deploys ERC1967Proxy of Strategy as isolated smart contract with liquidity
 8. IntentsNFT - intents for grind, that reads data from PoolsNFT
 9. GRAI - ERC20 token, that tokenize grinds on intent
 10. GrinderAI - gateway for AI agent to interact with PoolsNFT and GRAI 
@@ -24,7 +26,7 @@ Architeture:
 
 # PoolsNFT
 
-`PoolsNFT` is a smart contract that facilitates the creation and management of strategy pools represented by NFTs. It supports royalty mechanisms, deposits, withdrawals, and strategy iterations, making it a versatile tool for decentralized finance (DeFi) applications.
+`PoolsNFT` is a gateway that facilitates the creation of strategy pools and links represented by NFTs. It supports royalty mechanisms up on strategy profits, isolated deposits, limited withdrawals, and strategy iterations,
 
 ## Key Features
 - Pool Ownership: Each NFT represents an ownership of strategy pool.
@@ -40,24 +42,13 @@ Architeture:
 
 ## Roles
 ### Owner Role
-The `owner` has the highest level of authority in the contract and is responsible for administrative operations, governance, and configuration. The key responsibilities of the `owner` include:
-- **Configuring Royalties**: Adjusting royalty-related parameters, such as shares for pool owners, grinders, reserves, and royalty receivers, using functions like `setRoyaltyShares` and `setRoyaltyPriceShares`.
-- **Updating Protocol Parameters**: Setting deposit caps (`setTokenCap`), minimum deposits (`setMinDeposit`), and other critical limits.
-- **Managing Metadata**: Defining the base URI for the NFT metadata with `setBaseURI`.
-- **Adding Strategies**: Listing new strategies by associating `strategyId`s with factories using `setStrategyFactory`.
-- **Transferring Ownership**: Delegating contract ownership to another account, including the support for pending ownership.
-- **Registering Strategies**: Deploying and associating new strategy implementations using `setStrategyFactory`.
-- **Disabling Strategies**: Stopping strategies deemed invalid or harmful by calling `setStrategyStopped`.
+The `owner` has the highest level of authority in the contract and is responsible for administrative operations and configuration.
 
 ### Agent Role
-The `agent` acts as a delegate for the pool owner, authorized to perform configuration of strategy params in `URUSCore` and rebalancing strategy pools owned by `ownerOf`.
-- **Rebalancing Pools**: Redistributing assets between pools with similar strategies using the `rebalance` function.
-- **Configuration Operations**: Perform the changing of configuration via AI model.
+The `agent` acts as a delegate for the pool owner, authorized to perform configuration of strategy params in `URUS` and rebalancing strategy pools owned by `ownerOf`.
 
 ### Depositor Role
-The pools are isolated. The `depositor` is an account approved by the pool owner to contribute assets to a specific pool via `poolId`. This role ensures controlled access to deposits while allowing flexibility for liquidity contributions. Responsibilities include:
-- **Providing Liquidity**: Depositing quote tokens into a pool via the `deposit` function.
-- **Approval Management**: Ensuring that the pool owner has explicitly granted permission for deposits.
+The pools are isolated. The `depositor` is an account approved by the pool owner to contribute assets to a specific pool via `poolId`. This role ensures controlled access to deposits while allowing flexibility for liquidity contributions.
 
 ## Royalty Price Parameters
 - `royaltyPriceInitNumerator`: Determines the initial royalty price as a percentage of the deposited quote token.
@@ -68,84 +59,104 @@ The pools are isolated. The `depositor` is an account approved by the pool owner
 
 ## grethShare Parameters
 - `grethGrinderShareNumerator`: Share of the grinder reward allocated to the grinder (e.g., 80%).
-- `grethReserveShareNumerator`: Share allocated to the reserve (e.g., 15%).
-- `grethPoolOwnerShareNumerator`: Share allocated to the pool owner (e.g., 2%).
-- `grethRoyaltyReceiverShareNumerator`: Share allocated to the royalty receiver (e.g., 3%).
+- `grethReserveShareNumerator`: Share allocated to the reserve (e.g., 10%).
+- `grethPoolOwnerShareNumerator`: Share allocated to the pool owner (e.g., 5%).
+- `grethRoyaltyReceiverShareNumerator`: Share allocated to the royalty receiver (e.g., 5%).
 
 ## Royalty Parameters
 - `royaltyNumerator`: Total royalty share of the profits (e.g., 20%).
 - `poolOwnerShareNumerator`: Share of profits allocated to the pool owner (e.g., 80%).
-- `royaltyReceiverShareNumerator`: Share of the royalty allocated to the royalty receiver.
-- `royaltyReserveShareNumerator`: Share allocated to the reserve.
-- `royaltyGrinderShareNumerator`: Share allocated to the last grinder.
+- `royaltyReceiverShareNumerator`: Share of the royalty allocated to the royalty receiver. (e.g., 10%)
+- `royaltyReserveShareNumerator`: Share allocated to the reserve on GRETH (e.g., 5%). 
+- `royaltyOwnerShareNumerator`: Share allocated to the owner of protocol. (e.g., 5%)
 
 ## Parameter Changes
-### Owner-only updates:
-- `setBaseURI`: Update the metadata base URI.
-- `setRoyaltyPriceShares`: Adjust royalty price shares.
-- `setGRETHShares`: Adjust greth share distributions.
-- `setRoyaltyShares`: Modify royalty distribution shares.
-- `setTokenCap` and `setMinDeposit`: Configure deposit limits.
-- `setStrategyFactory`: List new strategies.
-
-### Strategiest updates:
-- `setStrategyStopped`: Enable or disable strategies.
-
-## Strategy Listing
-- Register new strategy factories using `setStrategyFactory`.
-- Associated with a unique `strategyId`.
+### Owner-only functions:
+- `setPoolsNFTLens(address _poolsNFTLens)`: set PoolsNFTLens address
+- `setGrinderAI(address _grinderAI)`: set GrinderAI address
+- `setMinDeposit(address token, uint256 _minDeposit)`: set minimal deposit
+- `setMaxDeposit(address token, uint256 _maxDeposit)`: set maximal deposit
+- `setRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator)`: set royalty price init numerator
+- `setRoyaltyPriceShares(...)`: Adjust royalty price shares.
+- `setGRETHShares(...)`: Adjust GRETH share distributions.
+- `setRoyaltyShares(...)`: Adjust royalty distribution shares.
+- `transferOwnership(address payable newOwner)` transfer ownership to `newOwner`. Require that `newOwner` call this function with same parameter
+- `setStrategyFactory(address _strategyFactory)` set strategyFactory. Under the hood it instantiate strategyFactoryId
+- `setStrategyStopped(uint16 strategyId, bool _isStrategyStopped)`: stops and unstops deployment of strategy
+- `execute(address target, uint256 value, bytes memory data)`: execute any transaction
 
 ## Mint Process
-- Use `mint` to create a new pool:
-  1. Specify `strategyId`, `quoteToken`, `baseToken`, and initial deposit.
-  2. Deploy strategy contract.
-  3. Mint corresponding NFT.
-  4. Set royalty price for the pool.
+- Use `mint` or `mintTo` to create a new isolated strategy pool:
+  1. Specify `strategyId`, `quoteToken`, `baseToken`, and initial amount of `quoteToken`.
+  2. Call to StrategyFactory, that deploys ERC1967Proxy with implementation of Strategy.
+  3. Mint corresponding NFT bounded to deployed ERC1967Proxy.
+  4. Quote Token transfers from msg.sender to PoolsNFT
+  5. Call `deposit` on `Strategy` as gateway
 
 ## Deposit Process
-- Approved depositors can:
-  1. Call `deposit` with quote token amount.
-  2. Tokens are transferred, approved, and added to pool balance.
-  3. Deposit limits are enforced.
+- Deposits `quoteToken` to strategy pool with `poolId`
+  1. Checks that msg.sender is depositor of `poolId`
+  2. Check that `quoteTokenAmount` is in bounds of minDeposit < quoteTokenAmount < maxDeposit
+  3. Quote Token transfers from msg.sender to PoolsNFT
+  4. Call `deposit` on `Strategy` as gateway
+
+## Deposit2 Process
+- Deposits `baseToken` with specified `baseTokenPrice` to strategy pool with `poolId`
+  1. Checks that msg.sender is depositor of `poolId`
+  2. `baseToken` transfers from msg.sender to PoolsNFT
+  3. Call `deposit2` on `Strategy` as gateway
+
+## Deposit3 Process
+- Deposits `quoteToken` to strategy pool with `poolId` when pool has sufficient unrealized loss
+  1. Checks that msg.sender is depositor of `poolId`
+  2. `quoteToken` transfers from msg.sender to PoolsNFT
+  3. Call `deposit3` on `Strategy` as gateway
 
 ## Withdraw Process
-- Pool owners can:
-  - Withdraw quote tokens via `withdraw`.
-  - Limited to current quote token balance.
+- Withdraw `quoteToken` from strategy pool with `poolId`
+  1. Checks that msg.sender is owner of `poolId`
+  2. Call `withdraw` on `Strategy` as gateway
 
 ## Exit Process
-- Owners exit strategies via `exit`:
-  1. Withdraw all assets.
-  2. Transfer NFT to royalty receiver or protocol owner.
+- Withdraw all liquidity of `quoteToken` and `baseToken` from strategy pool with `poolId`
+  1. Checks that msg.sender is owner of `poolId`
+  2. Call `exit` on `Strategy` as gateway
+
+## Set agent Process
+- Sets agent of msg.sender
 
 ## Rebalance of Pools Process
-- Owners or agents can:
-  1. Transfer base tokens from both pools.
-  2. Redistribute evenly between pools.
+- Rebalance of funds of two different strategy pools `poolId0` and `poolId1` with portions `rebalance0` + `rebalance0`
+  1. Checks that owners of `poolId0` and `poolId1` are equal
+  2. Checks that msg.sender is agent of `poolId0` and `poolId1`. Owner of pool can be agent
+  3. Call `beforeRebalance` on pools with `poolId0` and `poolId1`
+  4. PoolsNFT receives `baseToken` from `poolId0` and `poolId1`
+  5. Rebalance funds
+  6. PoolsNFT approve transfer of `baseToken`
+  7. Call `afterRebalance` on pools with `poolId0` and `poolId1`
 
 ## Grind Process
-- Execute strategy iteration with `grind`:
-  1. Call `iteration` on strategy.  
-  2. Awards grinder reward in `grETH`.
-  3. Distributes reward among participants.
+- Grind strategy with `poolId`
+  1. Checks that `poolId` has sufficient balance of `quoteToken` + `baseToken`
+  2. Call `iterate` on `Strategy`
+  3. If call was successful, than grinder earn grETH, which equal to spent tx fee
 
 ## Buy Royalty Process
-- Purchase royalty rights with `buyRoyalty`:
-  1. Pay new royalty price.
-  2. Distribute shares among previous receiver, owner, reserve, and grinder.
-  3. Refund excess funds.
+- Buy royalty of `poolId`. 
+  1. Calculate royalty shares
+  2. msg.sender pay for royalty
+  3. PoolsNFT distibute shares
+  4. msg.sender become royalty receiver of `poolId`
 
 
-# URUSCore
+# URUS
 
-`URUSCore` is the core logic of the URUS trading algorithm implemented as a Solidity smart contract. It is designed to handle automated trading, hedging, and rebalancing strategies using decentralized oracles and smart contract interactions.
+`URUS` is the core logic of the URUS trading algorithm implemented as a Solidity smart contract. It is designed to handle automated trading, hedging, and rebalancing strategies.
 
 ## Key Features
 - Position Management: Supports long and hedge positions with configurable parameters.
-- Profit Distribution: Tracks and distributes yield and trade profits for quoteToken and baseToken.
-- Dynamic Configuration: Allows AI agents to adjust parameters like max positions, volatility, and fees.
+- Profits Accountability: Tracks and distributes yield and trade profits for quoteToken and baseToken.
 - Investment & Rebalancing: Handles liquidity management, token swaps, and holding through lending/liquidity protocols.
-
 
 ---
 
@@ -159,14 +170,14 @@ The `HelperData` struct contains metadata and dynamic parameters essential for t
 ---
 
 ## 2. Fee Token
-The `feeToken` is a utility token used to pay transaction fees during URUS operations. Its price is fetched via a Chainlink oracle relative to the `quoteToken`.
+The `feeToken` is a utility token used to pay transaction fees during URUS operations. For most EVM chains fee token equals to WETH (wrapped ETH)
 
 ---
 
 ## 3. Quote Token
 The `quoteToken` is the primary unit of account and settlement for trades. It is used to:
-- Define the value of other tokens (e.g., `baseToken`).
-- Record liquidity and calculate profitability.
+- Define the value of other tokens.
+- Record liquidity and calculate profitability in terms of `quoteToken`
 
 ---
 
@@ -179,14 +190,14 @@ The `baseToken` is the asset being traded within the URUS strategy. For example,
 
 ## 5.1 FeeConfig
 
-The `FeeConfig` structure in the `URUSCore` contract defines parameters for calculating fees applied during trading operations. Unlike a fixed percentage, the fee coefficients (`feeCoef`) are multipliers applied to the sum of **transaction fees**, allowing dynamic scaling of fees for different operations.
+The `FeeConfig` structure in the `URUS` contract defines parameters for calculating fees applied during trading operations. Unlike a fixed percentage, the fee coefficients (`feeCoef`) are multipliers applied to the sum of **transaction fees**, allowing dynamic scaling of fees for different operations.
 
 Definition:
 ```solidity
 struct FeeConfig {
-    uint256 longSellFeeCoef;   // Fee for selling in a long position.
-    uint256 hedgeSellFeeCoef;  // Fee for selling in a hedge position.
-    uint256 hedgeRebuyFeeCoef; // Fee for rebuying during a hedge operation.
+    uint256 longSellFeeCoef;   // Fee coeficient for selling in a long position.
+    uint256 hedgeSellFeeCoef;  // Fee coeficient for selling in a hedge position.
+    uint256 hedgeRebuyFeeCoef; // Fee coeficient for rebuying during a hedge operation.
 }
 ```
 
@@ -236,49 +247,50 @@ Fees are calculated as follows:
 
 ## 5.2 Config
 
-The `Config` structure in the `URUSCore` contract defines critical parameters for the operation of the URUS algorithm. These parameters control the behavior of positions, thresholds, and profit margins during trading. Adjusting these values allows authorized roles to optimize the strategy for specific market conditions.
+The `Config` structure in the `URUS` contract defines critical parameters for the operation of the URUS algorithm. These parameters control the behavior of positions, thresholds, and profit margins during trading. Adjusting these values allows authorized roles to optimize the strategy for specific market conditions.
 
 ## Structure of Config
 
 The `Config` structure contains the following parameters:
 
 ### 1. `longNumberMax`
-- **Description**: The maximum number of long positions that can be opened.
+- **Description**: The maximum number of buys, that can be executed
 - **Purpose**: Limits the exposure to long positions, ensuring controlled investment levels.
 - **Example**:
-  - If `longNumberMax = 4`, a maximum of 4 sequential long positions can be opened.
+  - If `longNumberMax = 4`, a maximum of 4 sequential buys, that can be executed
   - **Scenario**: Assume the following conditions:
     - Initial investment: 100 USDT
     - `extraCoef = 2_00` (x2.00)
-    - Long positions: 4 maximum
+    - Long Number Max: 4
     - The investments would be:
-      - Position on iteration 1: 100 USDT
-      - Position on iteration 2: 200 USDT
-      - Position on iteration 3: 400 USDT
-      - Position on iteration 4: 800 USDT
+      1)  Buy amount on iteration 1: 100 USDT 
+          Total investment: 100 USDT
+      2)  Buy amount on iteration 2: 100 * 2.00 = 200 USDT
+          Total investment: 100 + 200 = 300 USDT
+      3)  Buy amount on iteration 3: 300 * 2.00 = 600 USDT
+          Total investment: 300 + 600 = 900 USDT
+      4)  Buy amount on iteration 4: 900 * 2.00 = 1800 USDT
+          Total investment: 900 + 1800 = 2700 USDT
 
 ### 2. `hedgeNumberMax`
-- **Description**: The maximum number of hedge positions that can be opened.
-- **Purpose**: Defines the depth of hedging during adverse market movements.
+- **Description**: The maximum number of hedge level grid
+- **Purpose**: Defines the depth level of hedging during adverse market movements.
 - **Example**:
   - If `hedgeNumberMax = 3`, the hedge process will stop after 3 iterations.
   - **Scenario**:
     - Total `baseToken` holdings: 16 units
     - Hedge process splits positions:
-      - Hedge 1: 8 units
-      - Hedge 2: 4 units
-      - Hedge 3: 4 units
-    - No further hedging will occur after 3 steps.
+      1)  Hedge 1: 4 units
+          Total sold: 4 units
+      2)  Hedge 2: 4 units
+          Total sold: 4 + 4 = 8 units
+      3)  Hedge 3: 8 units
+          Total sold: 8 + 8 = 16 units
+    - No further hedging will occur after 3 steps. The position is closed.
 
 ### 3. `extraCoef`
 - **Description**: Multiplier used to calculate the additional liquidity required for subsequent long positions.
 - **Purpose**: Ensures exponential growth of investments in long positions while maintaining proportional risk.
-- **Example**:
-  - If `extraCoef = 2_00` (x2.00):
-    - Position 1: 100 USDT
-    - Position 2: 200 USDT (100 * 2.00)
-    - Position 3: 400 USDT (200 * 2.00)
-    - Position 4: 800 USDT (400 * 2.00)
 
 ### 4. `priceVolatilityPercent`
 - **Description**: The allowed price volatility percentage for position thresholds.
@@ -286,11 +298,10 @@ The `Config` structure contains the following parameters:
 - **Example**:
   - If `priceVolatilityPercent = 1_00` (1%):
     - Long position threshold: If price drops by 1%, a buy order is triggered.
-    - Hedge position threshold: If price rises by 1%, a hedge sell is triggered.
     - **Scenario**:
-      - Base price: $1,000
+      - `baseToken` price: 1000 `quoteToken`/`baseToken`
       - Volatility: 1%
-      - Trigger price: $990 (for buy), $1,010 (for hedge sell)
+      - Trigger price: 990 `quoteToken`/`baseToken`
 
 ### 5. `returnPercentLongSell`
 - **Description**: The required return percentage to execute a profitable `long_sell`.
@@ -319,21 +330,21 @@ The `Config` structure contains the following parameters:
 
 ## Adjusting Config
 
-Changes to the `Config` structure can only be made by authorized roles, such as the `agent`, using the following methods:
+Changes to the `Config` structure can only be made by authorized roles, defined in `Strategy`
 
-1. **`setConfig`**: Updates the entire configuration.
-2. **`setLongNumberMax`**: Updates the maximum number of long positions.
-3. **`setHedgeNumberMax`**: Updates the maximum number of hedge positions.
-4. **`setExtraCoef`**: Updates the multiplier for liquidity calculations.
-5. **`setPriceVolatilityPercent`**: Updates the allowed price volatility.
-6. **`setOpReturnPercent`**: Updates the return percentage for specific operations.
+- `setConfig(Config memory conf)`: sets the entire configuration.
+- `setLongNumberMax(uint8 longNumberMax)`: sets the maximum number of long positions.
+- `setHedgeNumberMax(uint8 hedgeNumberMax)`: sets the maximum number of levels of hedge positions.
+- `setExtraCoef(uint256 extraCoef)`: sets the multiplier for liquidity calculations.
+- `setPriceVolatilityPercent(uint256 priceVolatilityPercent)`: sets the allowed price volatility.
+- `setOpReturnPercent(uint8 op, uint256 returnPercent)`: sets the return percentage for specific operations.
 
 
 ## 6. Long Position
 The `long` position tracks data related to buying and holding `baseToken`:
-- **`number`**: Current long position count.
-- **`numberMax`**: Maximum allowed long positions.
-- **`priceMin`**: Minimum allowable price for `baseToken` purchases.
+- **`number`**: Current long buys count.
+- **`numberMax`**: Maximum allowed long buys.
+- **`priceMin`**: Minimum allowable threshold price for `baseToken` purchases.
 - **`liquidity`**: Quote token liquidity in the position.
 - **`qty`**: Quantity of `baseToken` held.
 - **`price`**: Weighted average cost price.
@@ -355,43 +366,55 @@ The `hedge` position tracks data for hedging against price declines:
 
 ---
 
-## 8. What Parameters Are Changeable and by Who
-- **Owner**: Can modify core contract parameters, such as oracle addresses and initial configuration, via `initCore`.
-- **Agent**: Can update:
-  - Strategy configuration (`setConfig`).
-  - Maximum long or hedge positions (`setLongNumberMax`, `setHedgeNumberMax`).
-  - Volatility, fees, and thresholds (`setPriceVolatilityPercent`, `setOpFeeCoef`, etc.).
-
----
-
-## 9. How Deposit Works
+## 8. How Deposit Works
 - **Action**: Deposit `quoteToken` into the strategy pool.
 - **Steps**:
-  1. `quoteToken` is transferred from the depositor.
-  2. Tokens are added to the pool's liquidity balance.
-  3. The deposit amount is tracked for future operations.
+  1. instantiate start timestamp
+  2. `quoteToken` is transferred from the gateway
+  3. make invest (caclulate initialLiquidity)
+  4. put `quoteToken` to lending protocol
+
+## 9. How Deposit2 Works
+- **Action**: Deposit `baseToken` with specified `baseTokenPrice` into the strategy pool.
+- **Steps**:
+  1. Check that long position is not bought or used all liquidity
+  2. Check that liquidity is not hedged
+  3. `baseToken` is transferred from the gateway
+  4. put `baseToken` to lending protocol
+  5. recalculate all position related params
+
+## 10. How Deposit3 Works
+- **Action**: Deposit `quoteToken` into the strategy pool.
+- **Steps**:
+  1. Check that long position used all liquidity
+  2. Check that liquidity is not hedged
+  3. `quoteToken` is transferred from the gateway
+  4. swap `quoteToken` to `baseToken`
+  5. make invest (recaclulate initialLiquidity)
+  4. put `baseToken` to lending protocol
+  5. recalculate all position related params
 
 ---
 
-## 10. How Withdraw Works
+## 11. How Withdraw Works
 - **Action**: Withdraw `quoteToken` from the pool.
 - **Steps**:
-  1. Verifies sufficient liquidity in the pool.
-  2. Transfers the requested amount to the withdrawer's address.
-  3. Adjusts the pool's liquidity.
+  1. Checks that no liquidity is used
+  2. Take `quoteTokenAmount`
+  3. transfer `quoteTokenAmount` to withdrawer
 
 ---
 
-## 11. How Exit Works
+## 12. How Exit Works
 - **Action**: Exit all positions and withdraw all assets.
 - **Steps**:
-  1. Fetches all `baseToken` and `quoteToken` from lending protocols.
+  1. Fetches all `baseToken` and `quoteToken` from lending protocols or fund storage.
   2. Transfers tokens to the owner's address.
   3. Resets `long` and `hedge` positions to their initial state.
 
 ---
 
-## 12. How `long_buy` Works
+## 13. How `long_buy` Works
 - **Action**: Executes a buy operation for `baseToken` in a long position.
 - **Steps**:
   1. Calculates the amount of `quoteToken` required.
@@ -401,7 +424,7 @@ The `hedge` position tracks data for hedging against price declines:
 
 ---
 
-## 13. How `long_sell` Works
+## 14. How `long_sell` Works
 - **Action**: Sells all `baseToken` from a long position.
 - **Steps**:
   1. Fetches all `baseToken` from lending protocols.
@@ -411,7 +434,7 @@ The `hedge` position tracks data for hedging against price declines:
 
 ---
 
-## 14. How `hedge_sell` Works
+## 15. How `hedge_sell` Works
 - **Action**: Sells `baseToken` to hedge against price declines.
 - **Steps**:
   1. Calculates the `baseToken` quantity to sell.
@@ -421,7 +444,7 @@ The `hedge` position tracks data for hedging against price declines:
 
 ---
 
-## 15. How `hedge_rebuy` Works
+## 14. How `hedge_rebuy` Works
 - **Action**: Rebuys `baseToken` during a hedge position.
 - **Steps**:
   1. Uses `quoteToken` liquidity from the hedge position.
@@ -431,7 +454,7 @@ The `hedge` position tracks data for hedging against price declines:
 
 ---
 
-## 16. How `iterate` Works
+## 15. How `iterate` Works
 - **Action**: Executes the appropriate trading operation based on the current state.
 - **Steps**:
   1. Calls `long_buy` if no positions exist.
@@ -441,12 +464,12 @@ The `hedge` position tracks data for hedging against price declines:
 
 ---
 
-## 17. How `beforeRebalance` and `afterRebalance` Works
+## 16. How `beforeRebalance` and `afterRebalance` Works
 ### `beforeRebalance`:
 - **Action**: Prepares the strategy for rebalancing.
 - **Steps**:
   1. Fetches all `baseToken` from lending protocols.
-  2. Transfers tokens to the rebalancing contract.
+  2. Transfers tokens to the rebalancing contract (gateway).
   3. Adjusts the long position accordingly.
 
 ### `afterRebalance`:
@@ -457,41 +480,78 @@ The `hedge` position tracks data for hedging against price declines:
 
 ---
 
-## grETH
+# grETH
 
 The **grETH** token is the incentivization token within the GrindURUS protocol. It rewards users (referred to as "grinders") for executing strategy iterations and serves as a mechanism to align incentives between participants and the protocol. The token is ERC-20 compliant and integrates seamlessly with the GrindURUS Pools NFT.
 
 ### **Share Calculation**
 - The `share` function calculates the proportional value of a specified amount of grETH in terms of a chosen asset (native or ERC-20 token).
-- Formula: `(Liquidity * grETH Amount) / Total Supply`
-
+- Formula: `(Liquidity * grETH Amount) / Total grETH Supply`
 
 All ETH trasfers to grETH are converted to WETH.
 
-## Registry
+# Registry
 
-The **Registry** contract serves as a centralized registry for managing strategies, tokens, and oracles for DeFi protocols on the Arbitrum network. It ensures coherence between strategy pairs, quote tokens, base tokens, and their associated oracles.
+The **Registry** contract acts as a centralized hub for managing strategy configurations, token pairs, and their associated oracles within the GrindURUS protocol. It ensures seamless integration and consistency across all strategies and token interactions.
 
-### Usage Example
-Adding a Strategy:
-```
-registry.addStrategyId(1, "MEGA Strategy");
+### Key Functionalities
+1. **Strategy Management**: Maintains a registry of strategy IDs and their metadata.
+2. **Token Pairing**: Links quote tokens and base tokens to specific strategies.
+3. **Oracle Integration**: Associates token pairs with their respective price oracles for accurate pricing data.
+
+### Usage Examples
+#### Adding a Strategy
+```solidity
+registry.addStrategyInfo(666, address(0x1337), "Strategy666");
 ```
 
-Registering an Oracle:
+#### Altering a Strategy
+```solidity
+registry.altStrategyInfo(666, address(0x69), "Strategy777");
 ```
+
+#### Removing a Strategy
+```solidity
+registry.removeStrategyInfo(666);
+```
+
+#### Adding a GRAI Info
+```solidity
+registry.addGRAIInfo(666, address(0x1337), "GrinderAI token on Arbitrum");
+```
+
+#### Altering a GRAI Info
+```solidity
+registry.altStrategyInfo(666, address(0x69), "GrinderAI token on Arbitrum One");
+```
+
+#### Removing a GRAI Info
+```solidity
+registry.removeGRAIInfo(666);
+```
+
+#### Registering an Oracle
+```solidity
 registry.setOracle(quoteTokenAddress, baseTokenAddress, oracleAddress);
 ```
 
-Associating a Strategy Pair:
+#### Unregistering an Oracle
+```solidity
+registry.unsetOracle(quoteTokenAddress, baseTokenAddress, oracleAddress);
 ```
+
+
+#### Associating a Token Pair with a Strategy
+```solidity
 registry.setStrategyPair(1, quoteTokenAddress, baseTokenAddress, true);
 ```
 
-Querying Oracles:
-```
+#### Querying an Oracle for a Token Pair
+```solidity
 address oracle = registry.getOracle(quoteTokenAddress, baseTokenAddress);
 ```
+
+This implementation ensures flexibility and scalability for managing strategies and token interactions within the protocol.
 
 # Build
 
@@ -501,7 +561,7 @@ $ cp .env.example .env
 ```
 
 ```shell
-$ forge build
+$ forge build --sizes
 ```
 
 ## Run Tests
