@@ -12,17 +12,19 @@ interface IGrinderAI {
 
     function poolsNFT() external view returns (IPoolsNFT);
 
-    function isAgent(address account) external view returns (bool);
+    function isDelegate(address account) external view returns (bool);
 
     function owner() external view returns (address);
 
-    function setAgent(address _agent, bool _isAgent) external;
+    function setDelegate(address _delegate, bool _isAgent) external;
 
     function setPoolsNFT(address _poolsNFT) external;
 
     function setIntentsNFT(address _intentsNFT) external;
 
     function setGRAI(address _grAI) external;
+
+    function setGrindsRate(uint256 _grindsRate) external;
 
     function setGRAIReward(uint256 _graiReward) external;
 
