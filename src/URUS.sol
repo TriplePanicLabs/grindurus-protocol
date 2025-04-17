@@ -158,7 +158,7 @@ contract URUS is IURUS {
     }
 
     /// @dev checks if used all liquidity
-    function isLongedMax() public view returns (bool) {
+    function isLongedMax() public view override returns (bool) {
         return long.number > 0 && long.number == long.numberMax;
     }
 
@@ -276,7 +276,6 @@ contract URUS is IURUS {
             address(this),
             baseTokenAmount
         );
-        
         baseTokenAmount = _put(baseToken, baseTokenAmount);
         long.price = ((long.qty * long.price) + (baseTokenAmount * baseTokenPrice)) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
@@ -413,7 +412,6 @@ contract URUS is IURUS {
         if (baseTokenBalance > 0) {
             baseToken.safeTransfer(_owner, baseTokenBalance);
         }
-
         helper.initLiquidity = 0;
         long = Position({
             number: 0,

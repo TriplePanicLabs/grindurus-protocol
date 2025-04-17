@@ -102,6 +102,8 @@ interface IURUS is IERC5313 {
 
     function MIN_HEDGE_NUMBER_MAX() external view returns (uint8);
 
+    function isLongedMax() external view returns (bool);
+
     function startTimestamp() external view returns (uint256);
 
     function oracleQuoteTokenPerFeeToken() external view returns (AggregatorV3Interface);
