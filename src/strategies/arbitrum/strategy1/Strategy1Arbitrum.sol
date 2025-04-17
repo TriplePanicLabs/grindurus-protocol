@@ -154,9 +154,17 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
     function withdraw(
         address to,
         uint256 quoteTokenAmount
-    ) public override(URUS, IURUS) returns (uint256 withdrawn) {
+    ) public override(URUS, IURUS) returns (uint256) {
         _onlyGateway();
         return URUS.withdraw(to, quoteTokenAmount);
+    }
+
+    function withdraw2(
+        address to,
+        uint256 baseTokenAmount
+    ) public override(URUS, IURUS) returns (uint256) {
+        _onlyGateway();
+        return URUS.withdraw2(to, baseTokenAmount);
     }
 
     /// @notice exit funds from strategy

@@ -157,6 +157,11 @@ contract URUS is IURUS {
         require(conf.extraCoef > 0);
     }
 
+    /// @dev checks if used all liquidity
+    function isLongedMax() public view returns (bool) {
+        return long.number > 0 && long.number == long.numberMax;
+    }
+
     //// ONLY AGENT //////////////////////////////////////////////////////////////////////////
 
     /// @notice sets config of strategy pool
@@ -243,10 +248,9 @@ contract URUS is IURUS {
     function deposit(
         uint256 quoteTokenAmount
     ) public virtual override returns (uint256) {
-        if (long.number > 0) {
-            revert Longed();
+        if (long.number == 0) {
+            startTimestamp = block.timestamp;
         }
-        startTimestamp = block.timestamp;
         quoteToken.safeTransferFrom(
             msg.sender,
             address(this),
@@ -263,7 +267,7 @@ contract URUS is IURUS {
         uint256 baseTokenAmount,
         uint256 baseTokenPrice
     ) public virtual override returns (uint256) {
-        require(long.number == 0 || (long.number > 0 && long.number == long.numberMax));
+        require(long.number == 0 || isLongedMax());
         if (hedge.number > 0) {
             revert Hedged();
         }
@@ -327,7 +331,6 @@ contract URUS is IURUS {
     }
 
     /// @notice take `quoteTokenAmount` from lending, deinvest `quoteTokenAmount` and transfer it to `to`
-    /// @dev callable only by pools NFT
     /// @param to address that receive the `quoteTokenAmount`
     /// @param quoteTokenAmount amount of quoteToken
     /// @return withdrawn quoteToken amount
@@ -339,6 +342,25 @@ contract URUS is IURUS {
         withdrawn = _take(quoteToken, quoteTokenAmount);
         _divest(withdrawn);
         quoteToken.safeTransfer(to, withdrawn);
+    }
+
+    /// @notice take `baseTokenAmount` from lending, deinvest `baseTokenAmount` and transfer it to `to`
+    /// @param to address that receive the `baseTokenAmount`
+    /// @param baseTokenAmount amount of baseToken
+    function withdraw2(
+        address to,
+        uint256 baseTokenAmount
+    ) public virtual override returns (uint256 withdrawn) {
+        require(isLongedMax());
+        if (hedge.number > 0) {
+            revert Hedged();
+        }
+        require(baseTokenAmount <= long.qty);
+        withdrawn = _take(baseToken, baseTokenAmount);
+        baseToken.safeTransfer(to, withdrawn);
+        long.qty -= baseTokenAmount;
+        long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
+        helper.initLiquidity = (long.liquidity * helper.coefMultiplier) / helper.investCoef;
     }
 
     /// @notice invest amount of `quoteToken`

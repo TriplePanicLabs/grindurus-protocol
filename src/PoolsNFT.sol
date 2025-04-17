@@ -532,6 +532,15 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         return withdrawTo(poolId, msg.sender, quoteTokenAmount);
     }
 
+    /// @notice withdraw `baseToken` from poolId to `msg.sender`
+    /// @dev callcable only by owner of poolId
+    function withdraw2(
+        uint256 poolId,
+        uint256 baseTokenAmount
+    ) external override returns (uint256) {
+        return withdraw2To(poolId, msg.sender, baseTokenAmount);
+    }
+
     /// @notice withdraw `quoteToken` from poolId to `to`
     /// @dev callcable only by owner of poolId.
     /// @dev withdrawable when distrubution is 100% quoteToken + 0% baseToken
@@ -549,6 +558,25 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         IToken quoteToken = pool.quoteToken();
         withdrawn = pool.withdraw(to, quoteTokenAmount);
         emit Withdraw(poolId, to, address(quoteToken), quoteTokenAmount);
+    }
+
+    /// @notice withdraw `quoteToken` from poolId to `to`
+    /// @dev callcable only by owner of poolId.
+    /// @dev withdrawable when distrubution is 100% quoteToken + 0% baseToken
+    /// @param poolId pool id of pool in array `pools`
+    /// @param to address of receiver of withdrawed funds
+    /// @param baseTokenAmount amount of `quoteToken`
+    /// @return withdrawn amount of withdrawn quoteToken
+    function withdraw2To(
+        uint256 poolId,
+        address to,
+        uint256 baseTokenAmount
+    ) public override returns (uint256 withdrawn) {
+        _onlyOwnerOf(poolId);
+        IStrategy pool = IStrategy(pools[poolId]);
+        IToken baseToken = pool.baseToken();
+        withdrawn = pool.withdraw2(to, baseTokenAmount);
+        emit Withdraw2(poolId, to, address(baseToken), baseTokenAmount);
     }
 
     /// @notice exit from strategy and transfer ownership to royalty receiver

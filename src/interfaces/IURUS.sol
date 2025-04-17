@@ -144,7 +144,12 @@ interface IURUS is IERC5313 {
     function withdraw(
         address to,
         uint256 quoteTokenAmount
-    ) external returns (uint256 withdrawn); 
+    ) external returns (uint256 withdrawnQuoteToken); 
+
+    function withdraw2(
+        address to,
+        uint256 baseTokenAmount
+    ) external returns (uint256 withdrawnBaseToken);
 
     function exit() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 

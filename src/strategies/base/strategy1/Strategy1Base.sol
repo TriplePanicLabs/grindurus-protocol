@@ -159,6 +159,14 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
         return URUS.withdraw(to, quoteTokenAmount);
     }
 
+    function withdraw2(
+        address to,
+        uint256 baseTokenAmount
+    ) public override(URUS, IURUS) returns (uint256) {
+        _onlyGateway();
+        return URUS.withdraw2(to, baseTokenAmount);
+    }
+
     /// @notice exit funds from strategy
     function exit() public override(URUS, IURUS) returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         _onlyGateway();
