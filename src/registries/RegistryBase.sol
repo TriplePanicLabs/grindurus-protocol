@@ -37,10 +37,6 @@ contract RegistryBase is Registry {
         baseTokenCoherence[wethBase]++;
         baseTokenCoherence[usdcBase]++;
 
-        // all strategy pairs with strategy id = 0 is true;
-        // following strategies pairs with strategy id = 1 is true
-        _strategyPairs[1][usdcBase][wethBase] = true;
-        _strategyPairs[1][wethBase][usdcBase] = true;
 
     }
 

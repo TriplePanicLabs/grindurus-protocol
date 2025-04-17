@@ -46,13 +46,6 @@ contract RegistryArbitrum is Registry {
         baseTokenCoherence[usdtArbitrum]++;
         baseTokenCoherence[usdcArbitrum]++;
 
-        // all strategy pairs with strategy id = 0 is true;
-        // following strategies pairs with strategy id = 1 is true
-        _strategyPairs[1][usdtArbitrum][wethArbitrum] = true;
-        _strategyPairs[1][wethArbitrum][usdtArbitrum] = true;
-
-        _strategyPairs[1][usdcArbitrum][wethArbitrum] = true;
-        _strategyPairs[1][wethArbitrum][usdcArbitrum] = true;
     }
 
 }
