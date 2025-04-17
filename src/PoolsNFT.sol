@@ -138,11 +138,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @dev if maxDeposit == 0, that no limut for maximum deposit
     mapping (address token => uint256) public maxDeposit;
 
-    /// @dev owner of address => is disapproved grinder AI
-    mapping (address _ownerOf => bool) public isDisapprovedGrinderAI;
-
     /// @dev owner of address => agent address => is agent of `_ownerOf`
     /// @dev true - is agent. False - is not agent
+    /// @dev if _agent is grinderAI, than true - is not agent, false - is agent
     mapping (address _ownerOf => mapping (address _agent => bool)) internal _agentApprovals;
 
     /// @dev pool id => owner of pool => depositor => is approved. true - approved, false - not approved
@@ -226,14 +224,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         _onlyOwner();
         poolsNFTLens = IPoolsNFTLens(_poolsNFTLens);
         require(address(poolsNFTLens.poolsNFT()) == address(this));
-    }
-
-    /// @notice sets grinder AI
-    /// @param _grinderAI address of grinder AI 
-    function setGrinderAI(address _grinderAI) external override {
-        _onlyOwner();
-        grinderAI = IGrinderAI(_grinderAI);
-        require(address(grinderAI.poolsNFT()) == address(this));
     }
 
     /// @notice sets minimum deposit
@@ -599,9 +589,17 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     }
 
     /// @notice approve agent to msg.sender
+    /// @dev by default grinderAI is agent. If user wants to directly disaprove grinderAI, it call setAgent with _agentApproval==false
+    ///      if agent is grinderAI, than under the hood _agentApproval it will inversed. 
+    ///      The function `isAgent` will handle inversed approval properly
     /// @param _agent address of agent
+    /// @param _agentApproval true - agent approved, false - agent not approved
     function setAgent(address _agent, bool _agentApproval) external override {
-        _agentApprovals[msg.sender][_agent] = _agentApproval;
+        if (_agent == address(grinderAI)) {
+            _agentApprovals[msg.sender][_agent] = !_agentApproval;
+        } else{
+            _agentApprovals[msg.sender][_agent] = _agentApproval;
+        }
     }
 
     /// @notice rebalance the pools with poolIds `poolId0` and `poolId1`
@@ -955,13 +953,13 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     }
 
     /// @notice return true, if `_agent` is agent of `_ownerOf`. Else false
+    /// @dev ownerOf is always self agent
     /// @dev `_ownerOf` is agent of `_ownerOf`. Approved `_agent` of `_ownerOf` is agent
     function isAgentOf(address _ownerOf, address _agent) public view override returns (bool) {
         if (balanceOf(_ownerOf) > 0) {
             if (_agent == address(grinderAI)) {
-                return !isDisapprovedGrinderAI[_ownerOf]; // by default grinderAI is agent of ownerOf
+                return (_ownerOf == _agent || !_agentApprovals[_ownerOf][_agent]);
             } else {
-                // ownerOf is always self agent
                 return (_ownerOf == _agent || _agentApprovals[_ownerOf][_agent]); 
             }
         } else {

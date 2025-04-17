@@ -138,8 +138,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function maxDeposit(address token) external view returns (uint256);
     
-    function isDisapprovedGrinderAI(address ownerOf) external view returns (bool);
-
     function init(address _poolsNFTLens, address _grETH, address _grinderAI) external;
 
     //// ONLY STRATEGIEST FUNCTIONS
@@ -151,8 +149,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     //// ONLY OWNER FUNCTIONS
 
     function setPoolsNFTLens(address _poolsNFTLens) external;
-
-    function setGrinderAI(address _grinderAI) external;
 
     function setMinDeposit(address token, uint256 _minDeposit) external;
 
