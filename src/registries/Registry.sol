@@ -76,9 +76,6 @@ contract Registry is IRegistry {
     /// @dev base token address => coherence of base token
     mapping (address baseToken => uint256) public baseTokenCoherence;
 
-    /// @dev id of strategy => address of token => allowed token for strategy
-    mapping (uint256 strategyId => mapping (address quoteToken => mapping(address baseToken => bool))) internal _strategyPairs;
-
     constructor(address _poolsNFT) {
         if (_poolsNFT == address(0)) {
             poolsNFT = IPoolsNFT(msg.sender);
@@ -152,22 +149,6 @@ contract Registry is IRegistry {
             }
             quoteTokens.pop();
         }
-    }
-
-    /// @notice set strategy pair
-    /// @param strategyId id of strategy
-    /// @param quoteToken address of quote token
-    /// @param baseToken address of base token
-    /// @param _isStrategyPair true - strategy pair, false - not strategy pair
-    function setStrategyPair(uint16 strategyId, address quoteToken, address baseToken, bool _isStrategyPair) public override {
-        _onlyOwner();
-        if (quoteTokenCoherence[quoteToken] == 0) {
-            revert QuoteTokenNotListed();
-        }
-        if (baseTokenCoherence[baseToken] == 0) {
-            revert BaseTokenNotListed();
-        }
-        _strategyPairs[strategyId][quoteToken][baseToken] = _isStrategyPair;
     }
 
     /// @notice add strategy id to `strategyIds` array
@@ -267,17 +248,6 @@ contract Registry is IRegistry {
             return priceOracleSelf;
         }
         return oracles[quoteToken][baseToken];
-    }
-
-    /// @notice returns if it is strategy pair
-    /// @param strategyId id of strategy
-    /// @param quoteToken address of quote token
-    /// @param baseToken address of base token
-    function isStrategyPair(uint256 strategyId, address quoteToken, address baseToken) public view override returns (bool) {
-        if (strategyId == 0 && quoteTokenCoherence[quoteToken] > 0 && baseTokenCoherence[baseToken] > 0) {
-            return true;
-        }
-        return _strategyPairs[strategyId][quoteToken][baseToken];
     }
 
     /// @notice return the owner
