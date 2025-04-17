@@ -41,8 +41,6 @@ interface IRegistry {
 
     function unsetOracle(address quoteToken, address baseToken, address oracle) external;
 
-    function setStrategyPair(uint16 strategyId, address quoteToken, address baseToken, bool strategyPair) external;
-
     function addStrategyInfo(uint16 strategyId, address factory, string memory description) external;
 
     function altStrategyInfo(uint16 strategyId, address factory, string memory description) external;
@@ -56,8 +54,6 @@ interface IRegistry {
     function removeGRAIInfo(uint32 endpointId) external;
 
     function getOracle(address quoteToken, address baseToken) external view returns (address);
-
-    function isStrategyPair(uint256 strategyId, address quoteToken, address baseToken) external returns (bool);
 
     function owner() external view returns (address);
 
