@@ -30,8 +30,6 @@ contract NoDexAdapter is IDexAdapter {
         (arg) = abi.decode(args, (string));
     } 
 
-    function _onlyAgent() internal view virtual {}
-
     /// @notice swaps assets
     /// @param tokenIn address of tokenIn
     /// @param tokenOut address of token out
