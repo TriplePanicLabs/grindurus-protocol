@@ -6,6 +6,9 @@ import {IStrategy} from "./IStrategy.sol";
 
 interface IStrategyFactory {
 
+    error NotOwner();
+    error NotGateway();
+
     function poolsNFT() external view returns (IPoolsNFT);
 
     function deploy(

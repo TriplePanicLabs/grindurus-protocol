@@ -8,7 +8,7 @@ import {IURUS} from "src/interfaces/IURUS.sol";
 import {IRegistry} from "src/interfaces/IRegistry.sol";
 import {ERC1967Proxy} from "lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-/// @title GrindURUS Factory Pool Strategy 1
+/// @title GrindURUS Strategy1 Factory
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice factory, that is responsible for deployment of Strategy1 on Arbitrum
 contract Strategy1FactoryArbitrum is IStrategyFactory {
@@ -63,14 +63,18 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
         feeToken = wethArbitrum;
     }
 
-    /// @notice checks that msg.sender is poolsNFT
-    function _onlyPoolsNFT() internal view {
-        require(msg.sender == address(poolsNFT));
+    /// @dev checks that msg.sender is gateway
+    function _onlyGateway() internal view virtual {
+        if (msg.sender != address(poolsNFT)) {
+            revert NotGateway();
+        }
     }
 
     /// @notice checks that msg.sender is owner
     function _onlyOwner() internal view {
-        require(msg.sender == owner());
+        if (msg.sender != owner()) {
+            revert NotOwner();
+        }
     }
 
     /// @notice sets strategy implementation
@@ -123,7 +127,7 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
         address baseToken,
         address quoteToken
     ) public override returns (address) {
-        _onlyPoolsNFT();
+        _onlyGateway();
         address oracleQuoteTokenPerFeeToken = registry.getOracle(quoteToken, feeToken); // may be address(0)
         address oracleQuoteTokenPerBaseToken = registry.getOracle(quoteToken, baseToken); // may be address(0)
         Strategy1Arbitrum pool = Strategy1Arbitrum(_deploy());

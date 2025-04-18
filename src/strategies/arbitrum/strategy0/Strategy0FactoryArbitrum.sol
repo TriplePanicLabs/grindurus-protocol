@@ -63,14 +63,18 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
         feeToken = wethArbitrum;
     }
 
-    /// @notice checks that msg.sender is poolsNFT
-    function _onlyPoolsNFT() internal view {
-        require(msg.sender == address(poolsNFT));
+    /// @dev checks that msg.sender is gateway
+    function _onlyGateway() internal view virtual {
+        if (msg.sender != address(poolsNFT)) {
+            revert NotGateway();
+        }
     }
 
     /// @notice checks that msg.sender is owner
     function _onlyOwner() internal view {
-        require(msg.sender == owner());
+        if (msg.sender != owner()) {
+            revert NotOwner();
+        }
     }
 
     /// @notice sets strategy implementation
@@ -116,7 +120,7 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
         address baseToken,
         address quoteToken
     ) public override returns (address) {
-        _onlyPoolsNFT();
+        _onlyGateway();
         address oracleQuoteTokenPerFeeToken = registry.getOracle(quoteToken, feeToken); // may be address(0)
         address oracleQuoteTokenPerBaseToken = registry.getOracle(quoteToken, baseToken); //  may be address(0)
         Strategy0Arbitrum pool = Strategy0Arbitrum(_deploy());
