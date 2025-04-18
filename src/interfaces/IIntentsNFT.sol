@@ -3,6 +3,7 @@ pragma solidity =0.8.28;
 
 interface IIntentsNFT {
 
+    error NotTransferable();
     error NotOwner();
     error NotGrinderAI();
     error NotPaymentToken();

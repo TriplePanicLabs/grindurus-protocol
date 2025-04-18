@@ -10,7 +10,7 @@ import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/
 import {ERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 
 /// @title IntentsNFT
-/// @notice pseudoSoulBoundToken
+/// @notice SoulBoundToken
 /// @dev store intents for grind onchain. Used by GrinderAI
 contract IntentsNFT is IIntentsNFT, ERC721 {
     using SafeERC20 for IToken;
@@ -142,28 +142,14 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         emit Mint(intentId, to, _grinds);
     }
 
-    /// @notice transfer intent from msg.sender to `to`
-    /// @param to address of receiver of intent id
-    /// @param intentId id of intent
-    function transfer(address to, uint256 intentId) public override {
-        _transfer(msg.sender, to, intentId);
+    /// @notice not transferable. Use mint()
+    function transfer(address, uint256) public override {
+        revert NotTransferable();
     }
 
-    /// @notice updates the ownership of NFT
-    /// @param to address or receiver of NFT
-    /// @param tokenId id of intent id
-    /// @param auth authenticated sender
-    function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
-        if (balanceOf(to) > 0) {
-            revert Owned();
-        }
-        address previousOwner = super._update(to, tokenId, auth);
-        if (to == address(0)) {
-            return previousOwner;
-        }
-        intentIdOf[previousOwner] = 0;
-        intentIdOf[to] = tokenId;
-        return previousOwner;
+    /// @notice not transferable. Use mint(). Use mint()
+    function transferFrom(address, address, uint256) public override {
+        revert NotTransferable();
     }
 
     /// @notice pays for the mint
