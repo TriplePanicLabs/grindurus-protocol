@@ -479,79 +479,79 @@ The `hedge` position tracks data for hedging against price declines:
       2. 📊 Updates the long position with the new price and quantity.
 
     ---
-    # grETH 🪙
+# grETH 🪙
 
-    The **grETH** token is the incentivization token within the GrindURUS protocol. It rewards users (referred to as "grinders") for executing strategy iterations and serves as a mechanism to align incentives between participants and the protocol. The token is ERC-20 compliant and integrates seamlessly with the GrindURUS Pools NFT. 🎴
+The **grETH** token is the incentivization token within the GrindURUS protocol. It rewards users (referred to as "grinders") for executing strategy iterations and serves as a mechanism to align incentives between participants and the protocol. The token is ERC-20 compliant and integrates seamlessly with the GrindURUS Pools NFT. 🎴
 
-    ### **Share Calculation** 📊
-    - The `share` function calculates the proportional value of a specified amount of grETH in terms of a chosen asset (native or ERC-20 token). 🔄
-    - **Formula**: `(Liquidity * grETH Amount) / Total grETH Supply` 🧮
+### **Share Calculation** 📊
+- The `share` function calculates the proportional value of a specified amount of grETH in terms of a chosen asset (native or ERC-20 token). 🔄
+- **Formula**: `(Liquidity * grETH Amount) / Total grETH Supply` 🧮
 
-    All ETH transfers to grETH are converted to WETH. 🌐
+All ETH transfers to grETH are converted to WETH. 🌐
 
-    ---
+---
 
-    # Registry 📚
+# Registry 📚
 
-    The **Registry** contract acts as a centralized hub for managing strategy configurations, token pairs, and their associated oracles within the GrindURUS protocol. It ensures seamless integration and consistency across all strategies and token interactions. 🔗
+The **Registry** contract acts as a centralized hub for managing strategy configurations, token pairs, and their associated oracles within the GrindURUS protocol. It ensures seamless integration and consistency across all strategies and token interactions. 🔗
 
-    ### Key Functionalities ✨
-    1. **Strategy Management**: Maintains a registry of strategy IDs and their metadata. 🏗️
-    2. **Token Pairing**: Links quote tokens and base tokens to specific strategies. 💱
-    3. **Oracle Integration**: Associates token pairs with their respective price oracles for accurate pricing data. 📈
+### Key Functionalities ✨
+1. **Strategy Management**: Maintains a registry of strategy IDs and their metadata. 🏗️
+2. **Token Pairing**: Links quote tokens and base tokens to specific strategies. 💱
+3. **Oracle Integration**: Associates token pairs with their respective price oracles for accurate pricing data. 📈
 
-    ### Usage Examples 🛠️
-    #### Adding a Strategy ➕
-    ```solidity
-    registry.addStrategyInfo(666, address(0x1337), "Strategy666");
-    ```
+### Usage Examples 🛠️
+#### Adding a Strategy ➕
+```solidity
+registry.addStrategyInfo(666, address(0x1337), "Strategy666");
+```
 
-    #### Altering a Strategy ✏️
-    ```solidity
-    registry.altStrategyInfo(666, address(0x69), "Strategy777");
-    ```
+#### Altering a Strategy ✏️
+```solidity
+registry.altStrategyInfo(666, address(0x69), "Strategy777");
+```
 
-    #### Removing a Strategy ❌
-    ```solidity
-    registry.removeStrategyInfo(666);
-    ```
+#### Removing a Strategy ❌
+```solidity
+registry.removeStrategyInfo(666);
+```
 
-    #### Adding a GRAI Info ➕
-    ```solidity
-    registry.addGRAIInfo(666, address(0x1337), "GrinderAI token on Arbitrum");
-    ```
+#### Adding a GRAI Info ➕
+```solidity
+registry.addGRAIInfo(666, address(0x1337), "GrinderAI token on Arbitrum");
+```
 
-    #### Altering a GRAI Info ✏️
-    ```solidity
-    registry.altStrategyInfo(666, address(0x69), "GrinderAI token on Arbitrum One");
-    ```
+#### Altering a GRAI Info ✏️
+```solidity
+registry.altStrategyInfo(666, address(0x69), "GrinderAI token on Arbitrum One");
+```
 
-    #### Removing a GRAI Info ❌
-    ```solidity
-    registry.removeGRAIInfo(666);
-    ```
+#### Removing a GRAI Info ❌
+```solidity
+registry.removeGRAIInfo(666);
+```
 
-    #### Registering an Oracle 🛠️
-    ```solidity
-    registry.setOracle(quoteTokenAddress, baseTokenAddress, oracleAddress);
-    ```
+#### Registering an Oracle 🛠️
+```solidity
+registry.setOracle(quoteTokenAddress, baseTokenAddress, oracleAddress);
+```
 
-    #### Unregistering an Oracle ❌
-    ```solidity
-    registry.unsetOracle(quoteTokenAddress, baseTokenAddress, oracleAddress);
-    ```
+#### Unregistering an Oracle ❌
+```solidity
+registry.unsetOracle(quoteTokenAddress, baseTokenAddress, oracleAddress);
+```
 
-    #### Querying an Oracle for a Token Pair 🔍
-    ```solidity
-    address oracle = registry.getOracle(quoteTokenAddress, baseTokenAddress);
-    ```
+#### Querying an Oracle for a Token Pair 🔍
+```solidity
+address oracle = registry.getOracle(quoteTokenAddress, baseTokenAddress);
+```
 
-    #### Querying GRAI Infos 🔍
-    ```solidity
-    function getGRAIInfos() public view override returns (GRAIInfo[] memory)
-    ```
+#### Querying GRAI Infos 🔍
+```solidity
+function getGRAIInfos() public view override returns (GRAIInfo[] memory)
+```
 
-    ---
+---
 
 # IntentsNFT 🎯
 
