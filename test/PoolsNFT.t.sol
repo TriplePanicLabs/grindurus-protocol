@@ -165,6 +165,31 @@ contract PoolsNFTTest is Test {
         assert(price > 0);
     }
 
+    function test_mint_grind_withdraw2() public {
+        uint16 strategyId = 1;
+        address baseToken = wethArbitrum;
+        address quoteToken = usdtArbitrum;
+        uint256 quoteTokenAmount = 270e6;
+        deal(quoteToken, address(this), quoteTokenAmount);
+        IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
+        uint256 poolId = poolsNFT.mint(
+            strategyId,
+            baseToken,
+            quoteToken,
+            quoteTokenAmount
+        );
+        pool = Strategy1Arbitrum(payable(poolsNFT.pools(poolId)));
+    
+        pool.setLongNumberMax(1);
+
+        poolsNFT.grind(poolId);
+        address to = address(this);        
+        (, , , , uint256 qty, , ,) = pool.long();
+        uint256 baseTokenAmount = qty / 2;
+        uint256 withdrawn = poolsNFT.withdraw2(poolId, to, baseTokenAmount);
+        assert (withdrawn == baseTokenAmount);
+    }
+
     function test_mint_and_exit() public {
         uint16 strategyId = 1;
         address baseToken = wethArbitrum;

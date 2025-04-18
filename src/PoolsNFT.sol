@@ -523,24 +523,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         );
     }
 
-    /// @notice withdraw `quoteToken` from poolId to `msg.sender`
-    /// @dev callcable only by owner of poolId
-    function withdraw(
-        uint256 poolId,
-        uint256 quoteTokenAmount
-    ) external override returns (uint256) {
-        return withdrawTo(poolId, msg.sender, quoteTokenAmount);
-    }
-
-    /// @notice withdraw `baseToken` from poolId to `msg.sender`
-    /// @dev callcable only by owner of poolId
-    function withdraw2(
-        uint256 poolId,
-        uint256 baseTokenAmount
-    ) external override returns (uint256) {
-        return withdraw2To(poolId, msg.sender, baseTokenAmount);
-    }
-
     /// @notice withdraw `quoteToken` from poolId to `to`
     /// @dev callcable only by owner of poolId.
     /// @dev withdrawable when distrubution is 100% quoteToken + 0% baseToken
@@ -548,7 +530,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @param to address of receiver of withdrawed funds
     /// @param quoteTokenAmount amount of `quoteToken`
     /// @return withdrawn amount of withdrawn quoteToken
-    function withdrawTo(
+    function withdraw(
         uint256 poolId,
         address to,
         uint256 quoteTokenAmount
@@ -567,7 +549,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @param to address of receiver of withdrawed funds
     /// @param baseTokenAmount amount of `quoteToken`
     /// @return withdrawn amount of withdrawn quoteToken
-    function withdraw2To(
+    function withdraw2(
         uint256 poolId,
         address to,
         uint256 baseTokenAmount

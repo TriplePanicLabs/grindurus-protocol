@@ -38,7 +38,9 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
 
     /// @dev checks that msg.sender is gateway
     function _onlyGateway() internal view virtual {
-        require(msg.sender == address(poolsNFT));
+        if (msg.sender != address(poolsNFT)) {
+            revert NotGateway();
+        }
     }
 
     /// @dev checks that msg.sender is agent

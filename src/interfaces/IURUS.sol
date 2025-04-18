@@ -7,8 +7,6 @@ import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interf
 
 interface IURUS is IERC5313 {
 
-    error NotOwner();
-    error NotAgent();
     error InvalidOp();
     error NotLongNumberMax();
     error Longed();

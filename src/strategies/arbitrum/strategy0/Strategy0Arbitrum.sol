@@ -39,7 +39,9 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
 
     /// @dev checks that msg.sender is gateway
     function _onlyGateway() internal view virtual {
-        require(msg.sender == address(poolsNFT));
+        if (msg.sender != address(poolsNFT)) {
+            revert NotGateway();
+        }
     }
 
     /// @dev checks that msg.sender is agent

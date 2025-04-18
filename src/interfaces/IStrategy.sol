@@ -8,6 +8,10 @@ import {IURUS} from "src/interfaces/IURUS.sol";
 /// @notice the interface for Strategy Pool
 interface IStrategy is IURUS {
 
+    error NotOwner();
+    error NotAgent();
+    error NotGateway();
+
     function poolsNFT() external view returns (IPoolsNFT);
 
     function poolId() external view returns (uint256);

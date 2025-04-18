@@ -218,21 +218,11 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function withdraw(
         uint256 poolId,
-        uint256 quoteTokenAmount
-    ) external returns (uint256 withdrawnQuoteTokenAmount);
-
-    function withdrawTo(
-        uint256 poolId,
         address to,
         uint256 quoteTokenAmount
     ) external returns (uint256 withdrawnQuoteTokenAmount);
 
     function withdraw2(
-        uint256 poolId,
-        uint256 baseTokenAmount
-    ) external returns (uint256 withdrawnBaseTokenAmount);
-
-    function withdraw2To(
         uint256 poolId,
         address to,
         uint256 baseTokenAmount

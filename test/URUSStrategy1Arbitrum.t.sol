@@ -409,7 +409,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         console.log("4) Long sell");
         printLongPosition(poolId0);
 
-        poolsNFT.withdraw(poolId0, type(uint256).max);
+        poolsNFT.withdraw(poolId0, address(this), type(uint256).max);
         console.log("5) Withdraw");
         printLongPosition(poolId0);
     }

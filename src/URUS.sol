@@ -337,7 +337,9 @@ contract URUS is IURUS {
         address to,
         uint256 quoteTokenAmount
     ) public virtual override returns (uint256 withdrawn) {
-        require(long.number == 0);
+        if (long.number > 0) {
+            revert Longed();
+        }
         withdrawn = _take(quoteToken, quoteTokenAmount);
         _divest(withdrawn);
         quoteToken.safeTransfer(to, withdrawn);
@@ -350,7 +352,9 @@ contract URUS is IURUS {
         address to,
         uint256 baseTokenAmount
     ) public virtual override returns (uint256 withdrawn) {
-        require(isLongedMax());
+        if (!isLongedMax()) {
+            revert NotLongNumberMax();
+        } 
         if (hedge.number > 0) {
             revert Hedged();
         }
@@ -1416,7 +1420,7 @@ contract URUS is IURUS {
     }
 
     /// @notice returns the owner of strategy pool
-    /// @dev may be reimplemented in inherrited contracts
+    /// @dev should be reimplemented in inherrited contracts
     function owner() public view virtual override(IERC5313) returns (address){
         return address(0); // no owner
     }
