@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.28;
 
+import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
+
 interface IIntentsNFT {
 
     error NotTransferable();
@@ -19,19 +21,29 @@ interface IIntentsNFT {
         uint256[] poolIds;
     }
 
-    function totalIntents() external view returns (uint256);
+    function poolsNFT() external view returns (IPoolsNFT);
+
+    function grinder() external view returns (address payable);
 
     function baseURI() external view returns (string memory);
 
+    function totalIntents() external view returns (uint256);
+
+    function freemiumGrinds() external view returns (uint256);
+
+    function totalGrinds() external view returns (uint256);
+
+    function intentIdOf(address account) external view returns (uint256);
+
+    function grindsOf(address account) external view returns (uint256);
+
     function grinds(uint256 intentId) external view returns (uint256);
+
+    function ratePerGrind(address paymentToken) external view returns (uint256);
 
     function spentGrinds(uint256 intentId) external view returns (uint256);
 
     function unspentGrinds(uint256 intentId) external view returns (uint256);
-
-    function intentIdOf(address account) external view returns (uint256);
-
-    function ratePerGrind(address paymentToken) external view returns (uint256);
 
     function setRatePerGrind(address token, uint256 _ratePerGrind) external;
 
@@ -40,8 +52,6 @@ interface IIntentsNFT {
     function mint(address paymentToken, uint256 period) external payable returns (uint256);
 
     function mintTo(address paymentToken, address to, uint256 period) external payable returns (uint256);
-
-    function transfer(address to, uint256 intentId) external;
 
     function owner() external view returns (address payable);
 

@@ -2,8 +2,7 @@
 pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
-import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {IIntentsNFT} from "src/interfaces/IIntentsNFT.sol";
+import {IIntentsNFT, IPoolsNFT} from "src/interfaces/IIntentsNFT.sol";
 import {Base64} from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
 import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -24,7 +23,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     IPoolsNFT public poolsNFT;
 
     /// @dev address of receiver of funds
-    address payable public fundsReceiver;
+    address payable public grinder;
 
     /// @dev total supply
     uint256 public totalIntents;
@@ -38,8 +37,8 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @dev address of owner of intent => intent id
     mapping (address account => uint256) public intentIdOf;
 
-    /// @dev address of user => total grinds earned
-    mapping (address user => uint256) public grindsOf;
+    /// @dev address of account => total grinds earned
+    mapping (address account => uint256) public grindsOf;
 
     /// @dev id of intent => grinds amount
     mapping (uint256 intentId => uint256) public grinds;
@@ -53,7 +52,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @param _poolsNFT address of poolsNFT
     constructor(address _poolsNFT) ERC721("GrinderAI Intents Collection", "grAI_INTENTS") {
         poolsNFT = IPoolsNFT(_poolsNFT);
-        fundsReceiver = owner();
+        grinder = owner();
         ratePerGrind[address(0)] = 0.0001 ether; // may be changed by owner
         freemiumGrinds = 5;
         uint256 zeroIntentId = 0;
@@ -70,13 +69,6 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         }
     }
 
-    /// @notice checks that msg.sender is grinderAI
-    function _onlyGrinderAI() private view {
-        if (msg.sender != address(poolsNFT.grinderAI())) {
-            revert NotGrinderAI();
-        }
-    }
-
     /// @notice sets freemium grinds
     /// @param _freemiumGrinds amount of free grinds
     function setFreemiumGrinds(uint256 _freemiumGrinds) public {
@@ -85,12 +77,11 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     }
 
     /// @notice sets funds receiver
-    /// @param _fundsReceiver address of funds receiver
-    function setFundsReceiver(address payable _fundsReceiver) public {
+    /// @param _grinder address of funds receiver
+    function setGrinder(address payable _grinder) public {
         _onlyOwner();
-        fundsReceiver = _fundsReceiver;
+        grinder = _grinder;
     }
-
 
     /// @param token address of token
     /// @param _ratePerGrind rate of token one grind
@@ -119,7 +110,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @param _grinds amount of grinds
     function mintTo(address paymentToken, address to, uint256 _grinds) public payable override returns (uint256 intentId) {
         uint256 paymentAmount = calcPayment(paymentToken, _grinds);
-        _pay(paymentToken, fundsReceiver, paymentAmount);
+        _pay(paymentToken, grinder, paymentAmount);
         intentId = _mintTo(to, _grinds);
     }
 
@@ -140,11 +131,6 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         grinds[intentId] += _grinds;
         totalGrinds += _grinds;
         emit Mint(intentId, to, _grinds);
-    }
-
-    /// @notice not transferable. Use mint()
-    function transfer(address, uint256) public override {
-        revert NotTransferable();
     }
 
     /// @notice not transferable. Use mint(). Use mint()
@@ -297,7 +283,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
 
     receive() external payable {
         if (msg.value > 0) {
-            (bool success, ) = address(poolsNFT).call{value: msg.value}("");
+            (bool success, ) = address(grinder).call{value: msg.value}("");
             success;
         }
     }
