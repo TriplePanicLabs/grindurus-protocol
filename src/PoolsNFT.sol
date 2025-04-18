@@ -383,7 +383,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         }
         poolId = _mintTo(to, strategyId, baseToken, quoteToken);
         if (quoteTokenAmount == 0) {
-            require(msg.sender == address(grinderAI));
+            if (msg.sender != address(grinderAI)) {
+                revert NotGrinderAI();
+            }
         } else {
             _deposit(
                 poolId,
@@ -720,23 +722,19 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         if (op == uint8(IURUS.Op.LONG_BUY)) {
             try pool.long_buy() {
                 isGrinded = true;
-            }
-            catch {}
+            } catch {}
         } else if (op == uint8(IURUS.Op.LONG_SELL)) {
             try pool.long_sell() {
                 isGrinded = true;
-            }
-            catch {}
+            } catch {}
         } else if (op == uint8(IURUS.Op.HEDGE_SELL)) {
             try pool.hedge_sell() {
                 isGrinded = true;
-            }
-            catch {}
+            } catch {}
         } else if (op == uint8(IURUS.Op.HEDGE_REBUY)) {
             try pool.hedge_rebuy() {
                 isGrinded = true;
-            }
-            catch {}
+            } catch {}
         } else {
             revert InvalidOp();
         }
