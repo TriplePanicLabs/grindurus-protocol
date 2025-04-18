@@ -384,101 +384,103 @@ The `hedge` position tracks data for hedging against price declines:
   3. 💰 `baseToken` is transferred from the gateway.
   4. 🏦 Put `baseToken` into the lending protocol.
   5. 🔄 Recalculate all position-related parameters.
-  ## 10. How Deposit3 Works 💳
-  - **Action**: Deposit `quoteToken` into the strategy pool. 🏦
-  - **Steps**:
-    1. ✅ Check that the long position used all liquidity.
-    2. 🛡️ Check that liquidity is not hedged.
-    3. 💰 `quoteToken` is transferred from the gateway.
-    4. 🔄 Swap `quoteToken` to `baseToken`.
-    5. 🏗️ Make an investment (recalculate `initialLiquidity`).
-    6. 🏦 Put `baseToken` into the lending protocol.
-    7. 📊 Recalculate all position-related parameters.
+  
+## 10. How Deposit3 Works 💳
+- **Action**: Deposit `quoteToken` into the strategy pool. 🏦
+- **Steps**:
+1. ✅ Check that the long position used all liquidity.
+2. 🛡️ Check that liquidity is not hedged.
+3. 💰 `quoteToken` is transferred from the gateway.
+4. 🔄 Swap `quoteToken` to `baseToken`.
+5. 🏗️ Make an investment (recalculate `initialLiquidity`).
+6. 🏦 Put `baseToken` into the lending protocol.
+7. 📊 Recalculate all position-related parameters.
 
-  ---
+---
 
-  ## 11. How Withdraw Works 🏧
-  - **Action**: Withdraw `quoteToken` from the pool. 💵
-  - **Steps**:
-    1. ✅ Check that no liquidity is used.
-    2. 💰 Take `quoteTokenAmount`.
-    3. 📤 Transfer `quoteTokenAmount` to the withdrawer.
+## 11. How Withdraw Works 🏧
+- **Action**: Withdraw `quoteToken` from the pool. 💵
+- **Steps**:
+1. ✅ Check that no liquidity is used.
+2. 💰 Take `quoteTokenAmount`.
+3. 📤 Transfer `quoteTokenAmount` to the withdrawer.
 
-  ---
+---
 
-  ## 12. How Exit Works 🚪
-  - **Action**: Exit all positions and withdraw all assets. 💸
-  - **Steps**:
-    1. 🏦 Fetch all `baseToken` and `quoteToken` from lending protocols or fund storage.
-    2. 📤 Transfer tokens to the owner's address.
-    3. 🔄 Reset `long` and `hedge` positions to their initial state.
+## 12. How Exit Works 🚪
+- **Action**: Exit all positions and withdraw all assets. 💸
+- **Steps**:
+1. 🏦 Fetch all `baseToken` and `quoteToken` from lending protocols or fund storage.
+2. 📤 Transfer tokens to the owner's address.
+3. 🔄 Reset `long` and `hedge` positions to their initial state.
 
-  ---
+---
 
-  ## 13. How `long_buy` Works 🛒
-  - **Action**: Executes a buy operation for `baseToken` in a long position. 📈
-  - **Steps**:
-    1. 🧮 Calculate the amount of `quoteToken` required.
-    2. 💰 Fetch `quoteToken` from lending protocols.
-    3. 🔄 Swap `quoteToken` for `baseToken` on a DEX.
-    4. 📊 Update the long position with the new `baseToken` quantity and average price.
+## 13. How `long_buy` Works 🛒
+- **Action**: Executes a buy operation for `baseToken` in a long position. 📈
+- **Steps**:
+1. 🧮 Calculate the amount of `quoteToken` required.
+2. 💰 Fetch `quoteToken` from lending protocols.
+3. 🔄 Swap `quoteToken` for `baseToken` on a DEX.
+4. 📊 Update the long position with the new `baseToken` quantity and average price.
 
-  ---
+---
 
-  ## 14. How `long_sell` Works 🛍️
-  - **Action**: Sells all `baseToken` from a long position. 📉
-  - **Steps**:
-    1. 🏦 Fetch all `baseToken` from lending protocols.
-    2. 🔄 Swap `baseToken` for `quoteToken`.
-    3. ✅ Verify profitability based on thresholds.
-    4. 💵 Distribute profits and reset the long position.
-    ---
+## 14. How `long_sell` Works 🛍️
+- **Action**: Sells all `baseToken` from a long position. 📉
+- **Steps**:
+1. 🏦 Fetch all `baseToken` from lending protocols.
+2. 🔄 Swap `baseToken` for `quoteToken`.
+3. ✅ Verify profitability based on thresholds.
+4. 💵 Distribute profits and reset the long position.
+---
 
-    ## 15. How `hedge_sell` Works 🛡️
-    - **Action**: Sells `baseToken` to hedge against price declines. 📉
-    - **Steps**:
-      1. 🧮 Calculates the `baseToken` quantity to sell.
-      2. 🏦 Fetches `baseToken` from lending protocols.
-      3. 🔄 Swaps `baseToken` for `quoteToken` on a DEX.
-      4. 📊 Updates the hedge position and adjusts the long position.
+## 15. How `hedge_sell` Works 🛡️
+- **Action**: Sells `baseToken` to hedge against price declines. 📉
+- **Steps**:
+  1. 🧮 Calculates the `baseToken` quantity to sell.
+  2. 🏦 Fetches `baseToken` from lending protocols.
+  3. 🔄 Swaps `baseToken` for `quoteToken` on a DEX.
+  4. 📊 Updates the hedge position and adjusts the long position.
 
-    ---
+---
 
-    ## 14. How `hedge_rebuy` Works 🔄
-    - **Action**: Rebuys `baseToken` during a hedge position. 📈
-    - **Steps**:
-      1. 💰 Uses `quoteToken` liquidity from the hedge position.
-      2. 🔄 Swaps `quoteToken` for `baseToken` on a DEX.
-      3. 📊 Updates the long position with the re-bought quantity.
-      4. 🛠️ Resets the hedge position.
+## 14. How `hedge_rebuy` Works 🔄
+- **Action**: Rebuys `baseToken` during a hedge position. 📈
+- **Steps**:
+  1. 💰 Uses `quoteToken` liquidity from the hedge position.
+  2. 🔄 Swaps `quoteToken` for `baseToken` on a DEX.
+  3. 📊 Updates the long position with the re-bought quantity.
+  4. 🛠️ Resets the hedge position.
 
-    ---
+---
 
-    ## 15. How `iterate` Works 🔁
-    - **Action**: Executes the appropriate trading operation based on the current state. ⚙️
-    - **Steps**:
-      1. 🛒 Calls `long_buy` if no positions exist.
-      2. 🔄 Calls `long_sell` or `long_buy` if a long position is active.
-      3. 🛡️ Calls `hedge_sell` or `hedge_rebuy` if hedging is active.
-      4. 📢 Emits events for each operation.
+## 15. How `iterate` Works 🔁
+- **Action**: Executes the appropriate trading operation based on the current state. ⚙️
+- **Steps**:
+  1. 🛒 Calls `long_buy` if no positions exist.
+  2. 🔄 Calls `long_sell` or `long_buy` if a long position is active.
+  3. 🛡️ Calls `hedge_sell` or `hedge_rebuy` if hedging is active.
+  4. 📢 Emits events for each operation.
 
-    ---
+---
 
-    ## 16. How `beforeRebalance` and `afterRebalance` Works ⚖️
-    ### `beforeRebalance`:
-    - **Action**: Prepares the strategy for rebalancing. 🛠️
-    - **Steps**:
-      1. 🏦 Fetches all `baseToken` from lending protocols.
-      2. 🔄 Transfers tokens to the rebalancing contract (gateway).
-      3. 📊 Adjusts the long position accordingly.
+## 16. How `beforeRebalance` and `afterRebalance` Works ⚖️
+### `beforeRebalance`:
+- **Action**: Prepares the strategy for rebalancing. 🛠️
+- **Steps**:
+  1. 🏦 Fetches all `baseToken` from lending protocols.
+  2. 🔄 Transfers tokens to the rebalancing contract (gateway).
+  3. 📊 Adjusts the long position accordingly.
 
-    ### `afterRebalance`:
-    - **Action**: Updates the strategy after rebalancing. 🔧
-    - **Steps**:
-      1. 🏦 Fetches rebalanced `baseToken` from the rebalancing contract.
-      2. 📊 Updates the long position with the new price and quantity.
+### `afterRebalance`:
+- **Action**: Updates the strategy after rebalancing. 🔧
+- **Steps**:
+  1. 🏦 Fetches rebalanced `baseToken` from the rebalancing contract.
+  2. 📊 Updates the long position with the new price and quantity.
 
-    ---
+---
+
 # grETH 🪙
 
 The **grETH** token is the incentivization token within the GrindURUS protocol. It rewards users (referred to as "grinders") for executing strategy iterations and serves as a mechanism to align incentives between participants and the protocol. The token is ERC-20 compliant and integrates seamlessly with the GrindURUS Pools NFT. 🎴
