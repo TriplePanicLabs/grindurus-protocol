@@ -44,10 +44,6 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @dev id of intent => grinds amount
     mapping (uint256 intentId => uint256) public grinds;
 
-    /// @dev id of intent => spent grinds amount
-    /// @notice accumulated on grinderAI backend
-    mapping (uint256 intentId => uint256) public spentGrinds;
-
     /// @dev address of token => rate of token per one day
     /// @dev token is address(0), this is ETH. Else ERC20 token
     /// @dev if ratePerGrind==type(uint256).max, than payment if free on `paymentToken`
@@ -95,25 +91,6 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         fundsReceiver = _fundsReceiver;
     }
 
-    /// @notice sets spent grinds
-    /// @param intentId id of intent
-    /// @param _spentGrinds address of spent grinds
-    function setSpentGrinds(uint256 intentId, uint256 _spentGrinds) public {
-        _onlyGrinderAI();
-        spentGrinds[intentId] = _spentGrinds;
-    }
-
-    /// @notice sets spent grinds
-    /// @param intentIds array of intent ids
-    /// @param _spentGrinds array of spent grinds
-    function batchSetSpentGrinds(uint256[] memory intentIds, uint256[] memory _spentGrinds) public {
-        _onlyGrinderAI();
-        uint256 len = intentIds.length;
-        for (uint256 i; i < len;) {
-            spentGrinds[intentIds[i]] = _spentGrinds[i];
-            unchecked { ++i; }
-        }
-    }
 
     /// @param token address of token
     /// @param _ratePerGrind rate of token one grind
@@ -235,7 +212,22 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         }
     }
 
-    /// @notice get intent by poolId
+    /// @notice return spent grinds
+    function spentGrinds(uint256 intentId) public view returns (uint256) {
+        return poolsNFT.spentGrinds(ownerOf(intentId));
+    }
+
+    /// @notice onchain function to get unspent grinds
+    function unspentGrinds(uint256 intentId) public view returns (uint256) {
+        uint256 _spentGrinds = spentGrinds(intentId);
+        if (_spentGrinds <= grinds[intentId]){
+            return grinds[intentId] - _spentGrinds;
+        } else {
+            return 0;
+        }
+    }
+
+    /// @notice get intent by `poolId` on `poolsNFT`
     /// @param poolId id of pool on poolsNFT
     function getIntentBy(uint256 poolId) public view override 
         returns (
@@ -306,26 +298,6 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @notice return true if `paymentToken` is payment token 
     function isPaymentToken(address paymentToken) public view override returns (bool) {
         return ratePerGrind[paymentToken] > 0;
-    }
-
-    /// @notice onchain function to get unspent grinds
-    function unspentGrinds(uint256 intentId) public view returns (uint256) {
-        if (spentGrinds[intentId] <= grinds[intentId]){
-            return grinds[intentId] - spentGrinds[intentId];
-        } else {
-            return 0;
-        }
-    }
-    /// @notice onchain function to get batch unspent grinds
-    /// @param intentIds array of intent ids
-    function batchUnspentGrinds(uint256[] memory intentIds) public view returns (uint256[] memory) {
-        uint256 len = intentIds.length;
-        uint256[] memory unspent = new uint256[](len);
-        for (uint256 i; i < len;) {
-            unspent[i] = unspentGrinds(intentIds[i]);
-            unchecked { ++i; }
-        }
-        return unspent;
     }
 
     /// @notice return chain id

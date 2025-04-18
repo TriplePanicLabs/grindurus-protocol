@@ -24,6 +24,10 @@ interface IIntentsNFT {
 
     function grinds(uint256 intentId) external view returns (uint256);
 
+    function spentGrinds(uint256 intentId) external view returns (uint256);
+
+    function unspentGrinds(uint256 intentId) external view returns (uint256);
+
     function intentIdOf(address account) external view returns (uint256);
 
     function ratePerGrind(address paymentToken) external view returns (uint256);

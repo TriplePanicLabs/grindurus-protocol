@@ -138,6 +138,10 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @dev if maxDeposit == 0, that no limut for maximum deposit
     mapping (address token => uint256) public maxDeposit;
 
+    /// @notice accounting how much `grinderAI` called grind behalf to _ownerOf
+    /// @dev address of ownerOf poolId => amount of grinds spent
+    mapping (address _ownerOf => uint256) public spentGrinds;
+
     /// @dev owner of address => agent address => is agent of `_ownerOf`
     /// @dev true - is agent. False - is not agent
     /// @dev if _agent is grinderAI, than true - is not agent, false - is agent
@@ -693,6 +697,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         if (isGrinded) {
             uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
             _reward(poolId, grethReward, grinder);
+            _increaseSpentGrinds(poolId);
             emit Grind(poolId, type(uint8).max, grinder, isGrinded);
         }
     }
@@ -738,6 +743,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         if (isGrinded) {
             uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
             _reward(poolId, grethReward, grinder);
+            _increaseSpentGrinds(poolId);
             emit Grind(poolId, op, grinder, isGrinded);
         }
     }
@@ -750,6 +756,13 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             grinder
         );
         try grETH.mint(actors, grethShares) {} catch {}
+    }
+
+    /// @notice increase spent grinds by 1
+    function _increaseSpentGrinds(uint256 poolId) internal {
+        if (msg.sender == address(grinderAI)) {
+            spentGrinds[ownerOf(poolId)] += 1;
+        }
     }
 
     /// @notice transfert poolId from `msg.sender` to `to`
