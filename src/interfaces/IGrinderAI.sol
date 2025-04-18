@@ -7,8 +7,8 @@ import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 interface IGrinderAI {
 
     error InvalidLength();
-    error NotAgent();
     error NotOwner();
+    error NotDelegate();
 
     function poolsNFT() external view returns (IPoolsNFT);
 

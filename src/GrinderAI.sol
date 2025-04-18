@@ -56,17 +56,17 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
-    /// @notice checks that msg.sender is agent
-    function _onlyDelegate() private view {
-        if (!isDelegate[msg.sender]) {
-            revert NotAgent();
-        }
-    }
-
     /// @notice checks that msg.sender is owner
     function _onlyOwner() private view {
         if (msg.sender != owner()) {
             revert NotOwner();
+        }
+    }
+
+    /// @notice checks that msg.sender is agent
+    function _onlyDelegate() private view {
+        if (!isDelegate[msg.sender]) {
+            revert NotDelegate();
         }
     }
 
