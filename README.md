@@ -540,18 +540,135 @@ registry.setOracle(quoteTokenAddress, baseTokenAddress, oracleAddress);
 registry.unsetOracle(quoteTokenAddress, baseTokenAddress, oracleAddress);
 ```
 
-
-#### Associating a Token Pair with a Strategy
-```solidity
-registry.setStrategyPair(1, quoteTokenAddress, baseTokenAddress, true);
-```
-
 #### Querying an Oracle for a Token Pair
 ```solidity
 address oracle = registry.getOracle(quoteTokenAddress, baseTokenAddress);
 ```
 
-This implementation ensures flexibility and scalability for managing strategies and token interactions within the protocol.
+#### Quering an GRAIInfos
+```solidity
+function getGRAIInfos() public view override returns (GRAIInfo[] memory)
+```
+
+# IntentsNFT
+
+IntentsNFT is an ERC721-based contract that represents "intents" for executing operations within the GrindURUS protocol. It acts as a pseudo-soulbound token, enabling users to manage "grinds" (units of work) and interact with the protocol's strategies.
+
+## Intent Structure
+The Intent structure represents a user's intent to perform operations within the GrindURUS protocol.
+
+```solidity
+struct Intent {
+    address owner;       // The owner of the intent (user's address).
+    uint256 grinds;      // The total number of grinds (units of work) associated with the intent.
+    uint256[] poolIds;   // An array of pool IDs linked to the intent. Retrieve from PoolsNFT
+}
+```
+
+## Mint Intent
+
+The `mint` function creates a new intent for the caller (msg.sender) and mints an NFT representing that intent. It calculates the required payment for the specified number of grinds and processes the payment.
+
+```solidity
+function mintTo(address paymentToken, address to, uint256 period) external payable returns (uint256);
+```
+
+`paymentToken`: The address of the token used for payment. If paymentToken is address(0), the payment is made in ETH.
+
+`to`: address of receiver of intent
+
+`_grinds`: The number of grinds (units of work) to associate with the new intent.
+
+
+### How It Works:
+
+1. Payment Calculation.
+
+```solidity
+function calcPayment(address paymentToken, uint256 grinds) external view returns (uint256 paymentAmount);
+```
+
+The function calculates the required payment amount using the calcPayment function, based on the `ratePerGrind` of `paymentToken` for the specified payment token.
+
+2. Payment Processing:
+  The payment is processed using the internal  `_pay` function, which transfers the required amount to the `fundsReceiver`.
+3. Minting the Intent:
+
+1) If the user does not already own an intent, a new NFT is minted, and the intent is initialized with the specified number of grinds.
+
+2) If the user already owns an intent, the existing intent is updated with the new grinds.
+
+
+# GRAI
+
+`GRAI` is a cross-chain ERC20 token built on the LayerZero protocol. It facilitates seamless token transfers across multiple blockchains and serves as the primary token for the GrindURUS protocol.
+
+## Parameter Changes
+### GrinderAI-only functions:
+- `setMultiplierNumerator(uint256 _multiplierNumerator)`: set multiply numerator. On LayerZero contracts implemented the fee estimation for crosschain message. Parameter `_multiplierNumerator` sets multiplier for fee estimation. The denominatio is constant 100_00 (100%)
+- `setNativeBridgeFee(uint256 _nativeBridgeFeeNumerator)`: set percent of native bridge fee. If estimation is x ETH, than bridge fee is surplused to estimated fee estimation.
+- `setPeer(uint32 eid, bytes32 _peer)`: set peer for endpoint id. LayerZero stuff
+- `mint(address to, uint256 amount)`: mints grAI token to `to`
+
+## Bridging grAI
+
+`GRAI` use LayerZero infrastructure for bridging
+
+### How to bridge
+
+1. Earn estimation of fee
+```solidity
+function getTotalFeesForBridgeTo(uint32 dstChainId,bytes32 toAddress,uint256 amount) external view returns (uint256 nativeFee, uint256 nativeBridgeFee, uint256 totalNativeFee);
+```
+
+2. Call `bridgeTo` function with value `totalNativeFee` earned on step 1
+```solidity
+function bridgeTo(uint32 dstChainId,bytes32 toAddress,uint256 amount) external payable;
+```
+
+Params:
+
+1) `dstChainId` defined in `graiInfos` on `Registry`
+
+2) `toAddress` encoded to bytes32 address of receiver. The peer is stored as a bytes32 to support non-EVM chains.
+
+3) `amount` amount of GRAI
+
+
+# GrinderAI
+
+`GrinderAI` is a core contract in the GrindURUS protocol that acts as an AI-driven agent for managing and interacting with protocol components. It provides a transparent mechanism for automating operations such as minting tokens, managing pools, and configuring strategies. The contract integrates with PoolsNFT, IntentsNFT, and GRAI to streamline protocol interactions.
+
+## Parameter Changes
+### Owner-only functions:
+- `setAgent(address _agent, bool _isAgent)`: Assigns or removes an agent. Agents can configure pools and strategies.
+- `setPoolsNFT(address _poolsNFT)`: Sets the address of the PoolsNFT contract.
+- `setIntentsNFT(address _intentsNFT)`: Sets the address of the IntentsNFT contract.
+- `setGRAI(address _grAI)`: Sets the address of the GRAI token contract.
+- `function setGrindsRate(uint256 _grindsRate)`: sets grinds rate. 
+- `setGRAIReward(uint256 _graiReward)`: Updates the reward amount of GRAI tokens for grinding operations.
+- `setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value)`: Configures LayerZero bridge gas limits and values.
+- `setMultiplierNumerator(uint256 multiplierNumerator)`: Sets the multiplier numerator for LayerZero fee estimation. The denominator is fixed at 100_00 (100%).
+- `setNativeBridgeFee(uint256 nativeBridgeFeeNumerator)`: Sets the percentage of native bridge fees for LayerZero operations.
+- `setPeer(uint32 eid, bytes32 peer)`: Sets the peer address for a specific endpoint ID. The peer is stored as a bytes32 to support non-EVM chains.
+- `execute(address target, uint256 value, bytes calldata data)`: Executes arbitrary transactions on behalf of the contract.
+- `executeGRAI(address target, uint256 value, bytes calldata data)`: Executes arbitrary transactions on the GRAI contract.
+
+### Delegate-only functions
+- `setConfig(uint256 poolId, IURUS.Config memory config)`: Sets the configuration for a specific pool.
+- `batchSetConfig(uint256[] memory poolIds, IURUS.Config[] memory configs)`: Sets configurations for multiple pools in a single transaction.
+- `setLongNumberMax(uint256 poolId, uint8 longNumberMax)`: Updates the longNumberMax parameter for a pool.
+- `setHedgeNumberMax(uint256 poolId, uint8 hedgeNumberMax)`: Updates the hedgeNumberMax parameter for a pool.
+- `setExtraCoef(uint256 poolId, uint256 extraCoef)`: Updates the extraCoef parameter for a pool.
+- `setPriceVolatilityPercent(uint256 poolId, uint256 priceVolatilityPercent)`: Updates the priceVolatilityPercent parameter for a pool.
+- `setOpReturnPercent(uint256 poolId, uint8 op, uint256 returnPercent)`: Updates the return percentage for a specific operation in a pool.
+- `setOpFeeCoef(uint256 poolId, uint8 op, uint256 feeCoef)`: Updates the fee coefficient for a specific operation in a pool.
+
+### Public functions (callable by anyone):
+- `grind(uint256 poolId)`: Executes a grinding operation on a specific pool and mints GRAI rewards if successful.
+- `grindOp(uint256 poolId, uint8 op)`: Executes a specific operation (e.g., buy, sell, hedge) on a pool and mints GRAI rewards if successful.
+- `batchGrind(uint256[] memory poolIds)`: Executes grinding operations on multiple pools.
+- `batchGrindOp(uint256[] memory poolIds, uint8[] memory ops)`: Executes specific operations on multiple pools.
 
 # Build
 
