@@ -575,7 +575,7 @@ struct Intent {
 The `mint` function creates a new intent for the caller (`msg.sender`) and mints an NFT representing that intent. It calculates the required payment for the specified number of grinds and processes the payment. 💰
 
 ```solidity
-function mintTo(address paymentToken, address to, uint256 period) external payable returns (uint256);
+function mintTo(address paymentToken, address to, uint256 _grinds) external payable returns (uint256);
 ```
 
 - **`paymentToken`**: The address of the token used for payment. If `paymentToken` is `address(0)`, the payment is made in ETH. 🪙
@@ -593,11 +593,14 @@ function calcPayment(address paymentToken, uint256 grinds) external view returns
 The function calculates the required payment amount using the `calcPayment` function, based on the `ratePerGrind` of `paymentToken` for the specified payment token. 📊
 
 2. **Payment Processing** 💳  
-   The payment is processed using the internal `_pay` function, which transfers the required amount to the `fundsReceiver`. 🏦
+  The payment is processed using the internal `_pay` function, which transfers the required amount to the `fundsReceiver`. 🏦
 
 3. **Minting the Intent** 🎴  
-   - If the user does not already own an intent, a new NFT is minted, and the intent is initialized with the specified number of grinds. 🆕  
-   - If the user already owns an intent, the existing intent is updated with the new grinds. 🔄
+  - If the user does not already own an intent, a new NFT is minted, and the intent is initialized with the specified number of grinds. 🆕  
+  - If the user already owns an intent, the existing intent is updated with the new grinds. 🔄
+
+4. **Minting grAI token** 🪙
+  When minting an intent, the protocol automatically mints `grAI` tokens in an amount equal to the number of grinds purchased. For example, if a user buys 10 grinds, they will receive 10 `grAI` tokens. These tokens are minted directly to the user's wallet as part of the minting process. 🪙
 
 # GRAI 🪙
 
