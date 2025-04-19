@@ -79,13 +79,12 @@ contract DeployArbitrumScript is Script {
         
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
-        intentsNFT = new IntentsNFT(address(poolsNFT));
-
         grinderAI = new GrinderAI();
-
         proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), deployer, "");
         
         grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
+
+        intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
         grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));

@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IURUS} from "src/interfaces/IURUS.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
+import {IIntentsNFT} from "src/interfaces/IIntentsNFT.sol";
+import {IGRAI} from "src/interfaces/IGRAI.sol";
 
 interface IGrinderAI {
 
@@ -12,21 +14,19 @@ interface IGrinderAI {
 
     function poolsNFT() external view returns (IPoolsNFT);
 
+    function intentsNFT() external view returns (IIntentsNFT);
+
+    function grAI() external view returns (IGRAI);
+
     function isDelegate(address account) external view returns (bool);
+
+    function mintedGrinds(address account) external view returns (uint256);
+
+    function init(address _poolsNFT, address _intentsNFT, address _grAI) external;
 
     function owner() external view returns (address);
 
     function setDelegate(address _delegate, bool _isAgent) external;
-
-    function setPoolsNFT(address _poolsNFT) external;
-
-    function setIntentsNFT(address _intentsNFT) external;
-
-    function setGRAI(address _grAI) external;
-
-    function setGrindsRate(uint256 _grindsRate) external;
-
-    function setGRAIReward(uint256 _graiReward) external;
 
     function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) external;
 
@@ -35,12 +35,6 @@ interface IGrinderAI {
     function setNativeBridgeFee(uint256 _nativeBridgeFeeNumerator) external;
 
     function setPeer(uint32 eid, bytes32 peer) external;
-
-    function mint() external returns (uint256 graiAmount, uint256 grindsGap);
-
-    function mintTo(address account) external returns (uint256 graiAmount, uint256 grindsGap);
-
-    function calcMintTo(address account) external view returns (uint256 graiAmount, uint256 grindsGap);
 
     function mintPoolsNFT(
         uint16 strategyId,

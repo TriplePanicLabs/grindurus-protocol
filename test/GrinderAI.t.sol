@@ -4,8 +4,10 @@ pragma solidity =0.8.28;
 import {Test, console} from "forge-std/Test.sol";
 import {IToken} from "src/interfaces/IToken.sol";
 import {PoolsNFT} from "src/PoolsNFT.sol";
-import {GRAI} from "src/GRAI.sol";
+import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
+import {GRETH} from "src/GRETH.sol";
 import {IntentsNFT} from "src/IntentsNFT.sol";
+import {GRAI} from "src/GRAI.sol";
 import {GrinderAI} from "src/GrinderAI.sol";
 import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
@@ -29,6 +31,10 @@ contract GrinderAITest is Test {
 
     PoolsNFT public poolsNFT;
 
+    PoolsNFTLens public poolsNFTLens;
+
+    GRETH public grETH;
+
     IntentsNFT public intentsNFT;
 
     GRAI public grAI;
@@ -43,15 +49,22 @@ contract GrinderAITest is Test {
         vm.txGasPrice(0.05 gwei);
 
         poolsNFT = new PoolsNFT();
-        intentsNFT = new IntentsNFT(address(poolsNFT));
+
+        poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
+
+        grETH = new GRETH(address(poolsNFT), wethArbitrum);
         
         grinderAI = new GrinderAI();
         proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), address(this), "");
 
         grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
+
+        intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
         
         grinderAI = GrinderAI(payable(proxyGrinderAI));
         grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
+
+        poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
 
         vm.stopBroadcast();
     }

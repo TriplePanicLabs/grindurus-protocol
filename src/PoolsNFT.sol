@@ -697,8 +697,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             isGrinded = false;
         }
         if (isGrinded) {
-            uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
-            _reward(poolId, grethReward, grinder);
+            uint256 nativeFeeSpent = (gasStart - gasleft()) * tx.gasprice; // amount of native token as fee used for grind 
+            _airdropGRETH(poolId, nativeFeeSpent, grinder);
             _increaseSpentGrinds(poolId);
             emit Grind(poolId, type(uint8).max, grinder, isGrinded);
         }
@@ -739,21 +739,21 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             revert InvalidOp();
         }
         if (isGrinded) {
-            uint256 grethReward = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
-            _reward(poolId, grethReward, grinder);
+            uint256 nativeFeeSpent = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
+            _airdropGRETH(poolId, nativeFeeSpent, grinder);
             _increaseSpentGrinds(poolId);
             emit Grind(poolId, op, grinder, isGrinded);
         }
     }
 
     /// @notice rewards the grinder
-    function _reward(uint256 poolId, uint256 grethReward, address grinder) internal {
+    function _airdropGRETH(uint256 poolId, uint256 nativeFeeSpent, address grinder) internal {
         (address[] memory actors, uint256[] memory grethShares) = calcGRETHShares(
             poolId,
-            grethReward,
+            nativeFeeSpent,
             grinder
         );
-        try grETH.mint(actors, grethShares) {} catch {}
+        grETH.mint(actors, grethShares);
     }
 
     /// @notice increase spent grinds by 1
@@ -898,10 +898,10 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
 
     /// @notice calculates shares of grETH for actors
     /// @param poolId pool id of pool in array `pools`
-    /// @param grethReward amount of grETH
+    /// @param nativeFeeSpent amount of grETH
     function calcGRETHShares(
         uint256 poolId,
-        uint256 grethReward,
+        uint256 nativeFeeSpent,
         address grinder
     )
         public
@@ -917,10 +917,10 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         actors[2] = getRoyaltyReceiver(poolId); // royalty receiver
         actors[3] = grinder; // grinder
 
-        grethShares[0] = (grethReward * grethPoolOwnerShareNumerator) / denominator;
-        grethShares[1] = (grethReward * grethReserveShareNumerator) / denominator;
-        grethShares[2] = (grethReward * grethRoyaltyReceiverShareNumerator) / denominator;
-        grethShares[3] = grethReward - (grethShares[0] + grethShares[1] + grethShares[2]);
+        grethShares[0] = (nativeFeeSpent * grethPoolOwnerShareNumerator) / denominator;
+        grethShares[1] = (nativeFeeSpent * grethReserveShareNumerator) / denominator;
+        grethShares[2] = (nativeFeeSpent * grethRoyaltyReceiverShareNumerator) / denominator;
+        grethShares[3] = nativeFeeSpent - (grethShares[0] + grethShares[1] + grethShares[2]);
     }
 
     /// @notice return base URI

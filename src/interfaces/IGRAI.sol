@@ -12,6 +12,7 @@ interface IGRAI is IOFT {
     }
 
     error NotGrinderAI();
+    error NotIntentsNFT();
     error InsufficientNativeFee();
 
     event Bridge(

@@ -2,6 +2,7 @@
 pragma solidity =0.8.28;
 
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
+import {IGRAI} from "src/interfaces/IGRAI.sol";
 
 interface IIntentsNFT {
 
@@ -22,6 +23,8 @@ interface IIntentsNFT {
     }
 
     function poolsNFT() external view returns (IPoolsNFT);
+
+    function grAI() external view returns (IGRAI);
 
     function grinder() external view returns (address payable);
 
@@ -49,9 +52,9 @@ interface IIntentsNFT {
 
     function setBaseURI(string memory _baseURI) external;
 
-    function mint(address paymentToken, uint256 period) external payable returns (uint256);
+    function mint(address paymentToken, uint256 period) external payable returns (uint256, uint256);
 
-    function mintTo(address paymentToken, address to, uint256 period) external payable returns (uint256);
+    function mintTo(address paymentToken, address to, uint256 period) external payable returns (uint256, uint256);
 
     function owner() external view returns (address payable);
 

@@ -50,7 +50,7 @@ contract URUSStrategy1ArbitrumTest is Test {
 
     Strategy1Arbitrum public pool0;
 
-    RegistryArbitrum public oracleRegistry;
+    RegistryArbitrum public registry;
 
     Strategy1Arbitrum public strategy1;
 
@@ -72,20 +72,18 @@ contract URUSStrategy1ArbitrumTest is Test {
         
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
-        intentsNFT = new IntentsNFT(address(poolsNFT));
-
         grinderAI = new GrinderAI();
-
         proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), owner, "");
         
         grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
+        intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
         grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
 
-        oracleRegistry = new RegistryArbitrum(address(poolsNFT));
+        registry = new RegistryArbitrum(address(poolsNFT));
         strategy1 = new Strategy1Arbitrum();
-        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(oracleRegistry));
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry));
         factory1.setStrategyImplementation(address(strategy1));
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));

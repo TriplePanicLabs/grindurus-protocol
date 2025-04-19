@@ -2,7 +2,7 @@
 pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
-import {IIntentsNFT, IPoolsNFT} from "src/interfaces/IIntentsNFT.sol";
+import {IIntentsNFT, IPoolsNFT, IGRAI} from "src/interfaces/IIntentsNFT.sol";
 import {Base64} from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
 import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -21,6 +21,9 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
 
     /// @dev address of pools NFT, where grab poolIds for intent
     IPoolsNFT public poolsNFT;
+
+    /// @dev address of grAI token
+    IGRAI public grAI;
 
     /// @dev address of receiver of funds
     address payable public grinder;
@@ -50,16 +53,12 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     mapping (address paymentToken => uint256) public ratePerGrind;
 
     /// @param _poolsNFT address of poolsNFT
-    constructor(address _poolsNFT) ERC721("GrinderAI Intents Collection", "grAI_INTENTS") {
+    constructor(address _poolsNFT, address _grAI) ERC721("GrinderAI Intents Collection", "grAI_INTENTS") {
         poolsNFT = IPoolsNFT(_poolsNFT);
+        grAI = IGRAI(_grAI);
         grinder = owner();
         ratePerGrind[address(0)] = 0.0001 ether; // may be changed by owner
         freemiumGrinds = 5;
-        uint256 zeroIntentId = 0;
-        address deployer = msg.sender;
-        _mint(deployer, zeroIntentId);
-        grinds[zeroIntentId] = 100500;
-        totalIntents = 1;
     }
 
     /// @notice checks that msg.sender is owner
@@ -100,7 +99,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
 
     /// @notice mints intent on behalf of `msg.sender`
     /// @param _grinds amount of grinds
-    function mint(address paymentToken, uint256 _grinds) public payable override returns (uint256) {
+    function mint(address paymentToken, uint256 _grinds) public payable override returns (uint256, uint256) {
         return mintTo(paymentToken, msg.sender, _grinds);
     }
 
@@ -108,34 +107,11 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @param paymentToken address of payment token
     /// @param to address of `to`
     /// @param _grinds amount of grinds
-    function mintTo(address paymentToken, address to, uint256 _grinds) public payable override returns (uint256 intentId) {
+    function mintTo(address paymentToken, address to, uint256 _grinds) public payable override returns (uint256 intentId, uint256 grindsAcquired) {
         uint256 paymentAmount = calcPayment(paymentToken, _grinds);
         _pay(paymentToken, grinder, paymentAmount);
-        intentId = _mintTo(to, _grinds);
-    }
-
-    /// @notice mints intent to `to` with defined period
-    function _mintTo(address to, uint256 _grinds) internal returns (uint256 intentId) {
-        if (balanceOf(to) == 0) {
-            intentId = totalIntents;
-            _mint(to, intentId);
-            intentIdOf[to] = intentId;
-            if (grindsOf[to] == 0) {
-                grinds[intentId] += freemiumGrinds;
-            }
-            totalIntents++;
-        } else {
-            intentId = intentIdOf[to];
-        }
-        grindsOf[to] += _grinds;
-        grinds[intentId] += _grinds;
-        totalGrinds += _grinds;
-        emit Mint(intentId, to, _grinds);
-    }
-
-    /// @notice not transferable. Use mint(). Use mint()
-    function transferFrom(address, address, uint256) public override {
-        revert NotTransferable();
+        (intentId, grindsAcquired) = _mintTo(to, _grinds);
+        _airdrop(to, grindsAcquired);
     }
 
     /// @notice pays for the mint
@@ -152,6 +128,41 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
             emit Pay(paymentToken, msg.sender, paymentAmount);
         }
         paid = paymentAmount;
+    }
+
+    /// @notice mints intent to `to` with defined period
+    function _mintTo(address to, uint256 _grinds) internal returns (uint256 intentId, uint256 grindsAcquired) {
+        grindsAcquired = 0;
+        if (balanceOf(to) == 0) {
+            intentId = totalIntents;
+            _mint(to, intentId);
+            intentIdOf[to] = intentId;
+            if (grindsOf[to] == 0) {
+                grinds[intentId] += freemiumGrinds;
+                grindsAcquired += freemiumGrinds;
+            }
+            totalIntents++;
+        } else {
+            intentId = intentIdOf[to];
+        }
+        grindsAcquired += _grinds;
+        grindsOf[to] += grindsAcquired;
+        grinds[intentId] += grindsAcquired;
+        totalGrinds += grindsAcquired;
+        emit Mint(intentId, to, grindsAcquired);
+    }
+
+    /// @notice airdrops GRAI to `to`
+    /// @param to address of receiver
+    /// @param grindsAquired amount of grinds aquired
+    function _airdrop(address to, uint256 grindsAquired) internal {
+        uint256 graiAmount = grindsAquired * 1e18;
+        grAI.mint(to, graiAmount);
+    }
+
+    /// @notice not transferable. Use mint(). Use mint()
+    function transferFrom(address, address, uint256) public override {
+        revert NotTransferable();
     }
 
     /// @notice return owner of intent NFT collection
@@ -278,6 +289,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @param data calldata for transaction 
     function execute(address target, uint256 value, bytes calldata data) public payable virtual override returns (bool success, bytes memory result) {
         _onlyOwner();
+        require(target != address(grAI), "grAI is not allowed");
         (success, result) = target.call{value: value}(data);
     }
 

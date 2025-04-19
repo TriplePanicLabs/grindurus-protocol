@@ -47,6 +47,13 @@ contract GRAI is IGRAI, OFT {
         }
     }
 
+    /// @notice check that msg.sender is intentsNFT
+    function _onlyIntentsNFT() private view {
+        if (msg.sender != address(grinderAI.intentsNFT())) {
+            revert NotIntentsNFT();
+        }
+    }
+
     /// @notice sets bridge gas limit and value
     /// @param gasLimit gas limit for the bridge
     /// @param value value for the bridge
@@ -85,7 +92,7 @@ contract GRAI is IGRAI, OFT {
     /// @param to address to mint to
     /// @param amount amount of grAI to mint
     function mint(address to, uint256 amount) public override {
-        _onlyGrinderAI();
+        _onlyIntentsNFT();
         _mint(to, amount);
     }
 

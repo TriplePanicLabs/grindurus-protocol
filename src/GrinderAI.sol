@@ -24,12 +24,6 @@ contract GrinderAI is IGrinderAI {
     /// @dev address of grAI
     IGRAI public grAI;
 
-    /// @dev grAI reward
-    uint256 public graiReward;
-
-    /// @dev grinds rate
-    uint256 public grindsRate;
-
     /// @dev address of account => is agent
     mapping (address account => bool) public isDelegate;
 
@@ -43,8 +37,6 @@ contract GrinderAI is IGrinderAI {
         intentsNFT = IIntentsNFT(_intentsNFT);
         grAI = IGRAI(_grAI);
         isDelegate[msg.sender] = true;
-        graiReward = 1e18;
-        grindsRate = 1e18; // 1e18 grai per one grind
     }
 
     /// @notice return owner of grinderAI
@@ -78,46 +70,11 @@ contract GrinderAI is IGrinderAI {
         isDelegate[_delegate] = _isDelegate;
     }
 
-    /// @notice sets pools NFT
-    /// @param _poolsNFT address poolsNFT 
-    function setPoolsNFT(address _poolsNFT) public override {
-        _onlyOwner();
-        poolsNFT = IPoolsNFT(_poolsNFT);
-    }
-
-    /// @notice sets intents NFT
-    /// @param _intentsNFT address intentsNFT 
-    function setIntentsNFT(address _intentsNFT) public override {
-        _onlyOwner();
-        intentsNFT = IIntentsNFT(_intentsNFT);
-    }
-
-    /// @notice sets GRAI token
-    /// @param _grAI address of grAI
-    function setGRAI(address _grAI) public override {
-        _onlyOwner();
-        grAI = IGRAI(_grAI);
-    }
-
-    /// @notice sets grinds rate
-    /// @dev grinds rate is a multiplier for grinds to GRAI. [_grindsRate] = grai / grind = amount of grai per one grind
-    /// @param _grindsRate grinds rate
-    function setGrindsRate(uint256 _grindsRate) public override {
-        _onlyOwner();
-        grindsRate = _grindsRate;
-    }
-
-    /// @notice sets GRAI reward
-    function setGRAIReward(uint256 _graiReward) public override {
-        _onlyOwner();
-        graiReward = _graiReward;
-    }
-
     /// @notice sets bridge gas limit and value
     /// @param endpointId id of the endpoint
     /// @param gasLimit gas limit for the bridge
     /// @param value value for the bridge
-    function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) public override{
+    function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) public override {
         _onlyOwner();
         grAI.setLzReceivOptions(endpointId, gasLimit, value);
     }
@@ -145,32 +102,6 @@ contract GrinderAI is IGrinderAI {
     function setPeer(uint32 eid, bytes32 peer) public override {
         _onlyOwner();
         grAI.setPeer(eid, peer);
-    }
-
-    /// @notice mints grAI token to the `msg.sender` of grinds
-    function mint() public returns (uint256, uint256) {
-        return mintTo(msg.sender);
-    }
-
-    /// @notice mints grAI token to the `account` of grinds
-    /// @param account address of account
-    function mintTo(address account) public returns (uint256 graiAmount, uint256 grindsGap) {
-        (graiAmount, grindsGap) = calcMintTo(account);
-        if (grindsGap > 0) {
-            try grAI.mint(account, graiAmount) {
-                mintedGrinds[account] += grindsGap;
-            } catch {}
-        }
-    }
-
-    /// @notice calculates grAI amount to mint
-    /// @param account address of account
-    function calcMintTo(address account) public view override returns (uint256 graiAmount, uint256 grindsGap) {
-        (,uint256 grinds,) = intentsNFT.getIntentOf(account);
-        if (mintedGrinds[account] < grinds) {
-            grindsGap = grinds - mintedGrinds[account];
-            graiAmount = grindsGap * grindsRate;
-        }
     }
 
     /// @notice AI mint pools
@@ -224,9 +155,6 @@ contract GrinderAI is IGrinderAI {
     function grind(uint256 poolId) public override returns (bool) {
         address grinder = owner();
         try poolsNFT.grindTo(poolId, grinder) returns (bool isGrinded) {
-            if (isGrinded && graiReward > 0) {
-                try grAI.mint(grinder, graiReward) {} catch {}
-            }
             return isGrinded;
         } catch {
             return false;
@@ -240,9 +168,6 @@ contract GrinderAI is IGrinderAI {
     function grindOp(uint256 poolId, uint8 op) public override returns (bool) {
         address grinder = owner();
         try poolsNFT.grindOpTo(poolId, op, grinder) returns (bool isGrinded) {
-            if (isGrinded && graiReward > 0) {
-                try grAI.mint(grinder, graiReward) {} catch {}
-            }
             return isGrinded;
         } catch {
             return false;
@@ -257,9 +182,7 @@ contract GrinderAI is IGrinderAI {
         address grinder = owner();
         for (uint256 i = 0; i < len; ) {
             try poolsNFT.grindTo(poolIds[i], grinder) returns (bool isGrinded) {
-                if (isGrinded && graiReward > 0) {
-                    try grAI.mint(grinder, graiReward) {} catch {}
-                }
+                isGrinded;
             } catch {
 
             }
@@ -279,9 +202,7 @@ contract GrinderAI is IGrinderAI {
         uint256 i;
         for (i = 0; i < len;) {
             try poolsNFT.grindOpTo(poolIds[i], ops[i], grinder) returns (bool isGrinded) {
-                if (isGrinded && graiReward > 0) {
-                    try grAI.mint(grinder, graiReward) {} catch {}
-                }
+                isGrinded;
             } catch {
 
             }
