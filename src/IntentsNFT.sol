@@ -162,6 +162,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
 
     /// @notice not transferable. Use mint(). Use mint()
     function transferFrom(address, address, uint256) public override {
+        baseURI = baseURI;
         revert NotTransferable();
     }
 
