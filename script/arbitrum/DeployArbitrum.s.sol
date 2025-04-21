@@ -103,11 +103,12 @@ contract DeployArbitrumScript is Script {
         console.log("PoolsNFT: ", address(poolsNFT));
         console.log("PoolsNFTLens: ", address(poolsNFTLens));
         console.log("GRETH: ", address(grETH));
-        console.log("IntentsNFT: ", address(intentsNFT));
         console.log("GrinderAI: ", address(grinderAI));
+        console.log("GRAI: ", address(grAI));
+        console.log("IntentsNFT: ", address(intentsNFT));
         console.log("RegistryArbitrum: ", address(registry));
         console.log("Strategy1: ", address(strategy1));
-        console.log("Factory1: ", address(factory1));
+        console.log("Strategy1Factory: ", address(factory1));
 
         vm.stopBroadcast();
     }
