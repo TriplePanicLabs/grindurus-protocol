@@ -172,9 +172,10 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
     /// @notice exit funds from strategy
     function exit() public override(URUS, IURUS) returns (uint256 quoteTokenAmount, uint256 baseTokenAmount) {
         _onlyGateway();
+        bool storedReinvest = reinvest;
         reinvest = false;
         (quoteTokenAmount, baseTokenAmount) = URUS.exit();
-        reinvest = true;
+        reinvest = storedReinvest;
     }
 
     function beforeRebalance() public override(URUS, IURUS) returns (uint256 baseTokenAmount, uint256 price) {

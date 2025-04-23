@@ -19,6 +19,8 @@ interface IIntentsNFT {
     struct Intent {
         address owner;
         uint256 grinds;
+        uint256 spentGrinds;
+        uint256 unspentGrinds;
         uint256[] poolIds;
     }
 
@@ -62,13 +64,17 @@ interface IIntentsNFT {
 
     function getIntentBy(uint256 poolId) external view returns ( 
         address _account,
-        uint256 _grinds, 
+        uint256 _grinds,
+        uint256 _spentGrinds,
+        uint256 _unspentGrinds,
         uint256[] memory _poolIds
     );
 
     function getIntentOf(address account) external view returns ( 
         address _account,
-        uint256 _grinds, 
+        uint256 _grinds,
+        uint256 _spentGrinds,
+        uint256 _unspentGrinds,
         uint256[] memory _poolIds
     );
 

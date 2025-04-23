@@ -577,6 +577,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         _onlyOwnerOf(poolId);
         IStrategy pool = IStrategy(pools[poolId]);
         (quoteTokenAmount, baseTokenAmount) = pool.exit();
+        royaltyPrice[poolId] = 0;
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
     }
 
