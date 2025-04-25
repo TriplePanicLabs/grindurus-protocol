@@ -2,7 +2,7 @@
 pragma solidity =0.8.28;
 
 import {IDexAdapter, IToken} from "src/interfaces/IDexAdapter.sol";
-import {IUniswapV4SwapRouterArbitrum} from "src/interfaces/uniswapV4/IUniswapV4SwapRouterArbitrum.sol";
+import {IUniswapV4SwapRouterArbitrum} from "src/interfaces/uniswapV4/arbitrum/IUniswapV4SwapRouterArbitrum.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title UniswapV3AdapterBase
