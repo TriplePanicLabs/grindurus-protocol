@@ -3,7 +3,6 @@ pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
 import {IURUS, URUS, IERC5313} from "src/URUS.sol";
 import {IStrategy} from "src/interfaces/IStrategy.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -46,7 +45,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
 
     /// @dev checks that msg.sender is agent
     function _onlyAgent() internal view virtual {
-        try poolsNFT.isAgentOf(owner(), msg.sender) returns (bool isAgent) {
+        try poolsNFT.isAgentOf(poolId, msg.sender) returns (bool isAgent) {
             if (!isAgent) {
                 revert NotAgent();
             }
@@ -125,9 +124,9 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         URUS.setOpReturnPercent(op, returnPercent);
     }
 
-    function setOpFeeCoef(uint8 op, uint256 _feeCoef) public override(URUS, IURUS) {
+    function setOpFeeCoef(uint8 op, uint256 feeCoef) public override(URUS, IURUS) {
         _onlyAgent();
-        URUS.setOpFeeCoef(op, _feeCoef);
+        URUS.setOpFeeCoef(op, feeCoef);
     }
 
     function deposit(uint256 quoteTokenAmount) public override(URUS, IURUS) returns (uint256) {
@@ -141,11 +140,6 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     ) public override(URUS, IURUS) returns (uint256) {
         _onlyGateway();
         return URUS.deposit2(baseTokenAmount, baseTokenPrice);
-    }
-
-    function deposit3(uint256 quoteTokenAmount) public override(URUS, IURUS) returns (uint256) {
-        _onlyGateway();
-        return URUS.deposit3(quoteTokenAmount);
     }
 
     function withdraw(
@@ -273,9 +267,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
 
     /// @notice calculates return of investment of strategy pool.
     /// @dev returns the numerator and denominator of ROI. ROI = ROINumerator / ROIDenominator
-    function ROI()
-        public
-        view
+    function ROI() public view
         returns (
             uint256 ROINumerator,
             uint256 ROIDenominator,

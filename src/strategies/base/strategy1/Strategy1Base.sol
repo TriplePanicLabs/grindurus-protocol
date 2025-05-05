@@ -2,7 +2,6 @@
 pragma solidity =0.8.28;
 
 import {IToken} from "src/interfaces/IToken.sol";
-import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
 import {IStrategy} from "src/interfaces/IStrategy.sol";
 import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
 import {AAVEV3AdapterBase} from "src/adapters/lendings/AAVEV3AdapterBase.sol";
@@ -45,7 +44,7 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
 
     /// @dev checks that msg.sender is agent
     function _onlyAgent() internal view virtual {
-        try poolsNFT.isAgentOf(owner(), msg.sender) returns (bool isAgent) {
+        try poolsNFT.isAgentOf(poolId, msg.sender) returns (bool isAgent) {
             if (!isAgent) {
                 revert NotAgent();
             }
@@ -130,9 +129,9 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
         URUS.setOpReturnPercent(op, returnPercent);
     }
 
-    function setOpFeeCoef(uint8 op, uint256 _feeCoef) public override(URUS, IURUS) {
+    function setOpFeeCoef(uint8 op, uint256 feeCoef) public override(URUS, IURUS) {
         _onlyAgent();
-        URUS.setOpFeeCoef(op, _feeCoef);
+        URUS.setOpFeeCoef(op, feeCoef);
     }
 
     function deposit(uint256 quoteTokenAmount) public override(URUS, IURUS) returns (uint256) {
@@ -146,11 +145,6 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
     ) public override(URUS, IURUS) returns (uint256) {
         _onlyGateway();
         return URUS.deposit2(baseTokenAmount, baseTokenPrice);
-    }
-
-    function deposit3(uint256 quoteTokenAmount) public override(URUS, IURUS) returns (uint256) {
-        _onlyGateway();
-        return URUS.deposit3(quoteTokenAmount);
     }
 
     function withdraw(
@@ -307,31 +301,29 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
         )
     {
         uint256 baseTokenPrice = getPriceQuoteTokenPerBaseToken();
-        if (baseTokenPrice > 0) {
-            uint256 investment = investedAmount[quoteToken] +
-                calcQuoteTokenByBaseToken(
-                    investedAmount[baseToken],
-                    baseTokenPrice
-                );
-            uint256 profitsSum = 0 + // trade profits + yield profits + pending yield profits
-                profits.quoteTokenTradeProfit +
-                calcQuoteTokenByBaseToken(
-                    profits.baseTokenTradeProfit,
-                    baseTokenPrice
-                ) + // yield profits
-                profits.quoteTokenYieldProfit +
-                calcQuoteTokenByBaseToken(
-                    profits.baseTokenYieldProfit,
-                    baseTokenPrice
-                ) + // pending yield profits
-                getPendingYield(quoteToken) +
-                calcQuoteTokenByBaseToken(
-                    getPendingYield(baseToken), 
-                    baseTokenPrice
-                );
-            ROINumerator = profitsSum;
-            ROIDenominator = investment;
-        } 
+        uint256 investment = investedAmount[quoteToken] +
+            calcQuoteTokenByBaseToken(
+                investedAmount[baseToken],
+                baseTokenPrice
+            );
+        uint256 profitsSum = 0 + // trade profits + yield profits + pending yield profits
+            profits.quoteTokenTradeProfit +
+            calcQuoteTokenByBaseToken(
+                profits.baseTokenTradeProfit,
+                baseTokenPrice
+            ) + // yield profits
+            profits.quoteTokenYieldProfit +
+            calcQuoteTokenByBaseToken(
+                profits.baseTokenYieldProfit,
+                baseTokenPrice
+            ) + // pending yield profits
+            getPendingYield(quoteToken) +
+            calcQuoteTokenByBaseToken(
+                getPendingYield(baseToken), 
+                baseTokenPrice
+            );
+        ROINumerator = profitsSum;
+        ROIDenominator = investment;
         ROIPeriod = block.timestamp - startTimestamp;
     }
 
