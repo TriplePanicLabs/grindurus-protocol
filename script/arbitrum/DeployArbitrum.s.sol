@@ -35,7 +35,7 @@ import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/
 
 // $ forge verify-contract 0x371194617A7a7f6605c79a80a9EB0EB05C4E75dA src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol:Strategy1Arbitrum --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
-// $ forge verify-contract 0x9FBb0E42Db729c1C0D44cBc322b627d329A4dA46 lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge verify-contract 0xf0A7B3E0DA1eB030B44e370cF1E01101265831ac lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 
 contract DeployArbitrumScript is Script {
@@ -68,7 +68,7 @@ contract DeployArbitrumScript is Script {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
 
         address deployer = vm.addr(deployerPrivateKey);
-        console.log(deployer);
+        console.log("Deployer: ", deployer);
 
         vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
@@ -87,7 +87,7 @@ contract DeployArbitrumScript is Script {
         intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
+        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethArbitrum);
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
 

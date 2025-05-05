@@ -18,24 +18,48 @@ import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/
 // $ forge script script/base/DeployBase.s.sol:DeployBaseScript
 
 // Mainnet deploy command:
-// $ forge script script/base/DeployBase.s.sol:DeployBaseScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $BASESCAN_API_KEY
+// $ forge script script/base/DeployBase.s.sol:DeployBaseScript --slow --broadcast --verify --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY
 
 // Verify:
-// $ forge verify-contract 0xfC7a86Ab7c0E48F26F3aEe7382eBc6fe313956Db src/PoolsNFT.sol:PoolsNFT --chain-id 8453 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $BASESCAN_API_KEY
+// PoolsNFT
+// $ forge verify-contract 0x5B42518423A7CB79A21AF455441831F36FDe823C src/PoolsNFT.sol:PoolsNFT --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY
 
-// $ forge verify-contract 0xae4312A2E0D15550B0cD9889B2aF56a520589E53 src/GRETH.sol:GRETH --chain-id 8453 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $BASESCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address,address)" "0xfC7a86Ab7c0E48F26F3aEe7382eBc6fe313956Db" "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1")
+// PoolsNFTLens
+// $ forge verify-contract 0x4c2aA9936cc1200bB47992E2Aa3cf04bB43Cb250 src/PoolsNFTLens.sol:PoolsNFTLens --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address)" "0x5B42518423A7CB79A21AF455441831F36FDe823C")
 
-// $ forge verify-contract 0x8BCC8B5Cd7e9E0138896A82E6Db7b55b283EbBcB src/registries/RegistryBase.sol:RegistryBase --chain-id 8453 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $BASESCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address)" "0xfC7a86Ab7c0E48F26F3aEe7382eBc6fe313956Db")
+// GRETH
+// $ forge verify-contract 0x28507773E924380AA02784118034aE706F57bCEb src/GRETH.sol:GRETH --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address,address)" "0x5B42518423A7CB79A21AF455441831F36FDe823C" "0x4200000000000000000000000000000000000006")
 
-// $ forge verify-contract 0x307c207C0dC988f4dfe726c521e407BB64164541 src/strategy1/PoolStrategy1.sol:PoolStrategy1 --chain-id 8453 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $BASESCAN_API_KEY
+// GrinderAI:
+// $ forge verify-contract 0x98F464d82f55BEBCCc64dE48E4a4BD7585e320cb src/GrinderAI.sol:GrinderAI --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY
 
-// $ curl "https://api.arbiscan.io/api?module=contract&action=checkverifystatus&guid=qx5xfggkwzkzqyiv76wlw6benfhfmkdnuqi1ycn6bblwzhebfm&apikey=$BASESCAN_API_KEY"
+// TransparentUpgradeableProxy:
+// $ forge verify-contract 0xf114dEfcAce38689E98A1949DB9b162208810204 lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address,address,bytes)" "0x98F464d82f55BEBCCc64dE48E4a4BD7585e320cb" "0xDEC67cDDeCffdf6f45E7bC221D404eE87A720380" "0x")
 
-// $ forge verify-contract 0x371194617A7a7f6605c79a80a9EB0EB05C4E75dA src/strategies/base/strategy1/Strategy1Base.sol:Strategy1Base --chain-id 8453 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $BASESCAN_API_KEY
+// GRAI:
+// $ forge verify-contract 0x2cd392CC10887a258019143a710a5Ce2C5B5d88d src/GRAI.sol:GRAI --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address,address)" "0x1a44076050125825900e736c501f859c50fE728c" "0xf114dEfcAce38689E98A1949DB9b162208810204")
 
-// $ forge verify-contract 0x371194617A7a7f6605c79a80a9EB0EB05C4E75dA src/strategies/base/strategy1/Strategy1Base.sol:Strategy1Base --chain-id 8453 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $BASESCAN_API_KEY
+// IntentsNFT:
+// $ forge verify-contract 0x03afbDE12f4E57dbe551a2b8D7BA0F91239207Af src/IntentsNFT.sol:IntentsNFT --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address,address)" "0x5B42518423A7CB79A21AF455441831F36FDe823C" "0x2cd392CC10887a258019143a710a5Ce2C5B5d88d")
 
-// $ forge verify-contract 0x9FBb0E42Db729c1C0D44cBc322b627d329A4dA46 lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy --chain-id 8453 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $BASESCAN_API_KEY
+// RegistryBase:
+// $ forge verify-contract 0x54df142Ed06B7FfEbE99E16cF9FA0c055CB21fD3 src/registries/RegistryBase.sol:RegistryBase --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address)" "0x5B42518423A7CB79A21AF455441831F36FDe823C")
+
+// Strategy1Base
+// $ forge verify-contract 0xB111D4F3493B691e44cdd6886156E72869e329c7 src/strategies/base/strategy1/Strategy1Base.sol:Strategy1Base --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY
+
+// Strategy1FactoryBase
+// $ forge verify-contract 0xd60a1b4d31e931454b6A085AB536db6960FC845c src/strategies/base/strategy1/Strategy1FactoryBase.sol:Strategy1FactoryBase --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address,address)" "0x5B42518423A7CB79A21AF455441831F36FDe823C" "0x54df142Ed06B7FfEbE99E16cF9FA0c055CB21fD3")
+
+// $ forge verify-contract 0x307c207C0dC988f4dfe726c521e407BB64164541 src/strategy1/PoolStrategy1.sol:PoolStrategy1 --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY
+
+// $ curl "https://api.basescan.org/api?module=contract&action=checkverifystatus&guid=qx5xfggkwzkzqyiv76wlw6benfhfmkdnuqi1ycn6bblwzhebfm&apikey=$BASESCAN_API_KEY"
+
+// $ forge verify-contract 0x371194617A7a7f6605c79a80a9EB0EB05C4E75dA src/strategies/base/strategy1/Strategy1Base.sol:Strategy1Base --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY
+
+// $ forge verify-contract 0x371194617A7a7f6605c79a80a9EB0EB05C4E75dA src/strategies/base/strategy1/Strategy1Base.sol:Strategy1Base --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY
+
+// $ forge verify-contract 0x9FBb0E42Db729c1C0D44cBc322b627d329A4dA46 lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy --chain-id 8453 --verifier-url "https://api.basescan.org/api" --etherscan-api-key $BASESCAN_API_KEY
 
 
 contract DeployBaseScript is Script {
@@ -68,7 +92,7 @@ contract DeployBaseScript is Script {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
 
         address deployer = vm.addr(deployerPrivateKey);
-        console.log(deployer);
+        console.log("Deployer: ", deployer);
 
         vm.createSelectFork("base");
         vm.startBroadcast(deployerPrivateKey);
@@ -87,7 +111,7 @@ contract DeployBaseScript is Script {
         intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
+        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethBase);
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
 
