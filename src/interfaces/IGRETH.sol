@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import {IToken} from "src/interfaces/IToken.sol";
-import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
+import { IToken } from "src/interfaces/IToken.sol";
+import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
 
 interface IGRETH is IToken {
     error NotPoolsNFT();
