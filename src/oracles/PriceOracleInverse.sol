@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.28;
 
-import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
+import {IOracle} from "src/interfaces/IOracle.sol";
 
-contract PriceOracleInverse is AggregatorV3Interface {
+contract PriceOracleInverse is IOracle {
 
-    AggregatorV3Interface public oracle;
+    IOracle public oracle;
 
     uint8 public originDecimals;
 
     constructor (address _oracle) {
         if (_oracle != address(0)) {
-            oracle = AggregatorV3Interface(_oracle);
+            oracle = IOracle(_oracle);
             originDecimals = oracle.decimals();
         }
     }
