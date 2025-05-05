@@ -12,7 +12,6 @@ import {IGrinderAI} from "src/interfaces/IGrinderAI.sol";
 interface IPoolsNFT is IERC721, IERC2981 {
     error NotOwner();
     error NotOwnerOf();
-    error NotDepositor();
     error NotAgent();
     error NotGrinderAI();
     error NoCapital();
@@ -22,7 +21,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error StrategyStopped();
     error InsufficientMinDeposit();
     error ExceededMaxDeposit();
-    error DifferentOwnersOfPools();
+    error ForbidWithAgentManagedPoolId();
     error DifferentTokens();
 
     event Mint(
@@ -96,13 +95,11 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     //// GRETH SHARES
 
-    function grethGrinderShareNumerator() external view returns (uint16);
-
-    function grethReserveShareNumerator() external view returns (uint16);
-
     function grethPoolOwnerShareNumerator() external view returns (uint16);
 
     function grethRoyaltyReceiverShareNumerator() external view returns (uint16);
+
+    function grethReserveShareNumerator() external view returns (uint16);
 
     //// ROYALTY SHARES
 
@@ -116,6 +113,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function royaltyOwnerShareNumerator() external view returns (uint16);
 
+    //// ADDRESSES
+
     function pendingOwner() external view returns (address payable);
 
     function owner() external view returns (address payable);
@@ -125,6 +124,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function grETH() external view returns (IGRETH);
 
     function grinderAI() external view returns (IGrinderAI);
+
+    //// 
 
     function isStrategyStopped(uint16 stratrgyId) external view returns (bool);
 
@@ -136,7 +137,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function royaltyPrice(uint256 poolId) external view returns (uint256);
 
-    function minter(uint256 poolId) external view returns (address); 
+    function agentOf(uint256 poolId) external view returns (address); 
 
     function pools(uint256 poolId) external view returns (address);
 
@@ -150,13 +151,11 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function init(address _poolsNFTLens, address _grETH, address _grinderAI) external;
 
-    //// ONLY STRATEGIEST FUNCTIONS
-    
+    //// OWNER FUNCTIONS
+
     function setStrategyStopped(uint16 strategyId, bool _isStrategyStopped) external;
 
     function setStrategyFactory(address _strategyFactory) external;
-
-    //// ONLY OWNER FUNCTIONS
 
     function setPoolsNFTLens(address _poolsNFTLens) external;
 
@@ -174,10 +173,9 @@ interface IPoolsNFT is IERC721, IERC2981 {
     ) external;
 
     function setGRETHShares(
-        uint16 _grethGrinderShareNumerator,
-        uint16 _grethReserveShareNumerator,
         uint16 _grethPoolOwnerShareNumerator,
-        uint16 _grethRoyaltyReceiverShareNumerator
+        uint16 _grethRoyaltyReceiverShareNumerator,
+        uint16 _grethReserveShareNumerator
     ) external;
 
     function setRoyaltyPriceShares(
@@ -204,8 +202,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 quoteTokenAmount
     ) external returns (uint256 poolId);
 
-    function setDepositor(uint256 poolId, address depositor, bool _depositorApproval) external;
-
     function deposit(
         uint256 poolId,
         uint256 quoteTokenAmount
@@ -216,8 +212,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 baseTokenAmount,
         uint256 baseTokenPrice
     ) external returns (uint256 depositedBaseTokenAmount);
-
-    function deposit3(uint256 poolId, uint256 quoteTokenAmount) external;
 
     function withdraw(
         uint256 poolId,
@@ -235,17 +229,11 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 poolId
     ) external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    function setAgent(address _agent, bool _agentApproval) external;
-
     function rebalance(uint256 poolIdLeft, uint256 poolIdRight, uint8 rebalanceLeft, uint8 rebalnceRight) external;
 
     function grind(uint256 poolId) external returns (bool isGrinded);
 
-    function grindTo(uint256 poolId, address grinder) external returns (bool isGrinded);
-
     function grindOp(uint256 poolId, uint8 op) external returns (bool isGrinded);
-
-    function grindOpTo(uint256 poolId, uint8 op, address grinder) external returns (bool isGrinded);
 
     function buyRoyalty(
         uint256 poolId
@@ -285,8 +273,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function calcGRETHShares(
         uint256 poolId,
-        uint256 grethReward,
-        address grinder
+        uint256 grethReward
     ) external view returns (address[] memory actors, uint256[] memory shares);
 
     function tokenURI(uint256 poolId) external view returns (string memory uri);
@@ -294,10 +281,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function getRoyaltyReceiver(
         uint256 poolId
     ) external view returns (address receiver);
-    
-    function isAgentOf(address _ownerOf, address _agent) external view returns (bool);
 
-    function isDepositorOf(uint256 poolId, address _depositor) external view returns (bool);
+    function isAgentOf(uint256 poolId, address account) external view returns (bool);
 
     function getPoolIdsOf(
         address poolOwner
