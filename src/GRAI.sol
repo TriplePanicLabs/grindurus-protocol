@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import { OFT } from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import { OFT, ERC20 } from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 import { IGRAI, MessagingFee, SendParam } from "src/interfaces/IGRAI.sol";
 import { IGrinderAI } from "src/interfaces/IGrinderAI.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { OAppCore } from "@layerzerolabs/oapp-evm/contracts/oapp/OAppCore.sol";
 import { OptionsBuilder } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
+/// @title GRAI
+/// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice GrinderAI ERC20 token
+/// @dev Omni Fungible Token for crosschain bridging and interoperability.
 contract GRAI is IGRAI, OFT {
     /// @dev 100% = 100_00
     uint256 public constant DENOMINATOR = 100_00;
@@ -25,11 +28,10 @@ contract GRAI is IGRAI, OFT {
     /// @dev endpoint id => tuple of bridge gas limit and value
     mapping (uint32 endpointId => LzReceiveOptions) public lzReceiveOptions;
 
-    constructor(
-        address _lzEndpoint,
-        address _delegate
-    ) OFT("GrinderAI Token", "grAI", _lzEndpoint, _delegate) Ownable(_delegate) {
-        grinderAI = IGrinderAI(_delegate);
+    /// @param _lzEndpoint address of layer zero endpoint
+    /// @param _grinderAI address of grinderAI
+    constructor(address _lzEndpoint, address _grinderAI) OFT("GrinderAI Token", "grAI", _lzEndpoint, _grinderAI) Ownable(_grinderAI) {
+        grinderAI = IGrinderAI(_grinderAI);
         multiplierNumerator = DENOMINATOR; // x1.0
         nativeBridgeFeeNumerator = 0; // 0% native bridge fee percentage
         /// default bridge gas limit and value for EVM chains
@@ -49,9 +51,14 @@ contract GRAI is IGRAI, OFT {
 
     /// @notice check that msg.sender is intentsNFT
     function _onlyIntentsNFT() private view {
-        if (msg.sender != address(grinderAI.intentsNFT())) {
+        if (msg.sender != intentsNFT()) {
             revert NotIntentsNFT();
         }
+    }
+
+    /// @notice return address of intentsNFT
+    function intentsNFT() public view returns (address) {
+        return address(grinderAI.intentsNFT());
     }
 
     /// @notice sets bridge gas limit and value
@@ -89,11 +96,41 @@ contract GRAI is IGRAI, OFT {
     }
 
     /// @notice mints amount of grAI to `to`
+    /// @dev callable only by intentsNFT
     /// @param to address to mint to
     /// @param amount amount of grAI to mint
     function mint(address to, uint256 amount) public override {
         _onlyIntentsNFT();
         _mint(to, amount);
+    }
+
+    /// @notice burns amount of grAI
+    /// @dev callable only by intentsNFT
+    function burn(uint256 amount) public override {
+        _onlyIntentsNFT();
+        _burn(msg.sender, amount);
+    }
+
+    /// @notice transfer from grAI
+    /// @param from address of spender
+    /// @param to address of receiver
+    /// @param amount amount of grAI
+    function transferFrom(address from, address to, uint256 amount) public override(ERC20, IGRAI) returns (bool) {
+        address spender = _msgSender();
+        if (spender == intentsNFT()) {
+            _transfer(from, to, amount);
+        } else {
+            _spendAllowance(from, spender, amount);
+            _transfer(from, to, amount);
+        }
+        return true;
+    }
+
+    /// @notice direct transfer grAI
+    /// @param to address of to
+    /// @param amount amount of grAI
+    function transfer(address to, uint256 amount) public override(ERC20, IGRAI) returns (bool) {
+        return ERC20.transfer(to, amount);
     }
 
     /// @notice Bridges GRAI tokens to another chain
@@ -115,11 +152,7 @@ contract GRAI is IGRAI, OFT {
             uint256 nativeFee,      // nativeFee = fee.nativeFee * multiplierNumerator / DENOMINATOR
             uint256 nativeBridgeFee,// nativeBridgeFee = nativeFee * bridgeFeeNumerator / DENOMINATOR
             uint256 totalNativeFee  // totalNativeFee = nativeFee + nativeBridgeFee
-        ) = getTotalFeesForBridgeTo(
-            dstChainId,
-            toAddress,
-            amount
-        );
+        ) = getTotalFeesForBridgeTo(dstChainId, toAddress, amount);
         if (totalNativeFee < msg.value) {
             revert InsufficientNativeFee();
         }
@@ -215,9 +248,7 @@ contract GRAI is IGRAI, OFT {
 
     /// @notice calculates bridge fee
     /// @param nativeFee The native fee
-    function calcBridgeFee(
-        uint256 nativeFee
-    ) public view override returns (uint256) {
+    function calcBridgeFee(uint256 nativeFee) public view override returns (uint256) {
        return (nativeFee * nativeBridgeFeeNumerator) / DENOMINATOR;
     }
 
