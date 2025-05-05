@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.28;
 
-import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {IGRAI} from "src/interfaces/IGRAI.sol";
+import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
+import { IGRAI } from "src/interfaces/IGRAI.sol";
 
 interface IIntentsNFT {
 
+    error InvalidBurnRate();
     error NotTransferable();
     error NotOwner();
     error NotGrinderAI();
@@ -28,7 +29,7 @@ interface IIntentsNFT {
 
     function grAI() external view returns (IGRAI);
 
-    function grinder() external view returns (address payable);
+    function distributor() external view returns (address payable);
 
     function baseURI() external view returns (string memory);
 
@@ -46,11 +47,17 @@ interface IIntentsNFT {
 
     function ratePerGrind(address paymentToken) external view returns (uint256);
 
+    function setBurnRate(uint256 _burnRate) external;
+
+    function setFreemiumGrinds(uint256 _freemiumGrinds) external;
+
+    function setDistributor(address payable _distributor) external;
+
+    function setRatePerGrind(address token, uint256 _ratePerGrind) external;
+
     function spentGrinds(uint256 intentId) external view returns (uint256);
 
     function unspentGrinds(uint256 intentId) external view returns (uint256);
-
-    function setRatePerGrind(address token, uint256 _ratePerGrind) external;
 
     function setBaseURI(string memory _baseURI) external;
 

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {IToken} from "src/interfaces/IToken.sol";
-import {IIntentsNFT, IPoolsNFT, IGRAI} from "src/interfaces/IIntentsNFT.sol";
-import {Base64} from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
-import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
+import { IToken } from "src/interfaces/IToken.sol";
+import { IIntentsNFT, IPoolsNFT, IGRAI } from "src/interfaces/IIntentsNFT.sol";
+import { Base64 } from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
+import { Strings } from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
+import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 
 /// @title IntentsNFT
 /// @notice SoulBoundToken
@@ -15,6 +15,9 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     using SafeERC20 for IToken;
     using Base64 for bytes;
     using Strings for uint256;
+
+    /// 
+    uint256 public constant DENOMINATOR = 100_00;
 
     /// @notice base URI for this collection
     string public baseURI;
@@ -26,13 +29,16 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     IGRAI public grAI;
 
     /// @dev address of receiver of funds
-    address payable public grinder;
+    address payable public distributor;
 
-    /// @dev total supply
-    uint256 public totalIntents;
+    /// @dev burn rate for grAI token
+    uint256 public burnRate;
 
     /// @notice free grinds for user
     uint256 public freemiumGrinds;
+
+    /// @dev total supply
+    uint256 public totalIntents;
 
     /// @notice total amount of grinds
     uint256 public totalGrinds;
@@ -56,8 +62,10 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     constructor(address _poolsNFT, address _grAI) ERC721("GrinderAI Intents Collection", "grAI_INTENTS") {
         poolsNFT = IPoolsNFT(_poolsNFT);
         grAI = IGRAI(_grAI);
-        grinder = owner();
-        ratePerGrind[address(0)] = 0.0001 ether; // may be changed by owner
+        distributor = owner();
+        ratePerGrind[address(0)] = 0.0001 ether; // 0.0001 ETH per grind
+        ratePerGrind[_grAI] = 1 * 1e18; // 1 grAI per grind
+        burnRate = 80_00; // 95%
         freemiumGrinds = 5;
     }
 
@@ -68,18 +76,28 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         }
     }
 
+    /// @notice sets burn rate
+    /// @param _burnRate burn rate
+    function setBurnRate(uint256 _burnRate) public override {
+        _onlyOwner();
+        if (_burnRate > DENOMINATOR) {
+            revert InvalidBurnRate();
+        }
+        burnRate = _burnRate;
+    }
+
     /// @notice sets freemium grinds
     /// @param _freemiumGrinds amount of free grinds
-    function setFreemiumGrinds(uint256 _freemiumGrinds) public {
+    function setFreemiumGrinds(uint256 _freemiumGrinds) public override {
         _onlyOwner();
         freemiumGrinds = _freemiumGrinds;
     }
 
     /// @notice sets funds receiver
-    /// @param _grinder address of funds receiver
-    function setGrinder(address payable _grinder) public {
+    /// @param _distributor address of funds receiver
+    function setDistributor(address payable _distributor) public override {
         _onlyOwner();
-        grinder = _grinder;
+        distributor = _distributor;
     }
 
     /// @param token address of token
@@ -109,9 +127,11 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @param _grinds amount of grinds
     function mintTo(address paymentToken, address to, uint256 _grinds) public payable override returns (uint256 intentId, uint256 grindsAcquired) {
         uint256 paymentAmount = calcPayment(paymentToken, _grinds);
-        _pay(paymentToken, grinder, paymentAmount);
+        _pay(paymentToken, distributor, paymentAmount);
         (intentId, grindsAcquired) = _mintTo(to, _grinds);
-        _airdrop(to, grindsAcquired);
+        if (paymentToken != address(grAI)) {
+            _airdrop(to, grindsAcquired);
+        }
     }
 
     /// @notice pays for the mint
@@ -122,6 +142,16 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
             if (paymentToken == address(0)) {
                 (bool success, ) = receiver.call{value: paymentAmount}("");
                 require(success, "fail send ETH");
+            } else if (paymentToken == address(grAI)) {
+                grAI.transferFrom(msg.sender, address(this), paymentAmount);
+                uint256 burnAmount = (paymentAmount * burnRate) / DENOMINATOR;
+                if (burnAmount > 0){
+                    grAI.burn(burnAmount);
+                }
+                if (paymentAmount > burnAmount) {
+                    uint256 amount = paymentAmount - burnAmount;
+                    grAI.transfer(receiver, amount);
+                }
             } else {
                 IToken(paymentToken).safeTransferFrom(msg.sender, receiver, paymentAmount);
             }
@@ -311,7 +341,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
 
     receive() external payable {
         if (msg.value > 0) {
-            (bool success, ) = address(grinder).call{value: msg.value}("");
+            (bool success, ) = address(distributor).call{value: msg.value}("");
             success;
         }
     }
