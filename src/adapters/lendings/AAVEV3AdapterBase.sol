@@ -109,8 +109,7 @@ contract AAVEV3AdapterBase is ILendingAdapter {
             if (tokenAmount > 0) {
                 // put back unused
                 token.forceApprove(address(aaveV3Pool), tokenAmount);
-                try aaveV3Pool.supply(address(token), tokenAmount, address(this), 0)
-                {} catch {}
+                try aaveV3Pool.supply(address(token), tokenAmount, address(this), 0) {} catch {}
             }
             takeAmount = amount;
         } catch {
