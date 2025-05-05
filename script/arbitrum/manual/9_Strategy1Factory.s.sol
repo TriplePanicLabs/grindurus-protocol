@@ -9,10 +9,10 @@ import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/stra
 import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 
 // Test purposes:
-// $ forge script script/arbitrum/manual/8_Strategy1Factory.s.sol:Strategy1FactoryScript
+// $ forge script script/arbitrum/manual/9_Strategy1Factory.s.sol:Strategy1FactoryScript
 
 // Mainnet deploy command:
-// $ forge script script/arbitrum/manual/8_Strategy1Factory.s.sol:Strategy1FactoryScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge script script/arbitrum/manual/9_Strategy1Factory.s.sol:Strategy1FactoryScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 
 contract Strategy1FactoryScript is Script {

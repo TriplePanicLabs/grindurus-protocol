@@ -12,19 +12,13 @@ import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
 import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // Test purposes:
-// $ forge script script/arbitrum/manual/6_GrinderAI.s.sol:GrinderAIScript
+// $ forge script script/arbitrum/manual/4_GrinderAI.s.sol:GrinderAIScript
 
 // Mainnet deploy command:
-// $ forge script script/arbitrum/manual/6_GrinderAI.s.sol:GrinderAIScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge script script/arbitrum/manual/4_GrinderAI.s.sol:GrinderAIScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 
 contract GrinderAIScript is Script {
-    PoolsNFT public poolsNFT = PoolsNFT(payable(address(0x83252fE42F994Cfa62b6c29DE56aeD4AAF4F0c6f))); // address can be replaced
-
-    IntentsNFT public intentsNFT = IntentsNFT(payable(address(0xd7A080BEC478C5152443C744fad714F45407DB21))); // address can be replaced
-
-    GRAI public grAI = GRAI(payable(address(0))); // address can be replaced
-
     GrinderAI public grinderAI;
 
     TransparentUpgradeableProxy public proxyGrinderAI;
@@ -39,11 +33,9 @@ contract GrinderAIScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         grinderAI = new GrinderAI();
-
         proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), deployer, "");
         grinderAI = GrinderAI(payable(proxyGrinderAI));
 
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
         
         vm.stopBroadcast();
     }

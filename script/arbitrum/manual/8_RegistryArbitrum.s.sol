@@ -6,10 +6,10 @@ import {PoolsNFT} from "src/PoolsNFT.sol";
 import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 
 // Test purposes:
-// $ forge script script/arbitrum/manual/7_RegistryArbitrum.s.sol:RegistryArbitrumScript
+// $ forge script script/arbitrum/manual/8_RegistryArbitrum.s.sol:RegistryArbitrumScript
 
 // Mainnet deploy command:
-// $ forge script script/arbitrum/manual/7_RegistryArbitrum.s.sol:GRETHScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge script script/arbitrum/manual/8_RegistryArbitrum.s.sol:GRETHScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 
 contract RegistryArbitrumScript is Script {

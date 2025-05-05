@@ -7,10 +7,10 @@ import {GRAI} from "src/GRAI.sol";
 import {IntentsNFT} from "src/IntentsNFT.sol";
 
 // Test purposes:
-// $ forge script script/arbitrum/manual/4_IntentsNFT.s.sol:IntentsNFTScript
+// $ forge script script/arbitrum/manual/6_IntentsNFT.s.sol:IntentsNFTScript
 
 // Mainnet deploy command:
-// $ forge script script/arbitrum/manual/4_IntentsNFT.s.sol:IntentsNFTScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge script script/arbitrum/manual/6_IntentsNFT.s.sol:IntentsNFTScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 
 contract IntentsNFTScript is Script {
