@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import {IPoolsNFT, IURUS} from "src/interfaces/IPoolsNFT.sol";
-import {IStrategy} from "src/interfaces/IStrategy.sol";
-import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
-import {IPoolsNFTLens} from "src/interfaces/IPoolsNFTLens.sol";
-import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
-import {Base64} from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
+import { IPoolsNFT, IURUS} from "src/interfaces/IPoolsNFT.sol";
+import { IOracle } from "src/interfaces/IOracle.sol";
+import { IStrategy } from "src/interfaces/IStrategy.sol";
+import { IPoolsNFTLens } from "src/interfaces/IPoolsNFTLens.sol";
+import { Strings } from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
+import { Base64 } from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
 
+/// @title PoolsNFTLens
+/// @dev used as external mechanism for retrieve batch of data from PoolsNFT and storing NFT metadata
 contract PoolsNFTLens is IPoolsNFTLens {
     using Base64 for bytes;
     using Strings for uint256;
@@ -268,8 +270,8 @@ contract PoolsNFTLens is IPoolsNFTLens {
             feeTokenSymbol: pool.feeToken().symbol(),
             quoteTokenSymbol: pool.getQuoteToken().symbol(),
             baseTokenSymbol: pool.getBaseToken().symbol(),
-            oracleQuoteTokenPerFeeTokenDecimals: AggregatorV3Interface(address(pool.oracleQuoteTokenPerFeeToken())).decimals(),
-            oracleQuoteTokenPerBaseTokenDecimals: AggregatorV3Interface(address(pool.oracleQuoteTokenPerBaseToken())).decimals(),
+            oracleQuoteTokenPerFeeTokenDecimals: IOracle(address(pool.oracleQuoteTokenPerFeeToken())).decimals(),
+            oracleQuoteTokenPerBaseTokenDecimals: IOracle(address(pool.oracleQuoteTokenPerBaseToken())).decimals(),
             quoteTokenDecimals: pool.getQuoteToken().decimals(),
             baseTokenDecimals: pool.getBaseToken().decimals(),
             quoteTokenAmount: pool.getQuoteTokenAmount(),
