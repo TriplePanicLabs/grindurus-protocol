@@ -1,19 +1,24 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {IToken} from "src/interfaces/IToken.sol";
-import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {IStrategy, IURUS} from "src/interfaces/IStrategy.sol";
-import {Ownable2Step, Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IGRAI} from "src/interfaces/IGRAI.sol";
-import {IGrinderAI} from "src/interfaces/IGrinderAI.sol";
-import {IIntentsNFT} from "src/interfaces/IIntentsNFT.sol";
+import { IToken } from "src/interfaces/IToken.sol";
+import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
+import { IAgent } from "src/interfaces/IAgent.sol";
+import { IStrategy, IURUS } from "src/interfaces/IStrategy.sol";
+import { Ownable2Step, Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
+import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IGRAI } from "src/interfaces/IGRAI.sol";
+import { IGrinderAI, IWETH9 } from "src/interfaces/IGrinderAI.sol";
+import { IIntentsNFT } from "src/interfaces/IIntentsNFT.sol";
 
 /// @title GrinderAI
 /// @notice provide transpanet mechanism for effective interaction with GrindURUS protocol via AI agent
 contract GrinderAI is IGrinderAI {
     using SafeERC20 for IToken;
+
+    /// @notice denominator. Used for calculating royalties
+    /// @dev this value of denominator is 100% 
+    uint16 public constant DENOMINATOR = 100_00;
 
     /// @dev address of poolsNFT
     IPoolsNFT public poolsNFT;
@@ -24,6 +29,18 @@ contract GrinderAI is IGrinderAI {
     /// @dev address of grAI
     IGRAI public grAI;
 
+    /// @dev address of weth
+    IWETH9 public weth;
+
+    /// @dev address of grinder
+    address payable public grinder;
+
+    /// @dev grinder share of value
+    uint16 public grinderShareNumerator;
+
+    /// @dev grinder share of value
+    uint16 public liquidityShareNumerator;
+
     /// @dev address of account => is agent
     mapping (address account => bool) public isDelegate;
 
@@ -31,11 +48,21 @@ contract GrinderAI is IGrinderAI {
     mapping (address account => uint256) public mintedGrinds;
 
     /// @notice initialize function
-    function init(address _poolsNFT, address _intentsNFT, address _grAI) public {
-        require(address(poolsNFT) == address(0) && address(intentsNFT) == address(0) && address(grAI) == address(0));
+    function init(address _poolsNFT, address _intentsNFT, address _grAI, address _weth) public override {
+        require(
+            address(poolsNFT) == address(0) && 
+            address(intentsNFT) == address(0) && 
+            address(grAI) == address(0) &&
+            address(weth) == address(0)
+        );
         poolsNFT = IPoolsNFT(_poolsNFT);
         intentsNFT = IIntentsNFT(_intentsNFT);
         grAI = IGRAI(_grAI);
+        weth = IWETH9(_weth);
+        grinder = payable(owner());
+        grinderShareNumerator = 50_00;
+        liquidityShareNumerator = 50_00;
+        require(grinderShareNumerator + liquidityShareNumerator == DENOMINATOR, "Invalid shares");
         isDelegate[msg.sender] = true;
     }
 
@@ -69,6 +96,23 @@ contract GrinderAI is IGrinderAI {
         _onlyOwner();
         isDelegate[_delegate] = _isDelegate;
     }
+
+    /// @notice sets grinder share numerator
+    function setShares(uint16 _grinderShareNumerator, uint16 _liquidityShareNumerator) public override {
+        _onlyOwner();
+        grinderShareNumerator = _grinderShareNumerator;
+        liquidityShareNumerator = _liquidityShareNumerator;
+        require(grinderShareNumerator + liquidityShareNumerator == DENOMINATOR, "Invalid shares");
+    }
+
+    /// @notice sets grinder
+    /// @param _grinder address of grinder
+    function setGrinder(address payable _grinder) public override {
+        _onlyOwner();
+        grinder = _grinder;
+    }
+
+    //// GRAI CONFIGURATION
 
     /// @notice sets bridge gas limit and value
     /// @param endpointId id of the endpoint
@@ -104,70 +148,12 @@ contract GrinderAI is IGrinderAI {
         grAI.setPeer(eid, peer);
     }
 
-    /// @notice AI mint pools
-    /// @param strategyId id of strategy
-    /// @param baseToken address of base token
-    /// @param quoteToken address of quote token
-    /// @param quoteTokenAmounts array of quote token amounts
-    function mintPoolsNFT(
-        uint16 strategyId,
-        address quoteToken,
-        address baseToken,
-        uint256[] memory quoteTokenAmounts
-    ) public returns (uint256[] memory poolIds) {
-        poolIds = mintPoolsNFTTo(
-            msg.sender,
-            strategyId,
-            quoteToken,
-            baseToken,
-            quoteTokenAmounts
-        );
-    }
-
-    /// @notice AI mint pools
-    /// @param strategyId id of strategy
-    /// @param baseToken address of base token
-    /// @param quoteToken address of quote token
-    /// @param quoteTokenAmounts array of quote token amounts
-    function mintPoolsNFTTo(
-        address receiver,   
-        uint16 strategyId,
-        address baseToken,
-        address quoteToken,
-        uint256[] memory quoteTokenAmounts
-    ) public returns (uint256[] memory poolIds) {
-        uint256 len = quoteTokenAmounts.length;
-        poolIds = new uint256[](len);
-        for (uint256 i; i < len;) {
-            poolIds[i] = poolsNFT.mintTo(
-                receiver,
-                strategyId,
-                baseToken,
-                quoteToken,
-                quoteTokenAmounts[i]
-            );
-            unchecked { ++i; }
-        }
-    }
+    //// END GRAI CONFIGURATION
 
     /// @notice grind 
     /// @param poolId id of pool
     function grind(uint256 poolId) public override returns (bool) {
-        address grinder = owner();
-        try poolsNFT.grindTo(poolId, grinder) returns (bool isGrinded) {
-            return isGrinded;
-        } catch {
-            return false;
-        }
-    }
-
-    /// @notice AI grind to
-    /// @dev can be called by anyone
-    /// @param poolId id of pool
-    /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy
-    function grindOp(uint256 poolId, uint8 op) public override returns (bool) {
-        address grinder = owner();
-        try poolsNFT.grindOpTo(poolId, op, grinder) returns (bool isGrinded) {
+        try poolsNFT.grind(poolId) returns (bool isGrinded) {
             return isGrinded;
         } catch {
             return false;
@@ -179,15 +165,40 @@ contract GrinderAI is IGrinderAI {
     /// @param poolIds array of pool ids
     function batchGrind(uint256[] memory poolIds) public override {
         uint256 len = poolIds.length;
-        address grinder = owner();
         for (uint256 i = 0; i < len; ) {
-            try poolsNFT.grindTo(poolIds[i], grinder) returns (bool isGrinded) {
-                isGrinded;
-            } catch {
-
-            }
+            grind(poolIds[i]);
             unchecked { ++i; }
         }
+    }
+
+    /// @notice AI grind to
+    /// @dev can be called by anyone
+    /// @param poolId id of pool
+    /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy
+    function grindOp(uint256 poolId, uint8 op) public override returns (bool) {
+        if (op <= uint8(Op.HEDGE_REBUY)) {
+            try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
+                return isGrinded;
+            } catch {
+                return false;
+            }
+        } else if (op == uint8(Op.BRANCH)) {
+            IAgent agent = IAgent(poolsNFT.agentOf(poolId));
+            try agent.branch(poolId) {
+                return true;
+            } catch {
+                return false;
+            }
+
+        } else if (op == uint8(Op.UNBRANCH)) {
+            IAgent agent = IAgent(poolsNFT.agentOf(poolId));
+            try agent.unbranch(poolId) {
+                return true;
+            } catch {
+                return false;
+            }
+        }
+        return false;
     }
 
     /// @notice batch of grindOps
@@ -197,15 +208,9 @@ contract GrinderAI is IGrinderAI {
         if (poolIds.length != ops.length) {
             revert InvalidLength();
         }
-        address grinder = owner();
         uint256 len = poolIds.length;
-        uint256 i;
-        for (i = 0; i < len;) {
-            try poolsNFT.grindOpTo(poolIds[i], ops[i], grinder) returns (bool isGrinded) {
-                isGrinded;
-            } catch {
-
-            }
+        for (uint256 i = 0; i < len;) {
+            grindOp(poolIds[i], ops[i]);
             unchecked { ++i; }
         }
     }
@@ -322,9 +327,13 @@ contract GrinderAI is IGrinderAI {
     }
 
     receive() external payable {
-        if (msg.value > 0) {
+        uint256 value = msg.value;
+        if (value > 0) {
+            uint256 grinderShare = (value * grinderShareNumerator) / DENOMINATOR;
             bool success;
-            (success, ) = address(owner()).call{value: msg.value}("");
+            (success, ) = grinder.call{value: grinderShare}("");
+            uint256 liquidity = value - grinderShare;
+            try weth.deposit{value: liquidity}() {} catch {}
         }
     }
 
