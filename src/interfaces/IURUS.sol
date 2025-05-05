@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import {IToken} from "src/interfaces/IToken.sol";
-import {IERC5313} from "lib/openzeppelin-contracts/contracts/interfaces/IERC5313.sol";
-import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
+import { IToken } from "src/interfaces/IToken.sol";
+import { IERC5313 } from "lib/openzeppelin-contracts/contracts/interfaces/IERC5313.sol";
+import { IOracle } from "src/interfaces/IOracle.sol";
 
 interface IURUS is IERC5313 {
 
@@ -14,7 +14,6 @@ interface IURUS is IERC5313 {
     error Hedged();
     error NotHedged();
     error BuyUpperPriceMin();
-    error DipUpperThreshold();
     error NotProfitableLongSell();
     error HedgeSellOutOfBound();
     error NotProfitableHedgeSell();
@@ -44,8 +43,8 @@ interface IURUS is IERC5313 {
 
     /**
     Possible values:
-        longNumberMax = 4
-        hedgeNumberMax = 4
+        longNumberMax = 3
+        hedgeNumberMax = 3
         extraCoef = 2_00 // x2.00
         priceVolatilityPercent = 1_00 // 1%
         returnPercentLongSell = 100_50 // 100.5%
@@ -62,6 +61,12 @@ interface IURUS is IERC5313 {
         uint256 returnPercentHedgeRebuy; // [returnPercentHedgeRebuy] = %
     }
 
+    struct Runtime {
+        uint256 initLiquidity;
+        uint256 liquidity;
+        uint256 investCoef;
+    }
+
     struct HelperData {
         // immutable data
         uint8 quoteTokenDecimals;
@@ -73,9 +78,6 @@ interface IURUS is IERC5313 {
         uint256 oracleQuoteTokenPerFeeTokenMultiplier;
         uint256 coefMultiplier;
         uint256 percentMultiplier;
-        // mutable data
-        uint256 initLiquidity;
-        uint256 investCoef;
     }
 
     struct Position {
@@ -100,19 +102,21 @@ interface IURUS is IERC5313 {
 
     function MIN_HEDGE_NUMBER_MAX() external view returns (uint8);
 
-    function isLongedMax() external view returns (bool);
-
     function startTimestamp() external view returns (uint256);
 
-    function oracleQuoteTokenPerFeeToken() external view returns (AggregatorV3Interface);
+    function oracleQuoteTokenPerFeeToken() external view returns (IOracle);
 
-    function oracleQuoteTokenPerBaseToken() external view returns (AggregatorV3Interface);
+    function oracleQuoteTokenPerBaseToken() external view returns (IOracle);
 
     function feeToken() external view returns (IToken);
 
     function quoteToken() external view returns(IToken);
 
     function baseToken() external view returns (IToken);
+
+    function evalMaxLiquidity() external view returns (uint256);
+
+    function evalInvestCoef() external view returns (uint256 investCoef);
 
     function setConfig(Config memory conf) external;
 
@@ -136,10 +140,6 @@ interface IURUS is IERC5313 {
         uint256 baseTokenAmount,
         uint256 baseTokenPrice
     ) external returns (uint256 depositedBaseTokenAmount);
-
-    function deposit3(
-        uint256 quoteTokenAmount
-    ) external returns (uint256 swappedBaseTokenAmount);
 
     function withdraw(
         address to,
@@ -172,19 +172,12 @@ interface IURUS is IERC5313 {
 
     function getPriceQuoteTokenPerBaseToken() external view returns (uint256 price);
 
-    function getPriceQuoteTokensPerFeeToken() external view returns (uint256 price);
+    function getPriceQuoteTokenPerFeeToken() external view returns (uint256 price);
 
-    function getPriceBaseTokensPerFeeToken(uint256 quoteTokenPerBaseTokenPrice)
-        external
-        view
-        returns (uint256 baseTokensPerFeeTokenPrice);
+    function getPriceBaseTokenPerFeeToken(uint256 quoteTokenPerBaseTokenPrice) external view returns (uint256 price);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //// CALCULATE FUNCTIONS
-
-    function calcMaxLiquidity() external view returns (uint256);
-
-    function calcInvestCoef() external view returns (uint256 investCoef);
 
     function calcSwapPrice(
         uint256 quoteTokenAmount,
@@ -239,20 +232,20 @@ interface IURUS is IERC5313 {
             uint256 swapPriceThreshold
         );
 
-    function calcQuoteTokenByBaseToken(uint256 baseTokenAmount, uint256 quoteTokenPerBaseTokenPrice)
-        external
-        view
-        returns (uint256 quoteTokenAmount);
+    function calcQuoteTokenByBaseToken(
+        uint256 baseTokenAmount, 
+        uint256 quoteTokenPerBaseTokenPrice
+    ) external view returns (uint256 quoteTokenAmount);
 
-    function calcQuoteTokenByFeeToken(uint256 feeTokenAmount, uint256 quoteTokenPerFeeTokenPrice)
-        external
-        view
-        returns (uint256 quoteTokenAmount);
+    function calcQuoteTokenByFeeToken(
+        uint256 feeTokenAmount, 
+        uint256 quoteTokenPerFeeTokenPrice
+    ) external view returns (uint256 quoteTokenAmount);
 
-    function calcBaseTokenByFeeToken(uint256 feeTokenAmount, uint256 baseTokenPerFeeTokenPrice)
-        external
-        view
-        returns (uint256 baseTokenAmount);
+    function calcBaseTokenByFeeToken(
+        uint256 feeTokenAmount, 
+        uint256 baseTokenPerFeeTokenPrice
+    ) external view returns (uint256 baseTokenAmount);
 
     function getThresholds() external view 
         returns (
@@ -296,6 +289,14 @@ interface IURUS is IERC5313 {
             uint256 feeQty,
             uint256 feePrice
         );
+
+    function isDrawdown() external view returns (bool);
+
+    function getRuntime() external view returns (
+        uint256 initLiquidity,
+        uint256 liquidity,
+        uint256 investCoef
+    );
 
     function getConfig()
         external
