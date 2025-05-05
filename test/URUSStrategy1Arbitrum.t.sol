@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-import {PoolsNFT} from "src/PoolsNFT.sol";
-import {GRETH} from "src/GRETH.sol";
-import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
-import {MockToken} from "test/mock/MockToken.sol";
-import {MockSwapRouterArbitrum} from "test/mock/MockSwapRouterArbitrum.sol";
-import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
-import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
-import {GRAI} from "src/GRAI.sol";
-import {GrinderAI} from "src/GrinderAI.sol";
-import {IntentsNFT} from "src/IntentsNFT.sol";
-import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { Test, console } from "forge-std/Test.sol";
+import { PoolsNFT } from "src/PoolsNFT.sol";
+import { GRETH } from "src/GRETH.sol";
+import { Strategy1Arbitrum, IToken, IStrategy } from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import { Strategy1FactoryArbitrum } from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
+import { MockToken } from "test/mock/MockToken.sol";
+import { MockSwapRouterArbitrum } from "test/mock/MockSwapRouterArbitrum.sol";
+import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
+import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
+import { GRAI } from "src/GRAI.sol";
+import { GrinderAI } from "src/GrinderAI.sol";
+import { IntentsNFT } from "src/IntentsNFT.sol";
+import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // $ forge test --match-path test/URUSStrategy1Arbitrum.t.sol -vvv
 contract URUSStrategy1ArbitrumTest is Test {
@@ -79,7 +79,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
+        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethArbitrum);
 
         registry = new RegistryArbitrum(address(poolsNFT));
         strategy1 = new Strategy1Arbitrum();
@@ -396,7 +396,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         uint256 amount2 = 2000 * 10**6;
         IToken(usdtArbitrum).approve(address(poolsNFT), amount2);
         mockSwapRouter.setRate(2970 * 10 ** 8);
-        poolsNFT.deposit3(poolId0, amount2);
+        poolsNFT.deposit(poolId0, amount2);
         console.log("2) Deposit3");
         printLongPosition(poolId0);
 

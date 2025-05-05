@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-import {PoolsNFT} from "src/PoolsNFT.sol";
-import {GRETH} from "src/GRETH.sol";
-import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
-import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
-import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
-import {GRAI} from "src/GRAI.sol";
-import {GrinderAI} from "src/GrinderAI.sol";
-import {IntentsNFT} from "src/IntentsNFT.sol";
-import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { Test, console } from "forge-std/Test.sol";
+import { PoolsNFT } from "src/PoolsNFT.sol";
+import { GRETH } from "src/GRETH.sol";
+import { Strategy1Arbitrum, IToken, IStrategy } from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import { Strategy1FactoryArbitrum } from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
+import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
+import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
+import { GRAI } from "src/GRAI.sol";
+import { GrinderAI } from "src/GrinderAI.sol";
+import { IntentsNFT } from "src/IntentsNFT.sol";
+import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // $ forge test --match-path test/PoolsNFT.t.sol -vvv
 contract PoolsNFTTest is Test {
@@ -69,7 +69,7 @@ contract PoolsNFTTest is Test {
         intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
+        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethArbitrum);
         
         poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
 

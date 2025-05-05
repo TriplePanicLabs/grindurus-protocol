@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 
-import "forge-std/Test.sol";
+import { Test, console} from "forge-std/Test.sol";
 import { IToken } from "src/interfaces/IToken.sol";
 import { IUniswapV3Pool } from "src/interfaces/uniswapV3/arbitrum/IUniswapV3Pool.sol";
 import { ISwapRouterArbitrum } from "src/interfaces/uniswapV3/arbitrum/ISwapRouterArbitrum.sol";
@@ -168,6 +168,39 @@ contract UniV3GRAIArbitrumTest is Test {
 
         weth.approve(address(router), amountIn);
         uint256 amountOut = router.exactInputSingle(params);
+        console.log("amountOut without transfer", amountOut);
+
+        uint256 graiBalanceAfter = grai.balanceOf(address(this));
+        uint256 wethBalanceAfter = weth.balanceOf(address(this));
+
+        assertEq(wethBalanceBefore - wethBalanceAfter, amountIn, "Incorrect WETH amount spent");
+        assertEq(graiBalanceAfter - graiBalanceBefore, amountOut, "Incorrect GRAI amount received");
+        assertTrue(amountOut > 0, "Swap failed");
+    }
+
+    function test_swapWETHForGRAI_withTransfer() public {
+        uint256 amountIn = 1 * 1e18; // 1 WETH
+        deal(WETH_ADDRESS, address(this), 2 * amountIn);
+        // deal(WETH_ADDRESS, address(this), amountIn);
+
+        weth.transfer(address(pool), amountIn);
+
+        uint256 graiBalanceBefore = grai.balanceOf(address(this));
+        uint256 wethBalanceBefore = weth.balanceOf(address(this));
+
+        ISwapRouterArbitrum.ExactInputSingleParams memory params = ISwapRouterArbitrum.ExactInputSingleParams({
+            tokenIn: WETH_ADDRESS,
+            tokenOut: GRAI_ADDRESS,
+            fee: POOL_FEE,
+            recipient: address(this),
+            amountIn: amountIn,
+            amountOutMinimum: 0,
+            sqrtPriceLimitX96: 0
+        });
+
+        weth.approve(address(router), amountIn);
+        uint256 amountOut = router.exactInputSingle(params);
+        console.log("amountOut with transfer", amountOut);
 
         uint256 graiBalanceAfter = grai.balanceOf(address(this));
         uint256 wethBalanceAfter = weth.balanceOf(address(this));

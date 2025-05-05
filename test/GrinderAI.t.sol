@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-import {IToken} from "src/interfaces/IToken.sol";
-import {PoolsNFT} from "src/PoolsNFT.sol";
-import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
-import {GRETH} from "src/GRETH.sol";
-import {IntentsNFT} from "src/IntentsNFT.sol";
-import {GRAI} from "src/GRAI.sol";
-import {GrinderAI} from "src/GrinderAI.sol";
-import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { Test, console } from "forge-std/Test.sol";
+import { IToken } from "src/interfaces/IToken.sol";
+import { PoolsNFT } from "src/PoolsNFT.sol";
+import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
+import { GRETH } from "src/GRETH.sol";
+import { IntentsNFT } from "src/IntentsNFT.sol";
+import { GRAI } from "src/GRAI.sol";
+import { GrinderAI } from "src/GrinderAI.sol";
+import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // $ forge test --match-path test/GrinderAI.t.sol -vvv
 contract GrinderAITest is Test {
@@ -62,7 +62,7 @@ contract GrinderAITest is Test {
         intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
         
         grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
+        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethArbitrum);
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
 

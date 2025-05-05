@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-import {IRegistry} from "src/interfaces/IRegistry.sol";
-import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
-import {PriceOracleInverse} from "src/oracles/PriceOracleInverse.sol";
-import {PriceOracleSelf} from "src/oracles/PriceOracleSelf.sol";
-import {AggregatorV3Interface} from "src/interfaces/chainlink/AggregatorV3Interface.sol";
+import { Test, console} from "forge-std/Test.sol";
+import { IRegistry } from "src/interfaces/IRegistry.sol";
+import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
+import { PriceOracleInverse } from "src/oracles/PriceOracleInverse.sol";
+import { PriceOracleSelf } from "src/oracles/PriceOracleSelf.sol";
+import { IOracle } from "src/interfaces/IOracle.sol";
 
 // $ forge test --match-path test/RegistryArbitrum.t.sol -vvv
 contract RegistryArbitrumTest is Test {
@@ -34,7 +34,7 @@ contract RegistryArbitrumTest is Test {
         address oracleInverseAddress = registry.getOracle(wethArbitrum, usdtArbitrum);
         assert(oracleInverseAddress != address(0));
 
-        AggregatorV3Interface oracleInverse = AggregatorV3Interface(oracleInverseAddress);
+        IOracle oracleInverse = IOracle(oracleInverseAddress);
 
         (,int256 inverseAnswer,,,) = oracleInverse.latestRoundData();
         assert(inverseAnswer > 0);

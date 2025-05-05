@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {Test, console} from "forge-std/Test.sol";
-import {PoolsNFT} from "src/PoolsNFT.sol";
-import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
-import {GRETH} from "src/GRETH.sol";
-import {IntentsNFT} from "src/IntentsNFT.sol";
-import {GRAI} from "src/GRAI.sol";
-import {GrinderAI} from "src/GrinderAI.sol";
-import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { Test, console } from "forge-std/Test.sol";
+import { PoolsNFT } from "src/PoolsNFT.sol";
+import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
+import { GRETH } from "src/GRETH.sol";
+import { IntentsNFT } from "src/IntentsNFT.sol";
+import { GRAI } from "src/GRAI.sol";
+import { GrinderAI } from "src/GrinderAI.sol";
+import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import {IToken} from "src/interfaces/IToken.sol";
 
@@ -56,7 +56,7 @@ contract IntentsNFTTest is Test {
         intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI));
+        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethArbitrum);
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
 
@@ -112,6 +112,24 @@ contract IntentsNFTTest is Test {
         uint256 ownerBalanceBefore = usdt.balanceOf(owner);
         (uint256 intentId,) = intentsNFT.mint(usdtArbitrum, grinds);
         uint256 ownerBalanceAfter = usdt.balanceOf(owner);
+        assert(intentId == 0);
+        assert(ownerBalanceAfter > ownerBalanceBefore);
+
+        vm.stopBroadcast();
+    }
+
+    function test_mint_grAI() public {
+        vm.startBroadcast(user);
+        deal(address(grAI), user, 10 * 1e18);
+        uint256 grinds = 10;
+        uint256 paymentAmount = intentsNFT.calcPayment(address(grAI), grinds);
+        // console.log("paymentAmount: ", paymentAmount);
+        
+        // grAI.approve(address(intentsNFT), paymentAmount);
+        
+        uint256 ownerBalanceBefore = grAI.balanceOf(owner);
+        (uint256 intentId,) = intentsNFT.mint(address(grAI), grinds);
+        uint256 ownerBalanceAfter = grAI.balanceOf(owner);
         assert(intentId == 0);
         assert(ownerBalanceAfter > ownerBalanceBefore);
 
