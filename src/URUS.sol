@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {IURUS, IToken, IERC5313, AggregatorV3Interface} from "src/interfaces/IURUS.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IURUS, IToken, IERC5313, IOracle } from "src/interfaces/IURUS.sol";
+import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title URUS
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
@@ -22,13 +22,16 @@ contract URUS is IURUS {
 
     /// @dev price feed of fee token. [oracle] = quoteToken/feeToken
     ///      for Ethereum mainnet = ETH, for BSC = BNB, Optimism = ETH, etc
-    AggregatorV3Interface public oracleQuoteTokenPerFeeToken;
+    IOracle public oracleQuoteTokenPerFeeToken;
 
     /// @dev price feed of base token. [oracle] = quoteToken/baseToken
-    AggregatorV3Interface public oracleQuoteTokenPerBaseToken;
+    IOracle public oracleQuoteTokenPerBaseToken;
 
     /// @dev set of helper params
     HelperData public helper;
+
+    /// @dev runtime of URUS
+    Runtime public runtime;
 
     /// @dev address of fee token
     IToken public feeToken;
@@ -78,8 +81,8 @@ contract URUS is IURUS {
     ) public {
         require(address(quoteToken) == address(0));
 
-        oracleQuoteTokenPerFeeToken = AggregatorV3Interface(_oracleQuoteTokenPerFeeToken);
-        oracleQuoteTokenPerBaseToken = AggregatorV3Interface(_oracleQuoteTokenPerBaseToken);
+        oracleQuoteTokenPerFeeToken = IOracle(_oracleQuoteTokenPerFeeToken);
+        oracleQuoteTokenPerBaseToken = IOracle(_oracleQuoteTokenPerBaseToken);
 
         feeToken = IToken(_feeToken);
         baseToken = IToken(_baseToken);
@@ -98,7 +101,7 @@ contract URUS is IURUS {
         _initHelperTokensDecimals();
         _initHelperOracle();
         _initHelperCoef();
-        _setHelperInvestCoefAndInitLiquidity();
+        _setInvestCoefAndInitLiquidity();
 
         long = Position({
             number: 0,
@@ -143,10 +146,31 @@ contract URUS is IURUS {
     }
 
     /// @dev depends on longNumberMax, extraCoef
-    function _setHelperInvestCoefAndInitLiquidity() private {
-        uint256 maxLiquidity = calcMaxLiquidity();
-        helper.investCoef = calcInvestCoef();
-        helper.initLiquidity = (maxLiquidity * helper.coefMultiplier) / helper.investCoef;
+    function _setInvestCoefAndInitLiquidity() private {
+        uint256 maxLiquidity = evalMaxLiquidity();
+        runtime.investCoef = evalInvestCoef();
+        runtime.initLiquidity = (maxLiquidity * helper.coefMultiplier) / runtime.investCoef;
+    }
+
+    /// @notice calculate max liquidity that can be used for buying
+    /// @dev q_n = q_1 * investCoef / coefMultiplier
+    function evalMaxLiquidity() public view override returns (uint256) {
+        return (runtime.initLiquidity * runtime.investCoef) / helper.coefMultiplier;
+    }
+
+    /// @notice calculates invest coeficient
+    /// @dev q_n = (e+1) ^ (n-1) * q_1 => investCoef = (e+1)^(n-1)
+    /// @dev invest coef depends on config.longNumberMax and config.extraCoef
+    function evalInvestCoef() public view override returns (uint256 investCoef) {
+        uint8 exponent = config.longNumberMax - 1;
+        uint256 multiplier = helper.coefMultiplier;
+        if (exponent >= 2) {
+            investCoef = ((config.extraCoef + multiplier) ** exponent) / (multiplier ** (exponent - 1));
+        } else if (exponent == 1) {
+            investCoef = config.extraCoef + multiplier;
+        } else { // exponent == 0
+            investCoef = multiplier;
+        }
     }
 
     /// @dev checks config
@@ -155,11 +179,6 @@ contract URUS is IURUS {
         require(conf.hedgeNumberMax > 0);
         require(conf.priceVolatilityPercent > 0);
         require(conf.extraCoef > 0);
-    }
-
-    /// @dev checks if used all liquidity
-    function isLongedMax() public view override returns (bool) {
-        return long.number > 0 && long.number == long.numberMax;
     }
 
     //// ONLY AGENT //////////////////////////////////////////////////////////////////////////
@@ -173,7 +192,7 @@ contract URUS is IURUS {
             require(conf.extraCoef == config.extraCoef);
         }
         config = conf;
-        _setHelperInvestCoefAndInitLiquidity();
+        _setInvestCoefAndInitLiquidity();
     }
 
     /// @notice sets long number max
@@ -181,7 +200,7 @@ contract URUS is IURUS {
     function setLongNumberMax(uint8 longNumberMax) public virtual override {
         require(longNumberMax >= MIN_LONG_NUMBER_MAX);
         config.longNumberMax = longNumberMax;
-        _setHelperInvestCoefAndInitLiquidity();
+        _setInvestCoefAndInitLiquidity();
     }
 
     /// @notice sets hedge number max
@@ -197,7 +216,7 @@ contract URUS is IURUS {
         require(extraCoef > 0);
         require(long.number == 0);
         config.extraCoef = extraCoef;
-        _setHelperInvestCoefAndInitLiquidity();
+        _setInvestCoefAndInitLiquidity();
     }
 
     /// @notice sets price volatility
@@ -228,14 +247,14 @@ contract URUS is IURUS {
     /// @notice set fee coeficient for Op
     /// @dev if realFeeCoef = 1.61, than feeConfig = realFeeCoef * helper.feeCoeficientMultiplier
     /// @param op operation in Op enumeration
-    /// @param _feeCoef fee coeficient scaled by helper.feeCoeficientMultiplier
-    function setOpFeeCoef(uint8 op, uint256 _feeCoef) public virtual override {
+    /// @param feeCoef fee coeficient scaled by helper.feeCoeficientMultiplier
+    function setOpFeeCoef(uint8 op, uint256 feeCoef) public virtual override {
         if (op == uint8(Op.LONG_SELL)) {
-            feeConfig.longSellFeeCoef = _feeCoef;
+            feeConfig.longSellFeeCoef = feeCoef;
         } else if (op == uint8(Op.HEDGE_SELL)) {
-            feeConfig.hedgeSellFeeCoef = _feeCoef;
+            feeConfig.hedgeSellFeeCoef = feeCoef;
         } else if (op == uint8(Op.HEDGE_REBUY)) {
-            feeConfig.hedgeRebuyFeeCoef = _feeCoef;
+            feeConfig.hedgeRebuyFeeCoef = feeCoef;
         } else {
             revert InvalidOp();
         }
@@ -243,93 +262,64 @@ contract URUS is IURUS {
 
     //// ONLY GATEWAY //////////////////////////////////////////////////////////////////////////
 
-    /// @notice deposit the quote token to strategy
-    /// @param quoteTokenAmount raw amount of `quoteToken`
+    /// @notice deposit the quote token to URUS
+    /// @param quoteTokenAmount amount of quote token
     function deposit(
         uint256 quoteTokenAmount
     ) public virtual override returns (uint256) {
-        if (long.number == 0) {
-            startTimestamp = block.timestamp;
-        }
-        quoteToken.safeTransferFrom(
-            msg.sender,
-            address(this),
-            quoteTokenAmount
-        );
-        _invest(quoteTokenAmount);
-        quoteTokenAmount = _put(quoteToken, quoteTokenAmount);
-        return quoteTokenAmount;
-    }
-
-    /// @notice deposit the base token to strategy
-    /// @param baseTokenAmount raw amount of `baseToken`
-    function deposit2(
-        uint256 baseTokenAmount,
-        uint256 baseTokenPrice
-    ) public virtual override returns (uint256) {
-        require(long.number == 0 || isLongedMax());
-        if (hedge.number > 0) {
-            revert Hedged();
-        }
-        baseToken.safeTransferFrom(
-            msg.sender,
-            address(this),
-            baseTokenAmount
-        );
-        baseTokenAmount = _put(baseToken, baseTokenAmount);
-        long.price = ((long.qty * long.price) + (baseTokenAmount * baseTokenPrice)) / (long.qty + baseTokenAmount);
-        long.qty += baseTokenAmount;
-        if (long.number == 0) {
-            startTimestamp = block.timestamp;
-            long.number = 1;
-            long.numberMax = 1;
-            long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
-            _invest(long.liquidity);
-        } else { 
-            long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
-            // invest analog
-            helper.initLiquidity = (long.liquidity * helper.coefMultiplier) / helper.investCoef;
-        }
-        long.priceMin = calcLongPriceMin();
-        return baseTokenAmount;
-    }
-
-    /// @notice deposit the quote token to strategy when unrealized loss in sufficient (buy the dip)
-    /// @param quoteTokenAmount amount of quote token
-    function deposit3(
-        uint256 quoteTokenAmount
-    ) public virtual override returns (uint256 baseTokenAmount) {
-        if (long.number != long.numberMax) {
-            revert NotLongNumberMax();
-        }
         if (hedge.number > 0) {
             revert Hedged();
         }
         quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
-        baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
-        uint256 swapPrice = calcSwapPrice(quoteTokenAmount, baseTokenAmount);
+        if (long.number == 0) {
+            startTimestamp = block.timestamp;
+            quoteTokenAmount = _put(quoteToken, quoteTokenAmount);
+        } else {
+            uint256 baseTokenAmount = _swap(quoteToken, baseToken, quoteTokenAmount);
+            baseTokenAmount = _put(baseToken, baseTokenAmount);
+
+            uint256 swapPrice = calcSwapPrice(quoteTokenAmount, baseTokenAmount);
+            quoteTokenAmount = calcQuoteTokenByBaseToken(baseTokenAmount, swapPrice);
+    
+            long.price = ((long.qty * long.price) + (baseTokenAmount * swapPrice)) / (long.qty + baseTokenAmount);
+            long.qty += baseTokenAmount;
+            long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
+        }
+        _invest(quoteTokenAmount);
+        return quoteTokenAmount;
+    }
+
+    /// @notice deposit the base token to URUS
+    /// @param baseTokenAmount amount of `baseToken`
+    /// @param baseTokenPrice price of base token amount
+    function deposit2(
+        uint256 baseTokenAmount,
+        uint256 baseTokenPrice
+    ) public virtual override returns (uint256) {
+        if (hedge.number > 0) {
+            revert Hedged();
+        }
+        baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
+        baseTokenAmount = _put(baseToken, baseTokenAmount);
+        long.price = ((long.qty * long.price) + (baseTokenAmount * baseTokenPrice)) / (long.qty + baseTokenAmount);
+        long.qty += baseTokenAmount;
+        long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
+        uint256 quoteTokenAmount;
         if (long.number == 0) {
             startTimestamp = block.timestamp;
             long.number = 1;
             long.numberMax = 1;
-        } else {
-            (
-                /** uint256 thresholdHigh */,
-                uint256 thresholdLow
-            ) = calcHedgeSellInitBounds();
-            if (swapPrice >= thresholdLow) {
-                revert DipUpperThreshold();
-            }
+            quoteTokenAmount = calcQuoteTokenByBaseToken(long.qty, long.price);
+        } else { 
+            quoteTokenAmount = calcQuoteTokenByBaseToken(baseTokenAmount, baseTokenPrice);
         }
         _invest(quoteTokenAmount);
-        baseTokenAmount = _put(baseToken, baseTokenAmount);
-
-        long.price = ((long.qty * long.price) + (baseTokenAmount * swapPrice)) / (long.qty + baseTokenAmount);
-        long.qty += baseTokenAmount;
-        long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
+        long.priceMin = calcLongPriceMin();
+        return baseTokenAmount;
     }
 
     /// @notice take `quoteTokenAmount` from lending, deinvest `quoteTokenAmount` and transfer it to `to`
+    /// @dev withdrawable only when not long.number == 0
     /// @param to address that receive the `quoteTokenAmount`
     /// @param quoteTokenAmount amount of quoteToken
     /// @return withdrawn quoteToken amount
@@ -346,24 +336,27 @@ contract URUS is IURUS {
     }
 
     /// @notice take `baseTokenAmount` from lending, deinvest `baseTokenAmount` and transfer it to `to`
+    /// @dev withdrawable only when long.number == long.numberMax and not hedged
     /// @param to address that receive the `baseTokenAmount`
     /// @param baseTokenAmount amount of baseToken
     function withdraw2(
         address to,
         uint256 baseTokenAmount
     ) public virtual override returns (uint256 withdrawn) {
-        if (!isLongedMax()) {
+        if (long.number != long.numberMax) {
             revert NotLongNumberMax();
-        } 
+        }
         if (hedge.number > 0) {
             revert Hedged();
         }
-        require(baseTokenAmount <= long.qty);
+        if (baseTokenAmount > long.qty) {
+            baseTokenAmount = long.qty;
+        }
         withdrawn = _take(baseToken, baseTokenAmount);
         baseToken.safeTransfer(to, withdrawn);
         long.qty -= baseTokenAmount;
         long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
-        helper.initLiquidity = (long.liquidity * helper.coefMultiplier) / helper.investCoef;
+        runtime.initLiquidity = (long.liquidity * helper.coefMultiplier) / runtime.investCoef;
     }
 
     /// @notice invest amount of `quoteToken`
@@ -384,8 +377,8 @@ contract URUS is IURUS {
          *         newMaxLiquidity = 10 * 27_00 / 1_00  + 5 = 270 + 5 = 275
          *         newInitLiqudity = 275 * 1_00 / 27_00 = 10.185185
          */
-        newMaxLiquidity = calcMaxLiquidity() + investAmount;
-        helper.initLiquidity = (newMaxLiquidity * helper.coefMultiplier) / helper.investCoef;
+        newMaxLiquidity = evalMaxLiquidity() + investAmount;
+        runtime.initLiquidity = (newMaxLiquidity * helper.coefMultiplier) / runtime.investCoef;
     }
 
     /// @notice divest amount of quoteToken
@@ -394,11 +387,11 @@ contract URUS is IURUS {
     function _divest(
         uint256 divestAmount
     ) internal virtual returns (uint256 newMaxLiquidity) {
-        uint256 maxLiqudity = calcMaxLiquidity();
+        uint256 maxLiqudity = evalMaxLiquidity();
         if (divestAmount <= maxLiqudity) {
             newMaxLiquidity = maxLiqudity - divestAmount;
         }
-        helper.initLiquidity = (newMaxLiquidity * helper.coefMultiplier) / helper.investCoef;
+        runtime.initLiquidity = (newMaxLiquidity * helper.coefMultiplier) / runtime.investCoef;
     }
 
     /// @notice grab all assets from strategy and send it to owner
@@ -416,7 +409,8 @@ contract URUS is IURUS {
         if (baseTokenBalance > 0) {
             baseToken.safeTransfer(_owner, baseTokenBalance);
         }
-        helper.initLiquidity = 0;
+        runtime.initLiquidity = 0;
+        runtime.liquidity = 0;
         long = Position({
             number: 0,
             numberMax: 0,
@@ -506,10 +500,12 @@ contract URUS is IURUS {
 
         // 1.1. calculate the quote token amount
         if (longNumber == 0) {
-            quoteTokenAmount = helper.initLiquidity;
+            quoteTokenAmount = runtime.initLiquidity;   
         } else {
-            quoteTokenAmount = (long.liquidity * config.extraCoef) / helper.coefMultiplier;
+            quoteTokenAmount = (runtime.liquidity * config.extraCoef) / helper.coefMultiplier;
         }
+        runtime.liquidity += quoteTokenAmount;
+
         // 1.2. Take the quoteToken from lending protocol
         quoteTokenAmount = _take(quoteToken, quoteTokenAmount);
         // 2.0 Swap quoteTokenAmount to baseTokenAmount on DEX
@@ -527,9 +523,9 @@ contract URUS is IURUS {
             long.numberMax = config.longNumberMax;
         }
         long.number += 1;
-        long.price = (long.qty * long.price + baseTokenAmount * swapPrice) / (long.qty + baseTokenAmount);
+        long.price = ((long.qty * long.price) + (baseTokenAmount * swapPrice)) / (long.qty + baseTokenAmount);
         long.qty += baseTokenAmount;
-        long.liquidity += quoteTokenAmount;
+        long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
         long.priceMin = calcLongPriceMin();
 
         // 4.1. Put baseToken to lending protocol
@@ -537,9 +533,9 @@ contract URUS is IURUS {
 
         // 5.1. Accumulate fees
         uint256 feeQty = (gasStart - gasleft()) * tx.gasprice; // gas * feeToken / gas = feeToken
-        uint256 feePrice = getPriceQuoteTokensPerFeeToken(); // [long.feePrice] = quoteToken/feeToken
+        uint256 feePrice = getPriceQuoteTokenPerFeeToken(); // [long.feePrice] = quoteToken/feeToken
         if (feeQty > 0 && feePrice > 0) {
-            long.feePrice = (long.feeQty * long.feePrice + feeQty * feePrice) / (long.feeQty + feeQty);
+            long.feePrice = ((long.feeQty * long.feePrice) + (feeQty * feePrice)) / (long.feeQty + feeQty);
         }
         long.feeQty += feeQty;
         // 6.1 Emit Transmute of long buy operation
@@ -582,7 +578,7 @@ contract URUS is IURUS {
 
         // 4.0 Put the rest of `quouteToken` to lending protocol
         quoteTokenAmount = _put(quoteToken, quoteTokenAmount);
-
+        runtime.liquidity = 0;
         long = Position({
             number: 0,
             numberMax: 0,
@@ -599,7 +595,7 @@ contract URUS is IURUS {
             quoteTokenAmount,
             baseTokenAmount,
             calcSwapPrice(quoteTokenAmount, baseTokenAmount),
-            feeQty // (gasStart - gasleft() + 50) * tx.gasprice
+            feeQty
         );
     }
 
@@ -672,15 +668,16 @@ contract URUS is IURUS {
             hedge.number += 1;
 
             feeQty = (gasStart - gasleft()) * tx.gasprice; // [feeQty] = gas * feeToken / gas = feeToken
-            uint256 feePrice = getPriceBaseTokensPerFeeToken(swapPrice); // [feePrice] = baseToken/feeToken
+            uint256 feePrice = getPriceBaseTokenPerFeeToken(swapPrice); // [feePrice] = baseToken/feeToken
             if (feeQty > 0 && feePrice > 0) {
                 // gasStart always bigger than gasleft()
                 // [hedge.feePrice] = (feeToken * (baseToken/feeToken) + feeToken * (baseToken/feeToken)) / (feeToken + feeToken) =
                 //                  = (baseToken + baseToken) / feeToken = baseToken / feeToken
-                hedge.feePrice = (hedge.feeQty * hedge.feePrice + feeQty * feePrice) / (hedge.feeQty + feeQty);
+                hedge.feePrice = ((hedge.feeQty * hedge.feePrice) + (feeQty * feePrice)) / (hedge.feeQty + feeQty);
             }
             hedge.feeQty += feeQty;
         } else if (hedgeNumber == hedgeNumberMaxMinusOne) {
+            runtime.liquidity = 0;
             long = Position({
                 number: 0,
                 numberMax: 0,
@@ -865,7 +862,7 @@ contract URUS is IURUS {
                 feePrice: 0
             });
         }
-        helper.initLiquidity = (long.liquidity * helper.coefMultiplier) / helper.investCoef;
+        runtime.initLiquidity = (long.liquidity * helper.coefMultiplier) / runtime.investCoef;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -873,62 +870,47 @@ contract URUS is IURUS {
 
     /// @notice returns `baseToken` price in terms of `quoteToken`
     /// @dev dimention [price]=quoteToken/baseToken
-    function getPriceQuoteTokenPerBaseToken() public view returns (uint256 price) {
+    function getPriceQuoteTokenPerBaseToken() public view virtual override returns (uint256 price) {
         if (address(oracleQuoteTokenPerBaseToken) != address(0)) {
-            (, int256 answer, , , ) = oracleQuoteTokenPerBaseToken.latestRoundData();
-            price = uint256(answer);
-        } else {
-            if ((long.qty + hedge.qty) > 0) {
-                price = (long.qty * long.price + hedge.qty * hedge.price) / (long.qty + hedge.qty);
+            try oracleQuoteTokenPerBaseToken.latestRoundData() returns (uint80, int256 answer, uint256, uint256, uint80) {
+                price = uint256(answer);
+            } catch {
+                price = 0;
             }
         }
     }
 
+
     /// @notice returns price of `feeToken` in terms of `quoteToken`
     /// @dev dimention [price]=quoteToken/feeToken
-    function getPriceQuoteTokensPerFeeToken() public view returns (uint256 price) {
+    function getPriceQuoteTokenPerFeeToken() public view virtual override returns (uint256 price) {
         if (address(oracleQuoteTokenPerFeeToken) != address(0)) {
-            (, int256 answer, , , ) = oracleQuoteTokenPerFeeToken.latestRoundData();
-            price = uint256(answer);
+            try oracleQuoteTokenPerFeeToken.latestRoundData() returns (uint80, int256 answer, uint256, uint256, uint80) {
+                price = uint256(answer);
+            } catch {
+                price = 0;
+            }
         }
     }
 
     /// @notice returns price of `feeToken` in terms of `baseToken`
     /// @dev dimention [price]= baseToken/feeToken
-    function getPriceBaseTokensPerFeeToken(
+    function getPriceBaseTokenPerFeeToken(
         uint256 quoteTokenPerBaseTokenPrice
-    ) public view returns (uint256 price) {
+    ) public view virtual override returns (uint256 price) {
         if (address(oracleQuoteTokenPerFeeToken) != address(0)) {
-            (, int256 answer, , , ) = oracleQuoteTokenPerFeeToken.latestRoundData();
-            // [price] = quoteToken / feeToken * (1 / (quoteToken / baseToken)) = baseToken / feeToken
-            price = (uint256(answer) * helper.oracleQuoteTokenPerBaseTokenMultiplier) / quoteTokenPerBaseTokenPrice;
+            try oracleQuoteTokenPerFeeToken.latestRoundData() returns (uint80, int256 answer, uint256, uint256, uint80) {
+                // [price] = quoteToken / feeToken * (1 / (quoteToken / baseToken)) = baseToken / feeToken
+                price = (uint256(answer) * helper.oracleQuoteTokenPerBaseTokenMultiplier) / quoteTokenPerBaseTokenPrice;
+            } catch {
+                price = 0;
+            }
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //// CALCULATE FUNCTIONS
 
-    /// @notice calculate max liquidity that can be used for buying
-    /// @dev q_n = q_1 * investCoef / coefMultiplier
-    function calcMaxLiquidity() public view override returns (uint256) {
-        return (helper.initLiquidity * helper.investCoef) / helper.coefMultiplier;
-    }
-
-    /// @notice calculates invest coeficient
-    /// @dev q_n = (e+1) ^ (n-1) * q_1 => investCoef = (e+1)^(n-1)
-    /// @dev invest coef depends on config.longNumberMax and config.extraCoef
-    function calcInvestCoef() public view override returns (uint256 investCoef) {
-        uint8 exponent = config.longNumberMax - 1;
-        uint256 multiplier = helper.coefMultiplier;
-        if (exponent >= 2) {
-            investCoef = ((config.extraCoef + multiplier) ** exponent) / (multiplier ** (exponent - 1));
-        } else if (exponent == 1) {
-            investCoef = config.extraCoef + multiplier;
-        } else {
-            // exponent == 0
-            investCoef = multiplier;
-        }
-    }
 
     /// @notice calculates the price of `baseToken` in terms of `quoteToken` based on `quoteTokenAmount` and `baseTokenAmount`
     /// @param quoteTokenAmount amount of `quoteToken`
@@ -1206,7 +1188,7 @@ contract URUS is IURUS {
         uint8 bd = helper.baseTokenDecimals;
         uint8 qd = helper.quoteTokenDecimals;
         if (qd >= bd) {
-            quoteTokenAmount = (baseTokenAmount * quoteTokenPerBaseTokenPrice * (10 ** (qd - bd))) / helper.oracleQuoteTokenPerBaseTokenMultiplier;
+            quoteTokenAmount = ((baseTokenAmount * quoteTokenPerBaseTokenPrice) * (10 ** (qd - bd))) / helper.oracleQuoteTokenPerBaseTokenMultiplier;
         } else {
             quoteTokenAmount = (baseTokenAmount * quoteTokenPerBaseTokenPrice) / (helper.oracleQuoteTokenPerBaseTokenMultiplier * (10 ** (bd - qd)));
         }
@@ -1224,7 +1206,7 @@ contract URUS is IURUS {
         uint8 qd = helper.quoteTokenDecimals;
         uint8 fd = helper.feeTokenDecimals;
         if (qd >= fd) {
-            quoteTokenAmount = (feeTokenAmount * quoteTokenPerFeeTokenPrice * (10 ** (qd - fd))) / helper.oracleQuoteTokenPerFeeTokenMultiplier;
+            quoteTokenAmount = ((feeTokenAmount * quoteTokenPerFeeTokenPrice) * (10 ** (qd - fd))) / helper.oracleQuoteTokenPerFeeTokenMultiplier;
         } else {
             quoteTokenAmount = (feeTokenAmount * quoteTokenPerFeeTokenPrice) / (helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - qd)));
         }
@@ -1243,7 +1225,7 @@ contract URUS is IURUS {
         uint8 bd = helper.baseTokenDecimals;
         uint8 fd = helper.feeTokenDecimals;
         if (bd >= fd) {
-            baseTokenAmount = (feeTokenAmount * baseTokenPerFeeTokenPrice * (10 ** (bd - fd))) / helper.oracleQuoteTokenPerFeeTokenMultiplier;
+            baseTokenAmount = ((feeTokenAmount * baseTokenPerFeeTokenPrice) * (10 ** (bd - fd))) / helper.oracleQuoteTokenPerFeeTokenMultiplier;
         } else {
             baseTokenAmount = (feeTokenAmount * baseTokenPerFeeTokenPrice) / (helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - bd)));
         }
@@ -1262,7 +1244,7 @@ contract URUS is IURUS {
         uint8 bd = helper.baseTokenDecimals;
         uint8 qd = helper.quoteTokenDecimals;
         if (bd >= qd) {
-            baseTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerBaseTokenMultiplier * (10 ** (bd - qd))) / quoteTokenPerBaseTokenPrice;
+            baseTokenAmount = ((quoteTokenAmount * helper.oracleQuoteTokenPerBaseTokenMultiplier) * (10 ** (bd - qd))) / quoteTokenPerBaseTokenPrice;
         } else {
             baseTokenAmount = (quoteTokenAmount * helper.oracleQuoteTokenPerBaseTokenMultiplier) / (quoteTokenPerBaseTokenPrice * (10 ** (qd - bd)));
         }
@@ -1292,7 +1274,7 @@ contract URUS is IURUS {
         }
         if (long.number == long.numberMax && hedge.number == 0) {
             (hedgeSellInitPriceThresholdHigh, hedgeSellInitPriceThresholdLow) = calcHedgeSellInitBounds();
-        } 
+        }
         if (hedge.number > 0) {
             (
                 hedgeSellLiquidity,
@@ -1353,6 +1335,27 @@ contract URUS is IURUS {
         price = hedge.price;
         feeQty = hedge.feeQty;
         feePrice = hedge.feePrice;
+    }
+
+    /// @notice return true if position is on drawdown
+    function isDrawdown() public view override returns (bool) {
+        if (long.number > 0) {
+            if (long.number == long.numberMax && hedge.number == 0) {
+                uint256 price = getPriceQuoteTokenPerBaseToken();
+                (, uint256 hedgeSellInitPriceThresholdLow) = calcHedgeSellInitBounds();
+                return price < hedgeSellInitPriceThresholdLow;
+            }
+        }
+        return false;
+    }
+
+    /// @notice return runtime
+    function getRuntime() public view override returns (
+        uint256 initLiquidity,
+        uint256 liquidity,
+        uint256 investCoef
+    ) {
+        return (runtime.initLiquidity, runtime.liquidity, runtime.investCoef);
     }
 
     /// @notice return config of strategy
@@ -1422,7 +1425,7 @@ contract URUS is IURUS {
     /// @notice returns the owner of strategy pool
     /// @dev should be reimplemented in inherrited contracts
     function owner() public view virtual override(IERC5313) returns (address){
-        return address(0); // no owner
+        return msg.sender; // no owner
     }
 
     /// @notice execute a transaction
