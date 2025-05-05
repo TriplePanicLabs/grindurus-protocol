@@ -7,11 +7,14 @@ import {ILendingAdapter, IToken} from "src/interfaces/ILendingAdapter.sol";
 /// @notice No adapter to lending protocol. Just store funds on this contract
 contract NoLendingAdapter is ILendingAdapter {
 
+    /// @dev address of token => store amount
+    mapping (IToken token => uint256) public storeAmount;
+
     function _put(
         IToken token,
         uint256 amount
     ) internal virtual returns (uint256 putAmount) {
-        token;
+        storeAmount[token] += amount;
         putAmount = amount;
     }
 
@@ -19,7 +22,10 @@ contract NoLendingAdapter is ILendingAdapter {
         IToken token,
         uint256 amount
     ) internal virtual returns (uint256 takeAmount) {
-        token;
+        if (amount > storeAmount[token]) {
+            amount = storeAmount[token];
+        }
+        storeAmount[token] -= amount;
         takeAmount = amount;
     }
 
