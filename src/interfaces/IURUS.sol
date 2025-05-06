@@ -110,13 +110,15 @@ interface IURUS is IERC5313 {
 
     function feeToken() external view returns (IToken);
 
-    function quoteToken() external view returns(IToken);
-
     function baseToken() external view returns (IToken);
+
+    function quoteToken() external view returns(IToken);
 
     function evalMaxLiquidity() external view returns (uint256);
 
     function evalInvestCoef() external view returns (uint256 investCoef);
+
+    function setOracles(address oracleQuoteTokenPerFeeToken, address oracleQuoteTokenPerBaseToken) external;
 
     function setConfig(Config memory conf) external;
 
@@ -130,7 +132,7 @@ interface IURUS is IERC5313 {
 
     function setOpReturnPercent(uint8 op, uint256 returnPercent) external;
 
-    function setOpFeeCoef(uint8 op, uint256 _feeCoef) external;
+    function setOpFeeCoef(uint8 op, uint256 feeCoef) external;
 
     function deposit(
         uint256 quoteTokenAmount
