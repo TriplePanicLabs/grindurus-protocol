@@ -183,7 +183,16 @@ contract URUS is IURUS {
 
     //// ONLY AGENT //////////////////////////////////////////////////////////////////////////
 
-    /// @notice sets config of strategy pool
+    /// @notice sets oracle for URUS
+    /// @param _oracleQuoteTokenPerFeeToken oracle for quote token per fee token
+    /// @param _oracleQuoteTokenPerBaseToken oracle for quote token per base token
+    function setOracles(address _oracleQuoteTokenPerFeeToken, address _oracleQuoteTokenPerBaseToken) public virtual override {
+        oracleQuoteTokenPerFeeToken = IOracle(_oracleQuoteTokenPerFeeToken);
+        oracleQuoteTokenPerBaseToken = IOracle(_oracleQuoteTokenPerBaseToken);
+        _initHelperOracle();
+    }
+
+    /// @notice sets config for URUS
     /// @param conf config structure
     function setConfig(Config memory conf) public virtual override {
         _checkConfig(conf);
@@ -354,9 +363,9 @@ contract URUS is IURUS {
         }
         withdrawn = _take(baseToken, baseTokenAmount);
         baseToken.safeTransfer(to, withdrawn);
-        long.qty -= baseTokenAmount;
+        long.qty -= withdrawn;
         long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
-        runtime.initLiquidity = (long.liquidity * helper.coefMultiplier) / runtime.investCoef;
+        _divest(calcQuoteTokenByBaseToken(baseTokenAmount, long.price));
     }
 
     /// @notice invest amount of `quoteToken`
