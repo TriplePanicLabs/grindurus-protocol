@@ -120,11 +120,10 @@ contract AAVEV3AdapterBase is ILendingAdapter {
                 takeAmount = token.balanceOf(address(this));
             }
         }
-        if (investedAmount[token] >= takeAmount) {
-            investedAmount[token] -= takeAmount;
-        } else {
-            investedAmount[token] = 0;
+        if (takeAmount > investedAmount[token]) {
+            takeAmount = investedAmount[token];
         }
+        investedAmount[token] -= takeAmount;
     }
 
     function _distributeYieldProfit(

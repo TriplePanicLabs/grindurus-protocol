@@ -8,25 +8,25 @@ import {ILendingAdapter, IToken} from "src/interfaces/ILendingAdapter.sol";
 contract NoLendingAdapter is ILendingAdapter {
 
     /// @dev address of token => store amount
-    mapping (IToken token => uint256) public storeAmount;
+    mapping (IToken token => uint256) public investedAmount;
 
     function _put(
         IToken token,
         uint256 amount
     ) internal virtual returns (uint256 putAmount) {
-        storeAmount[token] += amount;
         putAmount = amount;
+        investedAmount[token] += putAmount;
     }
 
     function _take(
         IToken token,
         uint256 amount
     ) internal virtual returns (uint256 takeAmount) {
-        if (amount > storeAmount[token]) {
-            amount = storeAmount[token];
-        }
-        storeAmount[token] -= amount;
         takeAmount = amount;
+        if (takeAmount > investedAmount[token]) {
+            takeAmount = investedAmount[token];
+        }
+        investedAmount[token] -= takeAmount;
     }
 
     function _distributeYieldProfit(
