@@ -99,6 +99,11 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
         reinvest = true;
     }
 
+    function setOracles(address _oracleQuoteTokenPerFeeToken, address _oracleQuoteTokenPerBaseToken) public override(URUS, IURUS) {
+        _onlyAgent();
+        URUS.setOracles(_oracleQuoteTokenPerFeeToken, _oracleQuoteTokenPerBaseToken);
+    }
+
     function setConfig(Config memory conf) public override(URUS, IURUS) {
         _onlyAgent();
         URUS.setConfig(conf);

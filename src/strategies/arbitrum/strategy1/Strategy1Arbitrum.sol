@@ -99,6 +99,11 @@ contract Strategy1Arbitrum is IStrategy, URUS, AAVEV3AdapterArbitrum, UniswapV3A
         reinvest = true;
     }
 
+    function setOracles(address _oracleQuoteTokenPerFeeToken, address _oracleQuoteTokenPerBaseToken) public override(URUS, IURUS) {
+        _onlyAgent();
+        URUS.setOracles(_oracleQuoteTokenPerFeeToken, _oracleQuoteTokenPerBaseToken);
+    }
+
     function setConfig(Config memory conf) public override(URUS, IURUS) {
         _onlyAgent();
         URUS.setConfig(conf);

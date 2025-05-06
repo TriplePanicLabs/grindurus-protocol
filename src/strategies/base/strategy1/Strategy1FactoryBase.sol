@@ -18,12 +18,12 @@ contract Strategy1FactoryBase is IStrategyFactory {
     /// @dev default config for strategyV1
     IURUS.Config public defaultConfig;
 
-    address private oracleWethUsdBase = 0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70; // chainlink WETH/USD oracle;
-    address private wethBase = 0x4200000000000000000000000000000000000006;
-    address private usdcBase = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+    address internal oracleWethUsdBase;
+    address internal wethBase;
+    address internal usdcBase;
 
-    address public aaveV3PoolBase = 0xA238Dd80C259a72e81d7e4664a9801593F98d1c5;
-    address public uniswapV3SwapRouterBase = 0x2626664c2603336E57B271c5C0b26F421741e481;
+    address public aaveV3PoolBase;
+    address public uniswapV3SwapRouterBase;
 
     /// @dev address of fee token
     address public feeToken;
@@ -56,6 +56,14 @@ contract Strategy1FactoryBase is IStrategyFactory {
             returnPercentHedgeSell: 100_50, // 100.50%
             returnPercentHedgeRebuy: 100_50 // 100.50%
         });
+
+        oracleWethUsdBase = 0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70; // chainlink WETH/USD oracle;
+        wethBase = 0x4200000000000000000000000000000000000006;
+        usdcBase = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+
+        aaveV3PoolBase = 0xA238Dd80C259a72e81d7e4664a9801593F98d1c5;
+        uniswapV3SwapRouterBase = 0x2626664c2603336E57B271c5C0b26F421741e481;
+
         uniswapV3PoolFee[usdcBase][wethBase] = 100;
 
         feeToken = wethBase;

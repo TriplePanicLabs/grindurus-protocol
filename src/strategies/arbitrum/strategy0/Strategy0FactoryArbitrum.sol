@@ -18,12 +18,12 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
     /// @dev default config for strategyV1
     IURUS.Config public defaultConfig;
 
-    address private oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612; // chainlink WETH/USD oracle;
-    address private wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-    address private usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
-    address private usdcArbitrum = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
+    address internal oracleWethUsdArbitrum; // chainlink WETH/USD oracle;
+    address internal wethArbitrum;
+    address internal usdtArbitrum;
+    address internal usdcArbitrum;
 
-    address public uniswapV3SwapRouterArbitrum = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address public uniswapV3SwapRouterArbitrum;
 
     /// @dev address of fee token
     address public feeToken;
@@ -56,7 +56,13 @@ contract Strategy0FactoryArbitrum is IStrategyFactory {
             returnPercentHedgeSell: 100_50, // 100.50%
             returnPercentHedgeRebuy: 100_50 // 100.50%
         });
-
+        oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612; // chainlink WETH/USD oracle
+        wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+        usdcArbitrum = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
+        
+        uniswapV3SwapRouterArbitrum = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+        
         uniswapV3PoolFee[usdtArbitrum][wethArbitrum] = 100;
         uniswapV3PoolFee[usdcArbitrum][wethArbitrum] = 100;
 
