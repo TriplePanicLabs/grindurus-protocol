@@ -6,8 +6,6 @@ import { IPoolsNFT, IPoolsNFTLens, IGRETH, IGrinderAI } from "src/interfaces/IPo
 import { IStrategy, IURUS } from "src/interfaces/IStrategy.sol";
 import { IStrategyFactory } from "src/interfaces/IStrategyFactory.sol";
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Strings } from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
-import { Base64 } from "lib/openzeppelin-contracts/contracts/utils/Base64.sol";
 import { ERC721, ERC721Enumerable, IERC165 } from "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 /// @title GrindURUS Pools NFT
@@ -192,13 +190,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     function _onlyAgentOf(uint256 poolId) private view {
         if (!isAgentOf(poolId, msg.sender)) {
             revert NotAgent();
-        }
-    }
-
-    /// @notice checks that msg.sender is owner of pool id
-    function _onlyOwnerOf(uint256 poolId) private view {
-        if (msg.sender != ownerOf(poolId)) {
-            revert NotOwnerOf();
         }
     }
 
@@ -464,12 +455,11 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         );
     }
 
-
     /// @notice withdraw `quoteToken` from poolId to `to`
     /// @dev callcable only by owner of poolId.
     /// @dev withdrawable when distrubution is 100% quoteToken + 0% baseToken
     /// @param poolId pool id of pool in array `pools`
-    /// @param to address of receiver of withdrawed funds
+    /// @param to address of receiver of withdrawn funds
     /// @param quoteTokenAmount amount of `quoteToken`
     /// @return withdrawn amount of withdrawn quoteToken
     function withdraw(
@@ -481,14 +471,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         IStrategy pool = IStrategy(pools[poolId]);
         IToken quoteToken = pool.quoteToken();
         withdrawn = pool.withdraw(to, quoteTokenAmount);
-        emit Withdraw(poolId, to, address(quoteToken), quoteTokenAmount);
+        emit Withdraw(poolId, to, address(quoteToken), withdrawn);
     }
 
     /// @notice withdraw `quoteToken` from poolId to `to`
     /// @dev callcable only by owner of poolId.
     /// @dev withdrawable when distrubution is 100% quoteToken + 0% baseToken
     /// @param poolId pool id of pool in array `pools`
-    /// @param to address of receiver of withdrawed funds
+    /// @param to address of receiver of withdrawn funds
     /// @param baseTokenAmount amount of `quoteToken`
     /// @return withdrawn amount of withdrawn quoteToken
     function withdraw2(
@@ -500,7 +490,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         IStrategy pool = IStrategy(pools[poolId]);
         IToken baseToken = pool.baseToken();
         withdrawn = pool.withdraw2(to, baseTokenAmount);
-        emit Withdraw2(poolId, to, address(baseToken), baseTokenAmount);
+        emit Withdraw2(poolId, to, address(baseToken), withdrawn);
     }
 
     /// @notice exit from strategy and transfer ownership to royalty receiver
@@ -884,18 +874,17 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
 
     /// @notice gets pool ids owned by `poolOwner`
     /// @param poolOwner address of pool owner
-    /// @return poolIdsOwnedByPoolOwner array of owner pool ids
+    /// @return poolIdsOf array of owner pool ids
     function getPoolIdsOf(
         address poolOwner
-    ) external view returns (uint256[] memory poolIdsOwnedByPoolOwner) {
+    ) external view returns (uint256[] memory poolIdsOf) {
         uint256 totalPoolIds = balanceOf(poolOwner);
         if (totalPoolIds == 0) {
             return new uint256[](0);
         }
-        uint256 i = 0;
-        poolIdsOwnedByPoolOwner = new uint256[](totalPoolIds);
-        for (; i < totalPoolIds; ) {
-            poolIdsOwnedByPoolOwner[i] = tokenOfOwnerByIndex(poolOwner, i);
+        poolIdsOf = new uint256[](totalPoolIds);
+        for (uint256 i = 0; i < totalPoolIds; ) {
+            poolIdsOf[i] = tokenOfOwnerByIndex(poolOwner, i);
             unchecked { ++i; }
         }
     }
