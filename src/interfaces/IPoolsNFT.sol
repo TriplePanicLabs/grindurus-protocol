@@ -15,7 +15,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error NotAgent();
     error NotGrinderAI();
     error NoCapital();
-    error InvalidOp();
+    error NotMicroOp();
     error InvalidShares();
     error InvalidRoyaltyPriceInit();
     error StrategyStopped();

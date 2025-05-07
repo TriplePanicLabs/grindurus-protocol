@@ -609,43 +609,26 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @notice grind the exact operation on the pool with `poolId`
     /// @param poolId pool id of pool in array `pools`
     /// @param op operation on strategy pool
-    function grindOp(uint256 poolId, uint8 op) external returns (bool isGrinded) {
+    function grindOp(uint256 poolId, uint8 op) external returns (bool) {
         uint256 gasStart = gasleft();
         IStrategy pool = IStrategy(pools[poolId]);
         _checkCapital(pool);
-        if (op == uint8(IURUS.Op.LONG_BUY)) {
-            try pool.long_buy() {
-                isGrinded = true;
-            } catch {
-                isGrinded = false;
-            }
-        } else if (op == uint8(IURUS.Op.LONG_SELL)) {
-            try pool.long_sell() {
-                isGrinded = true;
-            } catch {
-                isGrinded = false;
-            }
-        } else if (op == uint8(IURUS.Op.HEDGE_SELL)) {
-            try pool.hedge_sell() {
-                isGrinded = true;
-            } catch {
-                isGrinded = false;
-            }
-        } else if (op == uint8(IURUS.Op.HEDGE_REBUY)) {
-            try pool.hedge_rebuy() {
-                isGrinded = true;
-            } catch {
-                isGrinded = false;
-            }
+        if (op == uint8(IGrinderAI.Op.LONG_BUY)) {
+            pool.long_buy();
+        } else if (op == uint8(IGrinderAI.Op.LONG_SELL)) {
+            pool.long_sell();
+        } else if (op == uint8(IGrinderAI.Op.HEDGE_SELL)) {
+            pool.hedge_sell();
+        } else if (op == uint8(IGrinderAI.Op.HEDGE_REBUY)) {
+            pool.hedge_rebuy();
         } else {
-            revert InvalidOp();
+            revert NotMicroOp();
         }
-        if (isGrinded) {
-            uint256 nativeFeeSpent = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
-            _airdropGRETH(poolId, nativeFeeSpent);
-            _increaseSpentGrinds(poolId);
-        }
-        emit Grind(poolId, op, msg.sender, isGrinded);
+        uint256 nativeFeeSpent = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
+        _airdropGRETH(poolId, nativeFeeSpent);
+        _increaseSpentGrinds(poolId);
+        emit Grind(poolId, op, msg.sender, true);
+        return true;
     }
 
     /// @notice rewards the grinder
