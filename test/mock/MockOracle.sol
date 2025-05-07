@@ -23,23 +23,24 @@ contract MockOracle is IOracle {
         return mockSwapRouter.rateDecimals();
     }
 
-    function description() external view returns (string memory) {
+    function description() external pure returns (string memory) {
         return "mock oracle";
     }
 
-    function version() external view returns (uint256) {
+    function version() external pure returns (uint256) {
         return 0;
     }
 
     function latestRoundData() external view
         returns (
-            uint80,
+            uint80 a1,
             int256 answer,
-            uint256,
-            uint256,
-            uint80
+            uint256 a2,
+            uint256 a3,
+            uint80 a4
         ) 
     {
+        a1; a2; a3; a4;
         answer = int256(mockSwapRouter.rateTokenInByTokenOut());
     }
 
