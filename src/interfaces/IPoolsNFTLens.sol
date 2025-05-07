@@ -20,6 +20,7 @@ interface IPoolsNFTLens {
     }
 
     struct Thresholds {
+        uint256 spotPrice;
         uint256 longBuyPriceMin;
         uint256 longSellQuoteTokenAmountThreshold;
         uint256 longSellSwapPriceThreshold;

@@ -191,6 +191,7 @@ contract PoolsNFTLens is IPoolsNFTLens {
     /// @notice get thresholds of pool with `poolId`
     /// @param poolId pool id of pool in array `pools` on PoolsNFT
     function getThresholds(uint256 poolId) public view override returns (Thresholds memory) {
+        IStrategy pool = IStrategy(poolsNFT.pools(poolId));
         (
             uint256 longBuyPriceMin,
             uint256 longSellQuoteTokenAmountThreshold,
@@ -203,9 +204,10 @@ contract PoolsNFTLens is IPoolsNFTLens {
             uint256 hedgeSellSwapPriceThreshold,
             uint256 hedgeRebuyBaseTokenAmountThreshold,
             uint256 hedgeRebuySwapPriceThreshold
-        ) = IStrategy(poolsNFT.pools(poolId)).getThresholds();
-
+        ) = pool.getThresholds();
+        uint256 spotPrice = pool.getPriceQuoteTokenPerBaseToken();
         return Thresholds({
+            spotPrice: spotPrice,
             longBuyPriceMin: longBuyPriceMin,
             longSellQuoteTokenAmountThreshold: longSellQuoteTokenAmountThreshold,
             longSellSwapPriceThreshold: longSellSwapPriceThreshold,

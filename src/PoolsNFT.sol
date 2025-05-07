@@ -353,14 +353,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             revert StrategyStopped();
         }
         poolId = _mintTo(to, strategyId, baseToken, quoteToken);
-        if (quoteTokenAmount == 0) {
-            if (msg.sender != address(grinderAI)) {
-                revert NotGrinderAI();
-            }
-        } else {
-            _deposit(msg.sender, poolId, quoteTokenAmount);
-            royaltyPrice[poolId] = (quoteTokenAmount * royaltyPriceInitNumerator) / DENOMINATOR;
-        }
+        _deposit(msg.sender, poolId, quoteTokenAmount);
+        royaltyPrice[poolId] = (quoteTokenAmount * royaltyPriceInitNumerator) / DENOMINATOR;
     }
 
     /// @notice mint NFT and deploy strategy
@@ -418,15 +412,17 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             _checkMinDeposit(address(quoteToken), quoteTokenAmount);
             _checkMaxDeposit(address(quoteToken), quoteTokenAmount);
         }
-        quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
-        quoteToken.forceApprove(address(pool), quoteTokenAmount);
-        depositedAmount = pool.deposit(quoteTokenAmount);
-        emit Deposit(
-            poolId,
-            address(pool),
-            address(quoteToken),
-            depositedAmount
-        );
+        if (quoteTokenAmount > 0) {
+            quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
+            quoteToken.forceApprove(address(pool), quoteTokenAmount);
+            depositedAmount = pool.deposit(quoteTokenAmount);
+            emit Deposit(
+                poolId,
+                address(pool),
+                address(quoteToken),
+                depositedAmount
+            );
+        }
     }
 
     /// @notice deposit `baseToken` to pool with `poolId`

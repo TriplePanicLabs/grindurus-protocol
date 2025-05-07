@@ -10,8 +10,8 @@ import {IGRETH} from "src/interfaces/IGRETH.sol";
 import {IGrinderAI} from "src/interfaces/IGrinderAI.sol";
 
 interface IPoolsNFT is IERC721, IERC2981 {
+    
     error NotOwner();
-    error NotOwnerOf();
     error NotAgent();
     error NotGrinderAI();
     error NoCapital();
