@@ -307,7 +307,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
     /// @dev [activeCapital] = quoteToken
     function getActiveCapital() external view returns (uint256) {
         return 
-            quoteToken.balanceOf(address(this)) + 
+            investedAmount[quoteToken] + 
             calcQuoteTokenByBaseToken(long.qty, long.price) +
             calcQuoteTokenByBaseToken(hedge.qty, hedge.price);
     }
