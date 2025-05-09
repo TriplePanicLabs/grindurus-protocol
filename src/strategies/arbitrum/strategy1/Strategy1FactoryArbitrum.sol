@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {IStrategyFactory} from "src/interfaces/IStrategyFactory.sol";
-import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {Strategy1Arbitrum, IStrategy, IToken} from "./Strategy1Arbitrum.sol";
-import {IURUS} from "src/interfaces/IURUS.sol";
-import {IRegistry} from "src/interfaces/IRegistry.sol";
-import {ERC1967Proxy} from "lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { IStrategyFactory } from "src/interfaces/IStrategyFactory.sol";
+import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
+import { Strategy1Arbitrum, IStrategy, IToken } from "./Strategy1Arbitrum.sol";
+import { IURUS } from "src/interfaces/IURUS.sol";
+import { IRegistry } from "src/interfaces/IRegistry.sol";
+import { ERC1967Proxy } from "lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /// @title GrindURUS Strategy1 Factory
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)

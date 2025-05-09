@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {IToken} from "src/interfaces/IToken.sol";
-import {IStrategy} from "src/interfaces/IStrategy.sol";
-import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {AAVEV3AdapterBase} from "src/adapters/lendings/AAVEV3AdapterBase.sol";
-import {UniswapV3AdapterBase} from "src/adapters/dexes/UniswapV3AdapterBase.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IURUS, URUS, IERC5313} from "src/URUS.sol";
+import { IToken } from "src/interfaces/IToken.sol";
+import { IStrategy, IDexAdapter, ILendingAdapter } from "src/interfaces/IStrategy.sol";
+import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
+import { UniswapV3AdapterBase } from "src/adapters/dexes/UniswapV3AdapterBase.sol";
+import { AAVEV3AdapterBase } from "src/adapters/lendings/AAVEV3AdapterBase.sol";
+import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IURUS, URUS, IERC5313 } from "src/URUS.sol";
 
 /// @title Strategy1
 /// @author Triple Panic Labs, CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
@@ -187,9 +187,10 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
         return URUS.afterRebalance(baseTokenAmount, newPrice);
     }
 
-    function setAaveV3Pool(address _aaveV3Pool) public override(AAVEV3AdapterBase) {
+    /// @notice set lending params
+    function setLendingParams(bytes memory args) public override(AAVEV3AdapterBase, ILendingAdapter) {
         _onlyAgent();
-        AAVEV3AdapterBase.setAaveV3Pool(_aaveV3Pool);
+        AAVEV3AdapterBase.setLendingParams(args);
     }
 
     /// @notice puts token to yield protocol
@@ -206,14 +207,10 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
         takeAmount = AAVEV3AdapterBase._take(token, amount);
     }
 
-    function setSwapRouter(address _swapRouter) public override(UniswapV3AdapterBase) {
+    /// @notice sets dex params
+    function setDexParams(bytes memory args) public override(UniswapV3AdapterBase, IDexAdapter) {
         _onlyAgent();
-        UniswapV3AdapterBase.setSwapRouter(_swapRouter);
-    }
-
-    function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public override(UniswapV3AdapterBase) {
-        _onlyAgent();
-        UniswapV3AdapterBase.setUniswapV3PoolFee(_uniswapV3PoolFee);
+        UniswapV3AdapterBase.setDexParams(args);
     }
 
     /// @notice swaps from `tokenIn` to `tokenOut` on DEX
@@ -226,7 +223,7 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
 
     /// @notice returns pending yield of token
     /// @param token address of token
-    function getPendingYield(IToken token) public view override(AAVEV3AdapterBase, URUS) returns (uint256 yield) {
+    function getPendingYield(IToken token) public view override(AAVEV3AdapterBase, URUS, ILendingAdapter) returns (uint256 yield) {
         yield = AAVEV3AdapterBase.getPendingYield(token);
     }
 
@@ -279,7 +276,7 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
 
     /// @notice switch reinvest flag
     function switchReinvest() external override {
-        _onlyOwner();
+        _onlyAgent();
         reinvest = !reinvest;
     }
     

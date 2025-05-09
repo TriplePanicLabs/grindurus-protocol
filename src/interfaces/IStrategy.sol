@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import {IToken} from "./IToken.sol";
-import {IPoolsNFT} from "./IPoolsNFT.sol";
-import {IURUS} from "src/interfaces/IURUS.sol";
+import { IToken } from "./IToken.sol";
+import { IPoolsNFT } from "./IPoolsNFT.sol";
+import { IURUS } from "src/interfaces/IURUS.sol";
+import { IDexAdapter } from "src/interfaces/IDexAdapter.sol";
+import { ILendingAdapter } from "src/interfaces/ILendingAdapter.sol"; 
 
 /// @notice the interface for Strategy Pool
-interface IStrategy is IURUS {
+interface IStrategy is IURUS, IDexAdapter, ILendingAdapter {
 
     error NotOwner();
     error NotAgent();

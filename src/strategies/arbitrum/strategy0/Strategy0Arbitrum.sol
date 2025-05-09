@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {IToken} from "src/interfaces/IToken.sol";
-import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {IURUS, URUS, IERC5313} from "src/URUS.sol";
-import {IStrategy} from "src/interfaces/IStrategy.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IDexAdapter} from "src/interfaces/IDexAdapter.sol";
-import {NoLendingAdapter} from "src/adapters/lendings/NoLendingAdapter.sol";
-import {UniswapV3AdapterArbitrum} from "src/adapters/dexes/UniswapV3AdapterArbitrum.sol";
+import { IToken } from "src/interfaces/IToken.sol";
+import { IStrategy, IDexAdapter, ILendingAdapter } from "src/interfaces/IStrategy.sol";
+import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
+import { UniswapV3AdapterArbitrum } from "src/adapters/dexes/UniswapV3AdapterArbitrum.sol";
+import { NoLendingAdapter } from "src/adapters/lendings/NoLendingAdapter.sol";
+import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IURUS, URUS, IERC5313 } from "src/URUS.sol";
 
 /// @title Strategy0
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
@@ -190,21 +189,17 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         return NoLendingAdapter._take(token, amount);
     }
 
-    function setSwapRouter(address _swapRouter) public override(UniswapV3AdapterArbitrum) {
+    /// @notice sets dex params
+    function setDexParams(bytes memory args) public override(UniswapV3AdapterArbitrum, IDexAdapter) {
         _onlyAgent();
-        UniswapV3AdapterArbitrum.setSwapRouter(_swapRouter);
-    }
-
-    function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public override(UniswapV3AdapterArbitrum) {
-        _onlyAgent();
-        UniswapV3AdapterArbitrum.setUniswapV3PoolFee(_uniswapV3PoolFee);
+        UniswapV3AdapterArbitrum.setDexParams(args);
     }
 
     function _swap(IToken tokenIn, IToken tokenOut, uint256 amountIn) internal override(UniswapV3AdapterArbitrum, URUS) returns (uint256) {
         return UniswapV3AdapterArbitrum._swap(tokenIn, tokenOut, amountIn);
     }
 
-    function getPendingYield(IToken token) public view override (URUS, NoLendingAdapter) returns (uint256) {
+    function getPendingYield(IToken token) public view override (URUS, NoLendingAdapter, ILendingAdapter) returns (uint256) {
         return NoLendingAdapter.getPendingYield(token);
     }
 
@@ -255,7 +250,7 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
 
     /// @notice switch reinvest flag
     function switchReinvest() external override {
-        _onlyOwner();
+        _onlyAgent();
         reinvest = !reinvest;
     }
 
