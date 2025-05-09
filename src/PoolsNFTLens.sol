@@ -20,11 +20,13 @@ contract PoolsNFTLens is IPoolsNFTLens {
     /// @notice base URI for this collection
     string public baseURI;
 
+    /// @param _poolsNFT address of poolsNFT
     constructor (address _poolsNFT) {
         baseURI = "https://raw.githubusercontent.com/TriplePanicLabs/grindurus-poolsnft-data/refs/heads/main/arbitrum/";
         poolsNFT = IPoolsNFT(_poolsNFT);
     }
 
+    /// @notice returns owner
     function owner() public view returns (address) {
         try poolsNFT.owner() returns(address payable _owner){
             return _owner;
@@ -222,7 +224,45 @@ contract PoolsNFTLens is IPoolsNFTLens {
         });
     }
 
-    function getRoyaltyParams(uint256 poolId) public view returns (RoyaltyParams memory) {
+    /// @notice get profits of pool with `poolId`
+    /// @param poolId pool id of pool in array `pools` on PoolsNFT
+    function getProfits(uint256 poolId) public view override returns (IURUS.Profits memory profits) {
+        IStrategy pool = IStrategy(poolsNFT.pools(poolId));
+        (
+            uint256 quoteTokenYieldProfit,
+            uint256 baseTokenYieldProfit,
+            uint256 quoteTokenTradeProfit,
+            uint256 baseTokenTradeProfit
+        ) = pool.getProfits();
+        profits = IURUS.Profits({
+            quoteTokenYieldProfit: quoteTokenYieldProfit,
+            baseTokenYieldProfit: baseTokenYieldProfit,
+            quoteTokenTradeProfit: quoteTokenTradeProfit,
+            baseTokenTradeProfit: baseTokenTradeProfit
+        });
+    }
+
+    /// @notice get total profits of pool with `poolId`
+    /// @param poolId pool id of pool in array `pools` on PoolsNFT
+    function getTotalProfits(uint256 poolId) public view override returns (IURUS.Profits memory profits) {
+        IStrategy pool = IStrategy(poolsNFT.pools(poolId));
+        (
+            uint256 quoteTokenYieldTotalProfit,
+            uint256 baseTokenYieldTotalProfit,
+            uint256 quoteTokenTradeTotalProfit,
+            uint256 baseTokenTradeTotalProfit
+        ) = pool.getTotalProfits();
+        profits = IURUS.Profits({
+            quoteTokenYieldProfit: quoteTokenYieldTotalProfit,
+            baseTokenYieldProfit: baseTokenYieldTotalProfit,
+            quoteTokenTradeProfit: quoteTokenTradeTotalProfit,
+            baseTokenTradeProfit: baseTokenTradeTotalProfit
+        });
+    }
+
+    /// @notice get royalty params of pool with `poolId`
+    /// @param poolId pool id of pool in array `pools` on PoolsNFT
+    function getRoyaltyParams(uint256 poolId) public view override returns (RoyaltyParams memory) {
         (
             uint256 compensationShare,
             uint256 poolOwnerShare,
@@ -245,18 +285,6 @@ contract PoolsNFTLens is IPoolsNFTLens {
     /// @param poolId pool id of pool in array `pools` on PoolsNFT
     function _formPoolInfo(uint256 poolId) private view returns (PoolNFTInfo memory poolInfo) {
         IStrategy pool = IStrategy(poolsNFT.pools(poolId));
-        (
-            uint256 quoteTokenYieldProfit,
-            uint256 baseTokenYieldProfit,
-            uint256 quoteTokenTradeProfit,
-            uint256 baseTokenTradeProfit
-        ) = pool.getProfits();
-        (
-            uint256 totalQuoteTokenYieldProfit,
-            uint256 totalBaseTokenYieldProfit,
-            uint256 totalQuoteTokenTradeProfit,
-            uint256 totalBaseTokenTradeProfit
-        ) = pool.getTotalProfits();
         poolInfo = PoolNFTInfo({
             poolId: poolId,
             strategyId: pool.strategyId(),
@@ -280,18 +308,8 @@ contract PoolsNFTLens is IPoolsNFTLens {
             baseTokenAmount: pool.getBaseTokenAmount(),
             activeCapital: pool.getActiveCapital(),
             startTimestamp: pool.startTimestamp(),
-            profits: IURUS.Profits({
-                quoteTokenYieldProfit: quoteTokenYieldProfit,
-                baseTokenYieldProfit: baseTokenYieldProfit,
-                quoteTokenTradeProfit: quoteTokenTradeProfit,
-                baseTokenTradeProfit: baseTokenTradeProfit
-            }),
-            totalProfits: IURUS.Profits({
-                quoteTokenYieldProfit: totalQuoteTokenYieldProfit,
-                baseTokenYieldProfit: totalBaseTokenYieldProfit,
-                quoteTokenTradeProfit: totalQuoteTokenTradeProfit,
-                baseTokenTradeProfit: totalBaseTokenTradeProfit
-            }),
+            profits: getProfits(poolId),
+            totalProfits: getTotalProfits(poolId),
             roi: getROI(poolId),
             thresholds: getThresholds(poolId),
             royaltyParams: getRoyaltyParams(poolId)
