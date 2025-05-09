@@ -10,6 +10,8 @@ import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/
 contract NoDexAdapter is IDexAdapter {
     using SafeERC20 for IToken;
 
+    uint256 private _arg = 0;
+
     constructor() {}
 
     /// @notice constructor of initDex
@@ -20,15 +22,24 @@ contract NoDexAdapter is IDexAdapter {
         args;
     }
 
-    function encodeDexConstructorArgs() public pure returns (bytes memory) {
-        return abi.encode("");
+    function encodeDexConstructorArgs() public view returns (bytes memory) {
+        return abi.encode(_arg);
     }
 
     function decodeDexConstructorArgs(
         bytes memory args
-    ) public pure returns (string memory arg) {
-        (arg) = abi.decode(args, (string));
+    ) public pure returns (uint256 arg) {
+        (arg) = abi.decode(args, (uint256));
     } 
+
+    function getDexParams() public view virtual override returns (bytes memory args) {
+        args = encodeDexConstructorArgs();
+    }
+
+    function setDexParams(bytes memory args) public override {
+        (uint256 arg) = decodeDexConstructorArgs(args);
+        _arg = arg;
+    }
 
     /// @notice swaps assets
     /// @param tokenIn address of tokenIn

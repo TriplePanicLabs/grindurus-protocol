@@ -7,7 +7,7 @@ import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/
 
 /// @title UniswapV3AdapterBase
 /// @notice Adapter for UniswapV3
-/// @dev adapter to UniswapV3 that inherrits by Strategy. Made for Arbitrum network
+/// @dev adapter to UniswapV3 that inherrits by Strategy. Made for Base network
 contract UniswapV3AdapterBase is IDexAdapter {
     using SafeERC20 for IToken;
 
@@ -59,18 +59,25 @@ contract UniswapV3AdapterBase is IDexAdapter {
         (_swapRouter, _uniswapV3PoolFee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
     }
 
-    /// @notice set swap router
-    function setSwapRouter(address _swapRouter) public virtual {
+    /// @notice gets dex params
+    function getDexParams() public view virtual override returns (bytes memory args) {
+        args = encodeDexConstructorArgs(address(swapRouter), uniswapV3PoolFee, address(getQuoteToken()), address(getBaseToken()));
+    }
+
+    /// @notice sets dex params
+    /// @param args encoded dex params
+    function setDexParams(bytes memory args) public virtual override {
+        (
+            address _swapRouter,
+            uint24 _uniswapV3PoolFee,
+            /** address _quoteToken*/,
+            /** address _baseToken*/
+        ) = decodeDexConstructorArgs(args);
         getBaseToken().forceApprove(address(swapRouter), 0);
         getQuoteToken().forceApprove(address(swapRouter), 0);
         swapRouter = ISwapRouterBase(_swapRouter);
         getBaseToken().forceApprove(address(swapRouter), type(uint256).max);
         getQuoteToken().forceApprove(address(swapRouter), type(uint256).max);
-    }
-
-    /// @notice set fee
-    /// @param _uniswapV3PoolFee fee for uniswapV3 pool
-    function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public virtual {
         uniswapV3PoolFee = _uniswapV3PoolFee;
     }
 

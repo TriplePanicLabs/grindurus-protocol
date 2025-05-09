@@ -59,19 +59,26 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         (_swapRouter, _uniswapV3PoolFee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
     }
 
-    /// @notice set swap router
-    function setSwapRouter(address _swapRouter) public virtual {
+    /// @notice gets dex params
+    function getDexParams() public view virtual override returns (bytes memory args) {
+        args = encodeDexConstructorArgs(address(swapRouter), uniswapV3PoolFee, address(getQuoteToken()), address(getBaseToken()));
+    }
+
+    /// @notice sets dex params
+    /// @param args encoded dex params
+    function setDexParams(bytes memory args) public virtual override {
+        (
+            address _swapRouter,
+            uint24 _uniswapV3PoolFee,
+            /** address _quoteToken*/,
+            /** address _baseToken*/
+        ) = decodeDexConstructorArgs(args);
+        
         getBaseToken().forceApprove(address(swapRouter), 0);
         getQuoteToken().forceApprove(address(swapRouter), 0);
         swapRouter = ISwapRouterArbitrum(_swapRouter);
         getBaseToken().forceApprove(address(swapRouter), type(uint256).max);
         getQuoteToken().forceApprove(address(swapRouter), type(uint256).max);
-    }
-
-    /// @notice set fee
-    /// @dev only address(this) interacts with swapRouter
-    /// @param _uniswapV3PoolFee fee for uniswapV3 pool
-    function setUniswapV3PoolFee(uint24 _uniswapV3PoolFee) public virtual {
         uniswapV3PoolFee = _uniswapV3PoolFee;
     }
 

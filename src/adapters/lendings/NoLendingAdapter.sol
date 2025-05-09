@@ -34,6 +34,14 @@ contract NoLendingAdapter is ILendingAdapter {
         uint256 profit
     ) internal virtual {}
 
+    function getLendingParams() public view virtual override returns (bytes memory args) {
+        
+    }
+
+    function setLendingParams(bytes memory args) public virtual override{
+        args;
+    }
+
     function getPendingYield(IToken token) public view virtual override returns (uint256) {
         token;
         return 0;

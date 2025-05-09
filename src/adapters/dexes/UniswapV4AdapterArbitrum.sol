@@ -62,7 +62,20 @@ contract UniswapV4AdapterArbitrum is IDexAdapter {
         (_swapRouter, _fee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
     }
 
-    function _onlyAgent() internal view virtual {}
+    function getDexParams() public view virtual override returns (bytes memory args) {
+        args = encodeDexConstructorArgs(address(swapRouter), fee, address(getQuoteToken()), address(getBaseToken()));
+    }
+
+    function setDexParams(bytes memory args) public virtual override {
+        (
+            address _swapRouter, 
+            uint24 _fee, 
+            /** address _quoteToken*/, 
+            /** address _baseToken */
+        ) = decodeDexConstructorArgs(args);
+        _swapRouter;
+        _fee;
+    }
 
     /// @notice swaps assets
     /// @param tokenIn address of tokenIn

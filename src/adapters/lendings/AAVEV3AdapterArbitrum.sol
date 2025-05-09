@@ -45,9 +45,14 @@ contract AAVEV3AdapterArbitrum is ILendingAdapter {
         (_aaveV3Pool) = abi.decode(args, (address));
     }
 
-    /// @notice sets pool
-    /// @param _aaveV3Pool address of AAVEv3 pool
-    function setAaveV3Pool(address _aaveV3Pool) public virtual {
+    /// @notice get lending params
+    function getLendingParams() public view virtual override returns (bytes memory args) {
+        args = encodeLendingConstructorArgs(address(aaveV3Pool));
+    }
+
+    /// @notice sets lending params
+    function setLendingParams(bytes memory args) public virtual override {
+        (address _aaveV3Pool) = decodeLendingConstructorArgs(args);
         aaveV3Pool = IAAVEV3PoolArbitrum(_aaveV3Pool);
     }
 
