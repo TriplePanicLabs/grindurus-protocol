@@ -93,6 +93,12 @@ interface IPoolsNFTLens {
 
     function getThresholds(uint256 poolId) external view returns (Thresholds memory);
 
+    function getProfits(uint256 poolId) external view returns (IURUS.Profits memory profits);
+
+    function getTotalProfits(uint256 poolId) external view returns (IURUS.Profits memory totalProfits);
+
+    function getRoyaltyParams(uint256 poolId) external view returns (RoyaltyParams memory);
+
     function getPoolNFTInfosBy(uint256[] memory poolIds) external view returns (PoolNFTInfo[] memory poolInfos);
 
     function execute(address target, uint256 value, bytes calldata data) external payable returns (bool success, bytes memory result);
