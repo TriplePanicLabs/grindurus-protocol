@@ -108,7 +108,7 @@ contract URUSStrategy1ArbitrumTest is Test {
     }
 
     function test_URUS_longBuy_longSell() public {
-        pool0.setSwapRouter(address(mockSwapRouter));
+        pool0.setDexParams(pool0.encodeDexConstructorArgs(address(mockSwapRouter), 100, address(0x1337), address(0x101)));
         pool0.setLongNumberMax(1);
         mockSwapRouter.setRate(3000 * 10 ** 8);
 
@@ -146,7 +146,7 @@ contract URUSStrategy1ArbitrumTest is Test {
 
     function test_URUS_full_states() public {
         
-        pool0.setSwapRouter(address(mockSwapRouter));
+        pool0.setDexParams(pool0.encodeDexConstructorArgs(address(mockSwapRouter), 100, address(0x1337), address(0x101)));
         pool0.setLongNumberMax(4);
         pool0.setHedgeNumberMax(4);
         pool0.setExtraCoef(2_00); // x2.00
@@ -265,7 +265,7 @@ contract URUSStrategy1ArbitrumTest is Test {
     }
 
     function test_rebuy() public {
-        pool0.setSwapRouter(address(mockSwapRouter));
+        pool0.setDexParams(pool0.encodeDexConstructorArgs(address(mockSwapRouter), 100, address(0x1337), address(0x101)));
         pool0.setLongNumberMax(1);
         pool0.setHedgeNumberMax(2);
         
@@ -319,7 +319,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         address pool1Address = poolsNFT.pools(poolId1);
         Strategy1Arbitrum pool1 = Strategy1Arbitrum(payable(pool1Address));
         pool1.setLongNumberMax(1);
-        pool1.setSwapRouter(address(mockSwapRouter));
+        pool1.setDexParams(pool1.encodeDexConstructorArgs(address(mockSwapRouter), 100, address(0x1337), address(0x101)));
 
         uint256 amount2 = 1000 * 10**6;
         IToken(usdtArbitrum).approve(address(poolsNFT), amount2);
@@ -332,8 +332,8 @@ contract URUSStrategy1ArbitrumTest is Test {
         address pool2Address = poolsNFT.pools(poolId2);
         Strategy1Arbitrum pool2 = Strategy1Arbitrum(payable(pool2Address));
         pool2.setLongNumberMax(1);
-        pool2.setSwapRouter(address(mockSwapRouter));
-
+        pool2.setDexParams(pool2.encodeDexConstructorArgs(address(mockSwapRouter), 100, address(0x1337), address(0x101)));
+        
         mockSwapRouter.setRate(3000 * 10 ** 8);
         poolsNFT.grind(poolId1);
         printLongPosition(poolId1);
@@ -376,8 +376,8 @@ contract URUSStrategy1ArbitrumTest is Test {
     }
 
     function test_dip_and_undip() public {
-        pool0.setSwapRouter(address(mockSwapRouter));
-        
+        pool0.setDexParams(pool0.encodeDexConstructorArgs(address(mockSwapRouter), 100, address(0x1337), address(0x101)));
+
         pool0.setLongNumberMax(1);
         pool0.setHedgeNumberMax(2);
         pool0.setExtraCoef(2_00); // x2.00
