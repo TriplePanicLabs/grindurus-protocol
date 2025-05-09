@@ -16,7 +16,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     using Base64 for bytes;
     using Strings for uint256;
 
-    /// 
+    /// @dev 100% = 100_00
     uint256 public constant DENOMINATOR = 100_00;
 
     /// @notice base URI for this collection
@@ -44,13 +44,16 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     uint256 public totalGrinds;
 
     /// @dev address of owner of intent => intent id
-    mapping (address account => uint256) public intentIdOf;
+    mapping (address _ownerOf => uint256) public intentIdOf;
 
     /// @dev address of account => total grinds earned
-    mapping (address account => uint256) public grindsOf;
+    mapping (address _ownerOf => uint256) public grindsOf;
 
     /// @dev id of intent => grinds amount
-    mapping (uint256 intentId => uint256) public grinds;
+    mapping (address _ownerOf => uint256) public grinds;
+
+    /// @dev address of account => spent grinds amount
+    mapping (address _ownerOf => uint256) public spentGrinds;
 
     /// @dev address of token => rate of token per one day
     /// @dev token is address(0), this is ETH. Else ERC20 token
@@ -168,14 +171,14 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
             _mint(to, intentId);
             intentIdOf[to] = intentId;
             if (grindsOf[to] == 0) {
-                grinds[intentId] += freemiumGrinds;
+                grinds[to] += freemiumGrinds;
                 grindsAcquired += freemiumGrinds;
             }
             totalIntents++;
         } else {
             intentId = intentIdOf[to];
         }
-        grinds[intentId] += _grinds;
+        grinds[to] += _grinds;
         grindsAcquired += _grinds;
         grindsOf[to] += grindsAcquired;
         totalGrinds += grindsAcquired;
@@ -190,7 +193,16 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         grAI.mint(to, graiAmount);
     }
 
-    /// @notice not transferable. Use mint(). Use mint()
+    /// @notice increase spent grinds on behalf of owner of poolId
+    /// @param poolId id of pool on poolsNFT
+    function spendGrind(uint256 poolId) public override {
+        if (msg.sender == address(poolsNFT.grinderAI())) {
+            address _ownerOf = poolsNFT.ownerOf(poolId);
+            spentGrinds[_ownerOf] += 1;
+        }
+    }
+
+    /// @notice not transferable
     function transferFrom(address, address, uint256) public override {
         baseURI = baseURI;
         revert NotTransferable();
@@ -219,21 +231,12 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         }
     }
 
-    /// @notice return spent grinds
-    function spentGrinds(uint256 intentId) public view returns (uint256) {
-        try poolsNFT.spentGrinds(ownerOf(intentId)) returns (uint256 _spentGrinds) {
-            return _spentGrinds;
-        } catch {
-            return 0;
-        }
-    }
-
     /// @notice onchain function to get unspent grinds
-    /// @param intentId id of intent
-    function unspentGrinds(uint256 intentId) public view returns (uint256) {
-        uint256 _spentGrinds = spentGrinds(intentId);
-        if (_spentGrinds <= grinds[intentId]){
-            return grinds[intentId] - _spentGrinds;
+    /// @param _ownerOf address of owner of intent
+    function unspentGrinds(address _ownerOf) public view returns (uint256) {
+        uint256 _spentGrinds = spentGrinds[_ownerOf];
+        if (_spentGrinds <= grinds[_ownerOf]){
+            return grinds[_ownerOf] - _spentGrinds;
         } else {
             return 0;
         }
@@ -251,9 +254,9 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         )
     {
         _account = poolsNFT.ownerOf(poolId);
-        _grinds = grinds[intentIdOf[_account]];
-        _spentGrinds = spentGrinds(intentIdOf[_account]);
-        _unspentGrinds = unspentGrinds(intentIdOf[_account]);
+        _grinds = grinds[_account];
+        _spentGrinds = spentGrinds[_account];
+        _unspentGrinds = unspentGrinds(_account);
         _poolIds = poolsNFT.getPoolIdsOf(_account);
     }
 
@@ -266,23 +269,23 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         uint256 _unspentGrinds,
         uint256[] memory _poolIds
     ) {
-        uint256 intentId = intentIdOf[account];
-        _account = ownerOf(intentId);
-        _grinds = grinds[intentId];
-        _spentGrinds = spentGrinds(intentId);
-        _unspentGrinds = unspentGrinds(intentId);
-        _poolIds = poolsNFT.getPoolIdsOf(_account);
+        _account = account;
+        _grinds = grinds[account];
+        _spentGrinds = spentGrinds[account];
+        _unspentGrinds = unspentGrinds(account);
+        _poolIds = poolsNFT.getPoolIdsOf(account);
     }
 
     /// @notice get intent by intentId
     /// @param intentId id of intent
     function getIntent(uint256 intentId) public view returns (Intent memory intent) {
+        address _ownerOf = ownerOf(intentId);
         intent = Intent({
-            owner: ownerOf(intentId),
-            grinds: grinds[intentId],
-            spentGrinds: spentGrinds(intentId),
-            unspentGrinds: unspentGrinds(intentId),
-            poolIds: poolsNFT.getPoolIdsOf(ownerOf(intentId))
+            owner: _ownerOf,
+            grinds: grinds[_ownerOf],
+            spentGrinds: spentGrinds[_ownerOf],
+            unspentGrinds: unspentGrinds(_ownerOf),
+            poolIds: poolsNFT.getPoolIdsOf(_ownerOf)
         });
     }
 

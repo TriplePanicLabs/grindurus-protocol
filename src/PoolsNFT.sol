@@ -125,10 +125,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @dev if maxDeposit == 0, that no limut for maximum deposit
     mapping (address token => uint256) public maxDeposit;
 
-    /// @notice accounting how much `grinderAI` called grind behalf to _ownerOf
-    /// @dev address of ownerOf poolId => amount of grinds spent
-    mapping (address _ownerOf => uint256) public spentGrinds;
-
     /// @notice store minter of pool for airdrop points
     /// @dev poolId => address of creator of NFT
     mapping (uint256 poolId => address) public agentOf;
@@ -597,7 +593,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         if (isGrinded) {
             uint256 nativeFeeSpent = (gasStart - gasleft()) * tx.gasprice; // amount of native token as fee used for grind 
             _airdropGRETH(poolId, nativeFeeSpent);
-            _increaseSpentGrinds(poolId);
         }
         emit Grind(poolId, type(uint8).max, msg.sender, isGrinded);
     }
@@ -622,7 +617,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         }
         uint256 nativeFeeSpent = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
         _airdropGRETH(poolId, nativeFeeSpent);
-        _increaseSpentGrinds(poolId);
         emit Grind(poolId, op, msg.sender, true);
         return true;
     }
@@ -634,13 +628,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             nativeFeeSpent
         );
         grETH.mint(actors, grethShares);
-    }
-
-    /// @notice increase spent grinds by 1
-    function _increaseSpentGrinds(uint256 poolId) internal {
-        if (msg.sender == address(grinderAI) || msg.sender == agentOf[poolId]) {
-            spentGrinds[ownerOf(poolId)] += 1;
-        }
     }
 
     /// @notice transfert poolId from `msg.sender` to `to`

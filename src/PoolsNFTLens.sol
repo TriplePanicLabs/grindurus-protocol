@@ -289,6 +289,7 @@ contract PoolsNFTLens is IPoolsNFTLens {
             poolId: poolId,
             strategyId: pool.strategyId(),
             pool: address(pool),
+            isDrawdown: pool.isDrawdown(),
             positions: getPositions(poolId),
             config: getConfig(poolId),
             feeConfig: getFeeConfig(poolId),

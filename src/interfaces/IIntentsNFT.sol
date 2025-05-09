@@ -39,11 +39,13 @@ interface IIntentsNFT {
 
     function totalGrinds() external view returns (uint256);
 
-    function intentIdOf(address account) external view returns (uint256);
+    function intentIdOf(address _ownerOf) external view returns (uint256);
 
-    function grindsOf(address account) external view returns (uint256);
+    function grindsOf(address _ownerOf) external view returns (uint256);
 
-    function grinds(uint256 intentId) external view returns (uint256);
+    function grinds(address _ownerOf) external view returns (uint256);
+
+    function spentGrinds(address _ownerOf) external view returns (uint256);
 
     function ratePerGrind(address paymentToken) external view returns (uint256);
 
@@ -55,15 +57,15 @@ interface IIntentsNFT {
 
     function setRatePerGrind(address token, uint256 _ratePerGrind) external;
 
-    function spentGrinds(uint256 intentId) external view returns (uint256);
-
-    function unspentGrinds(uint256 intentId) external view returns (uint256);
+    function unspentGrinds(address _ownerOf) external view returns (uint256);
 
     function setBaseURI(string memory _baseURI) external;
 
     function mint(address paymentToken, uint256 period) external payable returns (uint256, uint256);
 
     function mintTo(address paymentToken, address to, uint256 period) external payable returns (uint256, uint256);
+
+    function spendGrind(uint256 poolId) external;
 
     function owner() external view returns (address payable);
 
