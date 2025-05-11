@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import {IPoolsNFT} from "src/interfaces/IPoolsNFT.sol";
-import {IURUS} from "src/interfaces/IURUS.sol";
+import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
+import { IURUS } from "src/interfaces/IURUS.sol";
 
 interface IPoolsNFTLens {
 

@@ -56,7 +56,7 @@ contract IntentsNFTTest is Test {
         intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethArbitrum);
+        grinderAI.init(address(poolsNFT), address(grAI), wethArbitrum);
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
 
@@ -109,9 +109,9 @@ contract IntentsNFTTest is Test {
         IToken usdt = IToken(usdtArbitrum);
         usdt.approve(address(intentsNFT), paymentAmount);
 
-        uint256 ownerBalanceBefore = usdt.balanceOf(owner);
+        uint256 ownerBalanceBefore = usdt.balanceOf(address(grinderAI));
         (uint256 intentId,) = intentsNFT.mint(usdtArbitrum, grinds);
-        uint256 ownerBalanceAfter = usdt.balanceOf(owner);
+        uint256 ownerBalanceAfter = usdt.balanceOf(address(grinderAI));
         assert(intentId == 0);
         assert(ownerBalanceAfter > ownerBalanceBefore);
 
@@ -127,9 +127,9 @@ contract IntentsNFTTest is Test {
         
         // grAI.approve(address(intentsNFT), paymentAmount);
         
-        uint256 ownerBalanceBefore = grAI.balanceOf(owner);
+        uint256 ownerBalanceBefore = grAI.balanceOf(address(grinderAI));
         (uint256 intentId,) = intentsNFT.mint(address(grAI), grinds);
-        uint256 ownerBalanceAfter = grAI.balanceOf(owner);
+        uint256 ownerBalanceAfter = grAI.balanceOf(address(grinderAI));
         assert(intentId == 0);
         assert(ownerBalanceAfter > ownerBalanceBefore);
 

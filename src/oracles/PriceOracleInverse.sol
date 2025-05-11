@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.28;
 
-import {IOracle} from "src/interfaces/IOracle.sol";
+import { IOracle } from "src/interfaces/IOracle.sol";
 
 contract PriceOracleInverse is IOracle {
 

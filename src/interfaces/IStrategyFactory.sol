@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import {IPoolsNFT} from "./IPoolsNFT.sol";
-import {IStrategy} from "./IStrategy.sol";
+import { IPoolsNFT } from "./IPoolsNFT.sol";
+import { IStrategy } from "./IStrategy.sol";
 
 interface IStrategyFactory {
 

@@ -29,8 +29,6 @@ interface IIntentsNFT {
 
     function grAI() external view returns (IGRAI);
 
-    function distributor() external view returns (address payable);
-
     function baseURI() external view returns (string memory);
 
     function totalIntents() external view returns (uint256);
@@ -53,8 +51,6 @@ interface IIntentsNFT {
 
     function setFreemiumGrinds(uint256 _freemiumGrinds) external;
 
-    function setDistributor(address payable _distributor) external;
-
     function setRatePerGrind(address token, uint256 _ratePerGrind) external;
 
     function unspentGrinds(address _ownerOf) external view returns (uint256);
@@ -68,6 +64,8 @@ interface IIntentsNFT {
     function spendGrind(uint256 poolId) external;
 
     function owner() external view returns (address payable);
+
+    function grinderAI() external view returns (address payable);
 
     function calcPayment(address paymentToken, uint256 grinds) external view returns (uint256 paymentAmount); 
 
@@ -94,8 +92,6 @@ interface IIntentsNFT {
     function totalSupply() external view returns (uint256);
 
     function isPaymentToken(address paymentToken) external view returns (bool);
-
-    function chainId() external view returns (uint256 id);
 
     function execute(address target, uint256 value, bytes calldata data) external payable returns (bool success, bytes memory result);
 

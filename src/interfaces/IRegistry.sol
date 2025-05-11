@@ -13,6 +13,9 @@ interface IRegistry {
     error StrategyIdNotExist();
     error InvalidOracle();
 
+    event SetStrategyInfo(uint16 strategyId, address factory, string description);
+    event SetGRAIInfo(uint32 endpointId, address grai, string description);
+
     struct StrategyInfo {
         uint16 strategyId;
         address factory;
@@ -24,8 +27,6 @@ interface IRegistry {
         address grai;
         string description;
     }
-
-    function strategyIdIndex(uint16 strategyId) external view returns (uint256);
 
     function quoteTokenIndex(address quoteToken) external view returns (uint256);
 
@@ -41,17 +42,9 @@ interface IRegistry {
 
     function unsetOracle(address quoteToken, address baseToken, address oracle) external;
 
-    function addStrategyInfo(uint16 strategyId, address factory, string memory description) external;
+    function setStrategyInfo(uint16 strategyId, address factory, string memory description) external;
 
-    function altStrategyInfo(uint16 strategyId, address factory, string memory description) external;
-
-    function removeStrategyInfo(uint16 strategyId) external;
-
-    function addGRAIInfo(uint32 endpointId, address grai, string memory description) external;
-
-    function altGRAIInfo(uint32 endpointId, address grai, string memory description) external;
-
-    function removeGRAIInfo(uint32 endpointId) external;
+    function setGRAIInfo(uint32 endpointId, address grai, string memory description) external;
 
     function getOracle(address quoteToken, address baseToken) external view returns (address);
 
@@ -63,13 +56,9 @@ interface IRegistry {
 
     function getBaseTokens() external view returns (address[] memory);
 
-    function getStrategyInfos() external view returns (StrategyInfo[] memory);
-    
-    function getGRAIInfos() external view returns (GRAIInfo[] memory);
+    function getStrategyInfosBy(uint16[] memory strategyIds) external view returns (StrategyInfo[] memory);
 
-    function getStrategyInfosBy(uint256[] memory strategyIds) external view returns (StrategyInfo[] memory);
-
-    function getGRAIInfosBy(uint256[] memory graiInfosIds) external view returns (GRAIInfo[] memory _graiInfos);
+    function getGRAIInfosBy(uint32[] memory graiInfosIds) external view returns (GRAIInfo[] memory _graiInfos);
 
     function getQuoteTokensBy(uint256[] memory quoteTokensIds) external view returns (address[] memory);
 

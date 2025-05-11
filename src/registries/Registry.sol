@@ -22,23 +22,17 @@ contract Registry is IRegistry {
     /// @dev set of base token
     address[] public baseTokens;
 
-    /// @dev array of strategy infos
-    StrategyInfo[] public strategyInfos;
-
-    /// @dev array of endpoint ids of GRAI
-    GRAIInfo[] public graiInfos;
-
-    /// @dev strategy id => index in `strategyInfos` array
-    mapping (uint16 strategyId => uint256) public strategyIdIndex;
-
-    /// @dev endpoint id => index in `graiInfos` array
-    mapping (uint32 endpointId => uint256) public graiIdIndex;
-
     /// @dev quote token address => index of quote token in array `quoteTokens`
     mapping (address quoteToken => uint256) public quoteTokenIndex;
 
     /// @dev quote token address => index of quote token in array `baseTokens`
     mapping (address baseToken => uint256) public baseTokenIndex;
+
+    /// @dev strategy id => index in `strategyInfos` array
+    mapping (uint16 strategyId => StrategyInfo) public strategyInfos;
+
+    /// @dev strategy id => GRAIInfo
+    mapping (uint32 endpointId => GRAIInfo) public graiInfos;
 
     /// @dev quote token address => base token address => oracle address
     mapping (address quoteToken => mapping(address baseToken => address)) public oracles;
@@ -83,16 +77,6 @@ contract Registry is IRegistry {
             poolsNFT = IPoolsNFT(_poolsNFT);
         }
         priceOracleSelf = address(new PriceOracleSelf());
-        strategyInfos.push(StrategyInfo({
-            strategyId: 0,
-            factory: address(0),
-            description: ""
-        }));
-        graiInfos.push(GRAIInfo({
-            endpointId: 0,
-            grai: address(0),
-            description: ""
-        }));
     }
 
     /// @notice checks that msg.sender is owner
@@ -155,89 +139,28 @@ contract Registry is IRegistry {
     /// @param strategyId id of strategy
     /// @param factory address of factory
     /// @param description description of strategy
-    function addStrategyInfo(uint16 strategyId, address factory, string memory description) public override {
+    function setStrategyInfo(uint16 strategyId, address factory, string memory description) public override {
         _onlyOwner();
-        if (strategyInfos[strategyIdIndex[strategyId]].strategyId == strategyId) {
-            revert StrategyIdExist();
-        }
-        strategyIdIndex[strategyId] = strategyInfos.length;
-        strategyInfos.push(StrategyInfo({
-            strategyId: strategyId, 
+        strategyInfos[strategyId] = StrategyInfo({
+            strategyId: strategyId,
             factory: factory,
             description: description
-        }));
-    }
-
-    /// @notice modify strategy description
-    /// @param strategyId id of strategy
-    /// @param factory address of factory
-    /// @param description description of strategy
-    function altStrategyInfo(uint16 strategyId, address factory, string memory description) public override{
-        _onlyOwner();
-
-        uint256 _strategyIdIndex = strategyIdIndex[strategyId];
-        if (strategyInfos[_strategyIdIndex].strategyId != strategyId) {
-            revert NotMatchingStrategyId();
-        }
-        strategyInfos[_strategyIdIndex].factory = factory;
-        strategyInfos[_strategyIdIndex].description = description;
-    }
-
-    /// @notice remove strategy id from `strategyIds`
-    /// @param strategyId id of strategy
-    function removeStrategyInfo(uint16 strategyId) public override {
-        _onlyOwner();
-        uint256 _strategyIdIndex = strategyIdIndex[strategyId];
-        uint256 lastStrategyIdIndex = strategyInfos.length - 1;
-        if (_strategyIdIndex != lastStrategyIdIndex) {
-            strategyInfos[_strategyIdIndex] = strategyInfos[lastStrategyIdIndex];
-        }
-        strategyIdIndex[strategyId] = 0;
-        strategyInfos.pop();
+        });
+        emit SetStrategyInfo(strategyId, factory, description);
     }
 
     /// @notice add strategy id to `strategyIds` array
     /// @param endpointId id of layer zero endpoint
     /// @param grai address of GRAI
     /// @param description description of strategy
-    function addGRAIInfo(uint32 endpointId, address grai, string memory description) public override {
+    function setGRAIInfo(uint32 endpointId, address grai, string memory description) public override {
         _onlyOwner();
-        if (graiInfos[graiIdIndex[endpointId]].endpointId == endpointId) {
-            revert EndpointIdExist();
-        }
-        graiIdIndex[endpointId] = graiInfos.length;
-        graiInfos.push(GRAIInfo({
+        graiInfos[endpointId] = GRAIInfo({
             endpointId: endpointId,
             grai: grai,
             description: description
-        }));
-    }
-
-    /// @notice modify strategy description
-    /// @param endpointId id of strategy
-    /// @param grai address of GRAI
-    /// @param description description of strategy
-    function altGRAIInfo(uint32 endpointId, address grai, string memory description) public override {
-        _onlyOwner();
-        uint256 _graiIdIndex = graiIdIndex[endpointId];
-        if (graiInfos[_graiIdIndex].endpointId != endpointId) {
-            revert NotMatchingEndpointId();
-        }
-        graiInfos[_graiIdIndex].grai = grai;
-        graiInfos[_graiIdIndex].description = description;
-    }
-
-    /// @notice remove strategy id from `strategyIds`
-    /// @param endpointId id of layerZero endpoint
-    function removeGRAIInfo(uint32 endpointId) public override {
-        _onlyOwner();
-        uint256 _graiIdIndex = graiIdIndex[endpointId];
-        uint256 lastGraiIdIndex = graiInfos.length - 1;
-        if (_graiIdIndex != lastGraiIdIndex) {
-            graiInfos[_graiIdIndex] = graiInfos[lastGraiIdIndex];
-        }
-        graiIdIndex[endpointId] = 0;
-        graiInfos.pop();
+        });
+        emit SetGRAIInfo(endpointId, grai, description);
     }
 
     /// @notice returns oracle address of base token in terms of quote token
@@ -277,31 +200,21 @@ contract Registry is IRegistry {
     }
 
     /// @notice returns `strategyInfos` array
-    function getStrategyInfos() public view override returns (StrategyInfo[] memory) {
-        return strategyInfos;
-    }
-
-    /// @notice returns `GRAIInfos` array
-    function getGRAIInfos() public view override returns (GRAIInfo[] memory) {
-        return graiInfos;
-    }
-
-    /// @notice returns `strategyInfos` array
-    function getStrategyInfosBy(uint256[] memory strategyInfosIds) public view override returns (StrategyInfo[] memory _strategyInfos) {
-        uint256 len = strategyInfosIds.length;
+    function getStrategyInfosBy(uint16[] memory strategyIds) public view override returns (StrategyInfo[] memory _strategyInfos) {
+        uint256 len = strategyIds.length;
         _strategyInfos = new StrategyInfo[](len);
         for (uint256 i; i < len;) {
-            _strategyInfos[i] = strategyInfos[strategyInfosIds[i]];
+            _strategyInfos[i] = strategyInfos[strategyIds[i]];
             unchecked { ++i; }
         }
     }
 
     /// @notice returns `graiInfos` array
-    function getGRAIInfosBy(uint256[] memory graiInfosIds) public view override returns (GRAIInfo[] memory _graiInfos) {
-        uint256 len = graiInfosIds.length;
+    function getGRAIInfosBy(uint32[] memory endpointIds) public view override returns (GRAIInfo[] memory _graiInfos) {
+        uint256 len = endpointIds.length;
         _graiInfos = new GRAIInfo[](len);
         for (uint256 i; i < len;) {
-            _graiInfos[i] = graiInfos[graiInfosIds[i]];
+            _graiInfos[i] = graiInfos[endpointIds[i]];
             unchecked { ++i; }
         }
     }

@@ -49,17 +49,12 @@ contract GRAI is IGRAI, OFT {
         }
     }
 
-    /// @notice check that msg.sender is intentsNFT
-    function _onlyIntentsNFT() private view {
-        if (msg.sender != intentsNFT()) {
-            revert NotIntentsNFT();
-        }
+    /// @notice balance of grAI
+    function balanceOf(address account) public view override(ERC20, IGRAI) returns (uint256) {
+        return ERC20.balanceOf(account);
     }
 
-    /// @notice return address of intentsNFT
-    function intentsNFT() public view returns (address) {
-        return address(grinderAI.intentsNFT());
-    }
+    //// CONFIGURATION OF BRIDGE OPTIONS ////
 
     /// @notice sets bridge gas limit and value
     /// @param gasLimit gas limit for the bridge
@@ -96,34 +91,23 @@ contract GRAI is IGRAI, OFT {
     }
 
     /// @notice mints amount of grAI to `to`
-    /// @dev callable only by intentsNFT
+    /// @dev callable only by grinderAI
     /// @param to address to mint to
     /// @param amount amount of grAI to mint
     function mint(address to, uint256 amount) public override {
-        _onlyIntentsNFT();
+        _onlyGrinderAI();
         _mint(to, amount);
     }
 
     /// @notice burns amount of grAI
-    /// @dev callable only by intentsNFT
-    function burn(uint256 amount) public override {
-        _onlyIntentsNFT();
-        _burn(msg.sender, amount);
+    /// @dev callable only by grinderAI
+    function burn(address to, uint256 amount) public override {
+        _onlyGrinderAI();
+        _burn(to, amount);
     }
 
-    /// @notice transfer from grAI
-    /// @param from address of spender
-    /// @param to address of receiver
-    /// @param amount amount of grAI
     function transferFrom(address from, address to, uint256 amount) public override(ERC20, IGRAI) returns (bool) {
-        address spender = _msgSender();
-        if (spender == intentsNFT()) {
-            _transfer(from, to, amount);
-        } else {
-            _spendAllowance(from, spender, amount);
-            _transfer(from, to, amount);
-        }
-        return true;
+        return ERC20.transferFrom(from, to, amount);
     }
 
     /// @notice direct transfer grAI
@@ -158,15 +142,10 @@ contract GRAI is IGRAI, OFT {
         }
         if (nativeBridgeFee > 0) {
             (bool success, bytes memory result) = address(grinderAI).call{value: nativeBridgeFee}("");
-            success;
-            result;
+            success; result;
         }
         _transfer(msg.sender, address(this), amount);
-        this.send{value: nativeFee}(
-            sendParam, 
-            fee,
-            msg.sender
-        );
+        this.send{value: nativeFee}(sendParam, fee, msg.sender);
         emit Bridge(
             msg.sender,
             dstChainId,

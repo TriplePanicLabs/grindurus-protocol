@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import {IGRETH} from "src/interfaces/IGRETH.sol";
-import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol"; // NFT
-import {IERC2981} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
-import {IURUS} from "src/interfaces/IURUS.sol";
-import {IPoolsNFTLens} from "src/interfaces/IPoolsNFTLens.sol";
-import {IGRETH} from "src/interfaces/IGRETH.sol";
-import {IGrinderAI} from "src/interfaces/IGrinderAI.sol";
+import { IGRETH } from "src/interfaces/IGRETH.sol";
+import { IERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol"; // NFT
+import { IERC2981 } from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
+import { IURUS } from "src/interfaces/IURUS.sol";
+import { IPoolsNFTLens } from "src/interfaces/IPoolsNFTLens.sol";
+import { IGRETH } from "src/interfaces/IGRETH.sol";
+import { IGrinderAI } from "src/interfaces/IGrinderAI.sol";
 
 interface IPoolsNFT is IERC721, IERC2981 {
     

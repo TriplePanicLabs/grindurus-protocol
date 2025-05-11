@@ -50,7 +50,7 @@ contract GRAITest is Test {
         intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethArbitrum);
+        grinderAI.init(address(poolsNFT), address(grAI), wethArbitrum);
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
 

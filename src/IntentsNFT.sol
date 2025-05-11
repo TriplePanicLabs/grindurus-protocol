@@ -28,9 +28,6 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @dev address of grAI token
     IGRAI public grAI;
 
-    /// @dev address of receiver of funds
-    address payable public distributor;
-
     /// @dev burn rate for grAI token
     uint256 public burnRate;
 
@@ -65,10 +62,9 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     constructor(address _poolsNFT, address _grAI) ERC721("GrinderAI Intents Collection", "grAI_INTENTS") {
         poolsNFT = IPoolsNFT(_poolsNFT);
         grAI = IGRAI(_grAI);
-        distributor = owner();
         ratePerGrind[address(0)] = 0.0001 ether; // 0.0001 ETH per grind
         ratePerGrind[_grAI] = 1 * 1e18; // 1 grAI per grind
-        burnRate = 80_00; // 95%
+        burnRate = 80_00; // 80%
         freemiumGrinds = 5;
     }
 
@@ -94,13 +90,6 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     function setFreemiumGrinds(uint256 _freemiumGrinds) public override {
         _onlyOwner();
         freemiumGrinds = _freemiumGrinds;
-    }
-
-    /// @notice sets funds receiver
-    /// @param _distributor address of funds receiver
-    function setDistributor(address payable _distributor) public override {
-        _onlyOwner();
-        distributor = _distributor;
     }
 
     /// @param token address of token
@@ -130,7 +119,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @param _grinds amount of grinds
     function mintTo(address paymentToken, address to, uint256 _grinds) public payable override returns (uint256 intentId, uint256 grindsAcquired) {
         uint256 paymentAmount = calcPayment(paymentToken, _grinds);
-        _pay(paymentToken, distributor, paymentAmount);
+        _pay(paymentToken, grinderAI(), paymentAmount);
         (intentId, grindsAcquired) = _mintTo(to, _grinds);
         if (paymentToken != address(grAI)) {
             _airdrop(to, grindsAcquired);
@@ -149,7 +138,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
                 grAI.transferFrom(msg.sender, address(this), paymentAmount);
                 uint256 burnAmount = (paymentAmount * burnRate) / DENOMINATOR;
                 if (burnAmount > 0){
-                    grAI.burn(burnAmount);
+                    grAI.burn(receiver, burnAmount);
                 }
                 if (paymentAmount > burnAmount) {
                     uint256 amount = paymentAmount - burnAmount;
@@ -196,7 +185,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @notice increase spent grinds on behalf of owner of poolId
     /// @param poolId id of pool on poolsNFT
     function spendGrind(uint256 poolId) public override {
-        if (msg.sender == address(poolsNFT.grinderAI())) {
+        if (msg.sender == grinderAI()) {
             address _ownerOf = poolsNFT.ownerOf(poolId);
             spentGrinds[_ownerOf] += 1;
         }
@@ -215,6 +204,11 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         } catch {
             return payable(address(poolsNFT));
         }
+    }
+
+    /// @notice return address of grinderAI
+    function grinderAI() public view override returns (address payable) {
+        return payable(address(poolsNFT.grinderAI()));
     }
 
     /// @notice calculate payment
@@ -325,13 +319,6 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
         return ratePerGrind[paymentToken] > 0;
     }
 
-    /// @notice return chain id
-    function chainId() public view override returns (uint256 id) {
-        assembly {
-            id := chainid()
-        }
-    }
-
     /// @notice execute any transaction
     /// @param target addres of target smart contract
     /// @param value amount of ETH
@@ -344,7 +331,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
 
     receive() external payable {
         if (msg.value > 0) {
-            (bool success, ) = address(distributor).call{value: msg.value}("");
+            (bool success, ) = grinderAI().call{value: msg.value}("");
             success;
         }
     }

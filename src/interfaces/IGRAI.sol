@@ -24,6 +24,8 @@ interface IGRAI is IOFT {
         uint256 nativeBridgeFee
     );
 
+    function balanceOf(address account) external view returns (uint256);
+
     function multiplierNumerator() external view returns (uint256);
 
     function nativeBridgeFeeNumerator() external view returns (uint256);
@@ -38,7 +40,7 @@ interface IGRAI is IOFT {
 
     function mint(address to, uint256 amount) external; 
 
-    function burn(uint256 amount) external;
+    function burn(address to, uint256 amount) external;
 
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 
