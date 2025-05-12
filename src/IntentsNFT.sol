@@ -194,7 +194,7 @@ contract IntentsNFT is IIntentsNFT, ERC721 {
     /// @notice not transferable
     function transferFrom(address, address, uint256) public override {
         baseURI = baseURI;
-        revert NotTransferable();
+        return;
     }
 
     /// @notice return owner of intent NFT collection
