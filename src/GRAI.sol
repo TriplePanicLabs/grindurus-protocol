@@ -94,16 +94,18 @@ contract GRAI is IGRAI, OFT {
     /// @dev callable only by grinderAI
     /// @param to address to mint to
     /// @param amount amount of grAI to mint
-    function mint(address to, uint256 amount) public override {
+    function mint(address to, uint256 amount) public override returns (uint256) {
         _onlyGrinderAI();
         _mint(to, amount);
+        return amount;
     }
 
     /// @notice burns amount of grAI
     /// @dev callable only by grinderAI
-    function burn(address to, uint256 amount) public override {
+    function burn(address to, uint256 amount) public override returns (uint256) {
         _onlyGrinderAI();
         _burn(to, amount);
+        return amount;
     }
 
     function transferFrom(address from, address to, uint256 amount) public override(ERC20, IGRAI) returns (bool) {

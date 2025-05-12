@@ -38,9 +38,9 @@ interface IGRAI is IOFT {
 
     function setPeer(uint32 _eid, bytes32 _peer) external;
 
-    function mint(address to, uint256 amount) external; 
+    function mint(address to, uint256 amount) external returns (uint256); 
 
-    function burn(address to, uint256 amount) external;
+    function burn(address to, uint256 amount) external returns (uint256);
 
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 

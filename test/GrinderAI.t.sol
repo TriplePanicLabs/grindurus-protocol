@@ -178,8 +178,11 @@ contract GrinderAITest is Test {
 
         vm.startBroadcast(grinder);
         uint256[] memory poolIds = agentsNFT.getPoolIds(agentId);
+        uint256 balanceBefore = grAI.balanceOf(user);
         bool success = grinderAI.grind(poolIds[0]);
         assert(success == true);
+        uint256 balanceAfter = grAI.balanceOf(user);
+        assert(balanceAfter < balanceBefore);
 
         vm.stopBroadcast();
 

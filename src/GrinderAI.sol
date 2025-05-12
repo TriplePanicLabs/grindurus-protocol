@@ -89,6 +89,8 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
+    //// GRINDER AI CONFIGURATION
+
     /// @notice sets rate per GRAI
     /// @dev if rate == 0, than this is not payment token
     /// @param paymentToken address of token
@@ -123,6 +125,8 @@ contract GrinderAI is IGrinderAI {
         _onlyOwner();
         grinder = _grinder;
     }
+
+    //// END GRINDER AI CONFIGURATION
 
     //// GRAI CONFIGURATION
 
@@ -233,6 +237,7 @@ contract GrinderAI is IGrinderAI {
             uint256 grinderShare = (paymentAmount * grinderShareNumerator) / DENOMINATOR;
             if (paymentToken == address(0)) {
                 (bool success, ) = grinder.call{value: grinderShare}("");
+                success;
                 // rest hold on GrinderAI
             } else {
                 IToken(paymentToken).safeTransferFrom(msg.sender, address(this), grinderShare);
@@ -247,34 +252,52 @@ contract GrinderAI is IGrinderAI {
     /// @param to address of `to`
     /// @param amount amount of grAI to burn
     function _burnTo(address to, uint256 amount) internal returns (uint256) {
-        if (msg.sender == grinder) {
-            grAI.burn(to, amount);
+        if (amount > 0 && msg.sender == grinder) {
+            try grAI.burn(to, amount) returns (uint256 burned) {
+                return burned;
+            } catch {
+                return 0;
+            }
         }
+        return 0;
     }
 
-    /// @notice grind 
+    /// @notice mints grAI on behalf of `to`
+    function _refundBurnTo(address to, uint256 amount) internal returns (uint256) {
+        if (amount > 0 && msg.sender == grinder) {
+            try grAI.mint(to, amount) returns (uint256 minted) {
+                return minted;
+            } catch {
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    /// @notice grind
     /// @dev first make macromanagement, second micromamagement
     /// @param poolId id of pool
-    function grind(uint256 poolId) public override returns (bool) {
+    function grind(uint256 poolId) public override returns (bool success) {
         address ownerOf = poolsNFT.ownerOf(poolId);
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
+        uint256 burned = _burnTo(ownerOf, burnRate);
         try agent.unbranch(poolId) returns (uint256) {
-            _burnTo(ownerOf, burnRate);
             return true;
         } catch {
             // go on
         }
         try agent.branch(poolId) returns (uint256) {
-            _burnTo(ownerOf, burnRate);
             return true;
         } catch {
             // go on
         }
         try poolsNFT.grind(poolId) returns (bool isGrinded) {
-            _burnTo(ownerOf, burnRate);
-            return isGrinded;
+            success = isGrinded;
         } catch {
-            return false;
+            success = false;
+        }
+        if (!success) {
+            _refundBurnTo(ownerOf, burned);
         }
     }
 
@@ -293,38 +316,40 @@ contract GrinderAI is IGrinderAI {
     /// @dev grinder make offchain microOp.staticCall(poolId, op) and receive success or fail of simulation
     function microOp(uint256 poolId, uint8 op) public override returns (bool success) {
         address ownerOf = poolsNFT.ownerOf(poolId);
+        uint256 burned = _burnTo(ownerOf, burnRate);
         if (op == uint8(Op.LONG_BUY)) {
             success = poolsNFT.grindOp(poolId, op);
-            _burnTo(ownerOf, burnRate);
         } else if (op == uint8(Op.LONG_SELL)) { 
             success = poolsNFT.grindOp(poolId, op);
-            _burnTo(ownerOf, burnRate);
         } else if (op == uint8(Op.HEDGE_SELL)) { 
             success = poolsNFT.grindOp(poolId, op);
-            _burnTo(ownerOf, burnRate);
         } else if (op == uint8(Op.HEDGE_REBUY)) { 
             success = poolsNFT.grindOp(poolId, op);
-            _burnTo(ownerOf, burnRate);
         } else {
             revert NotMicroOp();
+        }
+        if (!success) {
+            _refundBurnTo(ownerOf, burned);
         }
     }
 
     /// @notice macroOp for simulation purposes
     /// @dev grinder make offchain macroOp.staticCall(poolId, op) and receive success or fail of simulation
-    function macroOp(uint256 poolId, uint8 op) public override returns (bool) {
+    function macroOp(uint256 poolId, uint8 op) public override returns (bool success) {
         address ownerOf = poolsNFT.ownerOf(poolId);
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
+        uint256 burned = _burnTo(ownerOf, burnRate);
         if (op == uint8(Op.BRANCH)) {
             uint256 branchPoolId = agent.branch(poolId);
-            _burnTo(ownerOf, burnRate);
-            return branchPoolId != poolId;
+            success = (branchPoolId != poolId);
         } else if (op == uint8(Op.UNBRANCH)) {
             uint256 abovePoolId = agent.unbranch(poolId);
-            _burnTo(ownerOf, burnRate);
-            return abovePoolId != poolId;
+            success = abovePoolId != poolId;
         } else {
             revert NotMacroOp();
+        }
+        if (!success) {
+            _refundBurnTo(ownerOf, burned);
         }
     }
 
@@ -332,54 +357,51 @@ contract GrinderAI is IGrinderAI {
     /// @dev can be called by anyone, especially by grinder EOA
     /// @param poolId id of pool
     /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy, 4 - branch, 5 unbranch
-    function grindOp(uint256 poolId, uint8 op) public override returns (bool) {
+    function grindOp(uint256 poolId, uint8 op) public override returns (bool success) {
         address ownerOf = poolsNFT.ownerOf(poolId);
+        uint256 burned = _burnTo(ownerOf, burnRate);
         if (op == uint8(Op.LONG_BUY)) {
             try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                _burnTo(ownerOf, burnRate);
-                return isGrinded;
+                success = isGrinded;
             } catch {
-                return false;
+                success = false;
             }
         } else if (op == uint8(Op.LONG_SELL)){
             try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                _burnTo(ownerOf, burnRate);
-                return isGrinded;
+                success = isGrinded;
             } catch {
-                return false;
+                success = false;
             }
         } else if (op == uint8(Op.HEDGE_SELL)){
             try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                _burnTo(ownerOf, burnRate);
-                return isGrinded;
+                success = isGrinded;
             } catch {
-                return false;
+                success = false;
             }
         } else if (op == uint8(Op.HEDGE_REBUY)){
             try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                _burnTo(ownerOf, burnRate);
-                return isGrinded;
+                success = isGrinded;
             } catch {
-                return false;
+                success = false;
             }
         } else if (op == uint8(Op.BRANCH)) {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
             try agent.branch(poolId) returns (uint256 branchPoolId) {
-                _burnTo(ownerOf, burnRate);
-                return poolId != branchPoolId;
+                success = poolId != branchPoolId;
             } catch {
-                return false;
+                success = false;
             }
         } else if (op == uint8(Op.UNBRANCH)) {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
             try agent.unbranch(poolId) returns (uint256 abovePoolId) {
-                _burnTo(ownerOf, burnRate);
-                return poolId != abovePoolId;
+                success = abovePoolId != poolId;
             } catch {
-                return false;
+                success = false;
             }
         }
-        return false;
+        if (!success) {
+            _refundBurnTo(ownerOf, burned);
+        }
     }
 
     /// @notice batch of grindOps
