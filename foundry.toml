@@ -28,9 +28,9 @@ optimism = "https://1rpc.io/op"
 sepolia = "https://api-sepolia.etherscan.io/api"
 bsc_testnet = "https://api-testnet.bscscan.com/api"
 arbiscan = "https://api.arbiscan.io/api"
-polygonscan = ""
-basescan = ""
-optimismscan = ""
+polygonscan = "https://api.polygonscan.com/api"
+basescan = "https://api.basescan.org/api"
+optimismscan = "https://api-optimistic.etherscan.io/api"
 
 [profile.networks]
 sepolia = { chain_id=11155111, url = "${rpc_endpoints.sepolia}" }
