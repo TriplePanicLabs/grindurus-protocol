@@ -232,8 +232,11 @@ contract GRAI is IGRAI, OFT {
     /// @param dstChainId ID of the destination chain (LayerZero chain ID)
     /// @param amount amount of GRAI tokens to bridge
     function calcArtificialFee(uint32 dstChainId, uint256 amount) public view override returns (uint256) {
-        uint256 paymentAmount = grinderAI.calcPayment(address(0), amount);
-        return (paymentAmount * artificialFeeNumerator[dstChainId]) / DENOMINATOR;
+        try grinderAI.calcPayment(address(0), amount) returns (uint256 paymentAmount) {
+            return (paymentAmount * artificialFeeNumerator[dstChainId]) / DENOMINATOR;
+        } catch {
+            return 0;
+        }
     }
 
     /// @notice gets bridge gas limit and value
