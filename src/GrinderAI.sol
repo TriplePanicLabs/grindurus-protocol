@@ -149,10 +149,10 @@ contract GrinderAI is IGrinderAI {
 
     /// @notice sets native bridge fee numerator on grAI
     /// @dev denominator is 100% = 100_00
-    /// @param nativeBridgeFeeNumerator numerator of native bridge fee
-    function setNativeBridgeFee(uint256 nativeBridgeFeeNumerator) public override {
+    /// @param artificialFeeNumerator numerator of artificial fee
+    function setArtificialFeeNumerator(uint32 endpointId, uint256 artificialFeeNumerator) public override {
         _onlyOwner();
-        grAI.setNativeBridgeFee(nativeBridgeFeeNumerator);
+        grAI.setArtificialFeeNumerator(endpointId, artificialFeeNumerator);
     }
 
     /// @notice sets peer address on grAI

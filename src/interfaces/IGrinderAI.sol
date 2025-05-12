@@ -60,7 +60,7 @@ interface IGrinderAI {
 
     function setMultiplierNumerator(uint256 _multiplierNumerator) external;
 
-    function setNativeBridgeFee(uint256 _nativeBridgeFeeNumerator) external;
+    function setArtificialFeeNumerator(uint32 endpointId, uint256 artificialFeeNumerator) external;
 
     function setPeer(uint32 eid, bytes32 peer) external;
 

@@ -23,7 +23,8 @@ contract GRAI is IGRAI, OFT {
     uint256 public multiplierNumerator;
 
     /// @dev numerator of native bridge fee percent
-    uint256 public nativeBridgeFeeNumerator;
+    /// @dev layer zero endpoint id => fee numerator
+    mapping (uint32 endpointId => uint256) public artificialFeeNumerator;
 
     /// @dev endpoint id => tuple of bridge gas limit and value
     mapping (uint32 endpointId => LzReceiveOptions) public lzReceiveOptions;
@@ -33,9 +34,9 @@ contract GRAI is IGRAI, OFT {
     constructor(address _lzEndpoint, address _grinderAI) OFT("GrinderAI Token", "grAI", _lzEndpoint, _grinderAI) Ownable(_grinderAI) {
         grinderAI = IGrinderAI(_grinderAI);
         multiplierNumerator = DENOMINATOR; // x1.0
-        nativeBridgeFeeNumerator = 0; // 0% native bridge fee percentage
         /// default bridge gas limit and value for EVM chains
         uint32 defaultEndpointId = 0;
+        artificialFeeNumerator[defaultEndpointId] = 0; 
         lzReceiveOptions[defaultEndpointId] = LzReceiveOptions({
             gasLimit: 100_000,
             value: 0
@@ -76,10 +77,10 @@ contract GRAI is IGRAI, OFT {
 
     /// @notice sets bridge fee numerator. surplused to estimate
     /// @dev 100% = 100_00
-    /// @param _nativeBridgeFeeNumerator numerator of bridge fee
-    function setNativeBridgeFee(uint256 _nativeBridgeFeeNumerator) public override {
+    /// @param _artificialFeeNumerator numerator of bridge fee
+    function setArtificialFeeNumerator(uint32 endpointId, uint256 _artificialFeeNumerator) public override {
         _onlyGrinderAI();
-        nativeBridgeFeeNumerator = _nativeBridgeFeeNumerator;
+        artificialFeeNumerator[endpointId] = _artificialFeeNumerator;
     }
 
     /// @notice sets peer address
@@ -136,14 +137,14 @@ contract GRAI is IGRAI, OFT {
         MessagingFee memory fee = formMessagingFeeForBridgeTo(sendParam);
         (   
             uint256 nativeFee,      // nativeFee = fee.nativeFee * multiplierNumerator / DENOMINATOR
-            uint256 nativeBridgeFee,// nativeBridgeFee = nativeFee * bridgeFeeNumerator / DENOMINATOR
-            uint256 totalNativeFee  // totalNativeFee = nativeFee + nativeBridgeFee
+            uint256 artificialFee,  // artificialFee = grinderAI.calcPayment(address(0), amount) * artificialFeeNumerator[dstChainId] / DENOMINATOR
+            uint256 totalFee        // totalFee = nativeFee + artificialFee
         ) = getTotalFeesForBridgeTo(dstChainId, toAddress, amount);
-        if (totalNativeFee < msg.value) {
+        if (totalFee < msg.value) {
             revert InsufficientNativeFee();
         }
-        if (nativeBridgeFee > 0) {
-            (bool success, bytes memory result) = address(grinderAI).call{value: nativeBridgeFee}("");
+        if (artificialFee > 0) {
+            (bool success, bytes memory result) = address(grinderAI).call{value: artificialFee}("");
             success; result;
         }
         _transfer(msg.sender, address(this), amount);
@@ -154,7 +155,7 @@ contract GRAI is IGRAI, OFT {
             toAddress,
             amount,
             nativeFee,
-            nativeBridgeFee
+            artificialFee
         );
     }
 
@@ -197,16 +198,16 @@ contract GRAI is IGRAI, OFT {
         uint256 amount
     ) public view override returns (
         uint256 nativeFee, 
-        uint256 nativeBridgeFee, 
-        uint256 totalNativeFee
+        uint256 artificialFee, 
+        uint256 totalFee
     ) {
         nativeFee = estimateBridgeFee(
             dstChainId, 
             toAddress, 
             amount
         );
-        nativeBridgeFee = calcBridgeFee(nativeFee);
-        totalNativeFee = nativeFee + nativeBridgeFee;
+        artificialFee = calcArtificialFee(dstChainId, amount);
+        totalFee = nativeFee + artificialFee;
     }
 
     /// @notice estimates bridge fee
@@ -228,9 +229,11 @@ contract GRAI is IGRAI, OFT {
     }
 
     /// @notice calculates bridge fee
-    /// @param nativeFee The native fee
-    function calcBridgeFee(uint256 nativeFee) public view override returns (uint256) {
-       return (nativeFee * nativeBridgeFeeNumerator) / DENOMINATOR;
+    /// @param dstChainId ID of the destination chain (LayerZero chain ID)
+    /// @param amount amount of GRAI tokens to bridge
+    function calcArtificialFee(uint32 dstChainId, uint256 amount) public view override returns (uint256) {
+        uint256 paymentAmount = grinderAI.calcPayment(address(0), amount);
+        return (paymentAmount * artificialFeeNumerator[dstChainId]) / DENOMINATOR;
     }
 
     /// @notice gets bridge gas limit and value

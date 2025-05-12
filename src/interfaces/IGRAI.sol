@@ -28,13 +28,13 @@ interface IGRAI is IOFT {
 
     function multiplierNumerator() external view returns (uint256);
 
-    function nativeBridgeFeeNumerator() external view returns (uint256);
+    function artificialFeeNumerator(uint32 endpointId) external view returns (uint256);
 
     function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) external;
 
     function setMultiplierNumerator(uint256 _multiplierNumerator) external;
 
-    function setNativeBridgeFee(uint256 _nativeBridgeFeeNumerator) external;
+    function setArtificialFeeNumerator(uint32 endpointId, uint256 _artificialFeeNumerator) external;
 
     function setPeer(uint32 _eid, bytes32 _peer) external;
 
@@ -76,9 +76,7 @@ interface IGRAI is IOFT {
         uint256 amount
     ) external view returns (uint256 nativeFee);
 
-    function calcBridgeFee(
-        uint256 nativeFee
-    ) external view returns (uint256);
+    function calcArtificialFee(uint32 dstChainId, uint256 amount) external view returns (uint256);
 
     function addressToBytes32(address addr) external pure returns (bytes32);
 

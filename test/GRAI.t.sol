@@ -5,7 +5,6 @@ import { Test, console } from "forge-std/Test.sol";
 import { PoolsNFT } from "src/PoolsNFT.sol";
 import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
 import { GRETH } from "src/GRETH.sol";
-import { IntentsNFT } from "src/IntentsNFT.sol";
 import { GRAI } from "src/GRAI.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
 import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -19,17 +18,12 @@ contract GRAITest is Test {
     uint32 baseEndpointId = 30184;
 
     PoolsNFT public poolsNFT;
-
     PoolsNFTLens public poolsNFTLens;
 
     GRETH public grETH;
 
-    IntentsNFT public intentsNFT;
-
     GRAI public grAI;
-
     GrinderAI public grinderAI;
-
     TransparentUpgradeableProxy public proxyGrinderAI;
 
     function setUp() public {
@@ -37,7 +31,6 @@ contract GRAITest is Test {
         vm.txGasPrice(0.05 gwei);
 
         poolsNFT = new PoolsNFT();
-
         poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
         
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
@@ -46,9 +39,6 @@ contract GRAITest is Test {
         proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), address(this), "");
         
         grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
-        
-        intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
-
         grinderAI = GrinderAI(payable(proxyGrinderAI));
         grinderAI.init(address(poolsNFT), address(grAI), wethArbitrum);
 
@@ -61,18 +51,19 @@ contract GRAITest is Test {
 
     function test_bridgeTo() public {
         address paymentToken = address(0); // ETH
-        uint256 grinds = 10;
-        uint256 paymentAmount = intentsNFT.calcPayment(paymentToken, grinds);
-        (uint256 intentId, ) = intentsNFT.mint{value: paymentAmount}(paymentToken, grinds);
+        uint256 graiAmount = 10 * 1e18;
+        uint256 paymentAmount = grinderAI.calcPayment(paymentToken, graiAmount);
+        grinderAI.mint{value: paymentAmount}(paymentToken, graiAmount);
         
         uint32 dstChainId = baseEndpointId;
         bytes32 toAddress = grAI.addressToBytes32(address(this));
         uint256 amount = 2e18;
         ( 
             uint256 nativeFee, 
-            uint256 nativeBridgeFee, 
+            uint256 artificialFee, 
             uint256 totalNativeFee
         ) = grAI.getTotalFeesForBridgeTo(dstChainId, toAddress, amount);
+        nativeFee; artificialFee;
         uint256 grAIbefore = grAI.balanceOf(address(this));
         grAI.bridgeTo{value: totalNativeFee}(dstChainId, toAddress, amount);
         uint256 grAIafter = grAI.balanceOf(address(this));
@@ -81,19 +72,21 @@ contract GRAITest is Test {
 
     function test_bridgeTo_withBridgeFee() public {
         address paymentToken = address(0); // ETH
-        uint256 grinds = 10;
-        uint256 paymentAmount = intentsNFT.calcPayment(paymentToken, grinds);
-        (uint256 intentId, ) = intentsNFT.mint{value: paymentAmount}(paymentToken, grinds);
+        uint256 graiAmount = 10 * 1e18;
+        uint256 paymentAmount = grinderAI.calcPayment(paymentToken, graiAmount);
+        grinderAI.mint{value: paymentAmount}(paymentToken, graiAmount);
 
-        grinderAI.setNativeBridgeFee(1_00);// 1%
+        uint256 numerator = 100_00;
+        grinderAI.setArtificialFeeNumerator(baseEndpointId, numerator);
         uint32 dstChainId = baseEndpointId;
         bytes32 toAddress = grAI.addressToBytes32(address(this));
         uint256 amount = 2e18;
         ( 
             uint256 nativeFee, 
-            uint256 nativeBridgeFee, 
+            uint256 artificialFee, 
             uint256 totalNativeFee
         ) = grAI.getTotalFeesForBridgeTo(dstChainId, toAddress, amount);
+        nativeFee; artificialFee;
         grAI.bridgeTo{value: totalNativeFee}(dstChainId, toAddress, amount);
     }
 
