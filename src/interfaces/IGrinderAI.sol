@@ -50,7 +50,7 @@ interface IGrinderAI {
 
     function setRatePerGRAI(address paymentToken, uint256 rate) external;
 
-    function setGraiBurnRate(uint256 _graiBurnRate) external;
+    function setBurnRate(uint256 _graiBurnRate) external;
 
     function setShares(uint16 _grinderShareNumerator, uint16 _liquidityShareNumerator) external;
 

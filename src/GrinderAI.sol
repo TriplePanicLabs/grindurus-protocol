@@ -38,8 +38,8 @@ contract GrinderAI is IGrinderAI {
     /// @dev grinder share of value
     uint16 public liquidityShareNumerator;
 
-    /// @dev burn rate of grAI
-    uint256 public graiBurnRate;
+    /// @dev burn rate of grind
+    uint256 public burnRate;
 
     /// @dev address of token => rate for 1 grAI
     /// @dev [rate] = amount of token / 1 grAI
@@ -61,7 +61,7 @@ contract GrinderAI is IGrinderAI {
         grinder = payable(owner());
         grinderShareNumerator = 80_00;
         liquidityShareNumerator = 20_00;
-        graiBurnRate = 1e18; // 1 GRAI
+        burnRate = 1e18; // 1 GRAI
         checkShares(grinderShareNumerator, liquidityShareNumerator);
         ratePerGRAI[address(0)] = 0.0001 ether; // 0.0001 ETH per grind
     }
@@ -100,10 +100,10 @@ contract GrinderAI is IGrinderAI {
 
     /// @notice sets burn rate
     /// @dev burn rate is amount of GRAI to burn for each grind
-    /// @param _graiBurnRate amount of GRAI to burn for each grind
-    function setGraiBurnRate(uint256 _graiBurnRate) public override {
+    /// @param _burnRate amount of GRAI to burn for each grind
+    function setBurnRate(uint256 _burnRate) public override {
         _onlyOwner();
-        graiBurnRate = _graiBurnRate;
+        burnRate = _burnRate;
     }
 
     /// @notice sets grinder share numerator
@@ -259,19 +259,19 @@ contract GrinderAI is IGrinderAI {
         address ownerOf = poolsNFT.ownerOf(poolId);
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
         try agent.unbranch(poolId) returns (uint256) {
-            _burnTo(ownerOf, graiBurnRate);
+            _burnTo(ownerOf, burnRate);
             return true;
         } catch {
             // go on
         }
         try agent.branch(poolId) returns (uint256) {
-            _burnTo(ownerOf, graiBurnRate);
+            _burnTo(ownerOf, burnRate);
             return true;
         } catch {
             // go on
         }
         try poolsNFT.grind(poolId) returns (bool isGrinded) {
-            _burnTo(ownerOf, graiBurnRate);
+            _burnTo(ownerOf, burnRate);
             return isGrinded;
         } catch {
             return false;
@@ -295,16 +295,16 @@ contract GrinderAI is IGrinderAI {
         address ownerOf = poolsNFT.ownerOf(poolId);
         if (op == uint8(Op.LONG_BUY)) {
             success = poolsNFT.grindOp(poolId, op);
-            _burnTo(ownerOf, graiBurnRate);
+            _burnTo(ownerOf, burnRate);
         } else if (op == uint8(Op.LONG_SELL)) { 
             success = poolsNFT.grindOp(poolId, op);
-            _burnTo(ownerOf, graiBurnRate);
+            _burnTo(ownerOf, burnRate);
         } else if (op == uint8(Op.HEDGE_SELL)) { 
             success = poolsNFT.grindOp(poolId, op);
-            _burnTo(ownerOf, graiBurnRate);
+            _burnTo(ownerOf, burnRate);
         } else if (op == uint8(Op.HEDGE_REBUY)) { 
             success = poolsNFT.grindOp(poolId, op);
-            _burnTo(ownerOf, graiBurnRate);
+            _burnTo(ownerOf, burnRate);
         } else {
             revert NotMicroOp();
         }
@@ -317,11 +317,11 @@ contract GrinderAI is IGrinderAI {
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
         if (op == uint8(Op.BRANCH)) {
             uint256 branchPoolId = agent.branch(poolId);
-            _burnTo(ownerOf, graiBurnRate);
+            _burnTo(ownerOf, burnRate);
             return branchPoolId != poolId;
         } else if (op == uint8(Op.UNBRANCH)) {
             uint256 abovePoolId = agent.unbranch(poolId);
-            _burnTo(ownerOf, graiBurnRate);
+            _burnTo(ownerOf, burnRate);
             return abovePoolId != poolId;
         } else {
             revert NotMacroOp();
@@ -336,28 +336,28 @@ contract GrinderAI is IGrinderAI {
         address ownerOf = poolsNFT.ownerOf(poolId);
         if (op == uint8(Op.LONG_BUY)) {
             try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                _burnTo(ownerOf, graiBurnRate);
+                _burnTo(ownerOf, burnRate);
                 return isGrinded;
             } catch {
                 return false;
             }
         } else if (op == uint8(Op.LONG_SELL)){
             try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                _burnTo(ownerOf, graiBurnRate);
+                _burnTo(ownerOf, burnRate);
                 return isGrinded;
             } catch {
                 return false;
             }
         } else if (op == uint8(Op.HEDGE_SELL)){
             try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                _burnTo(ownerOf, graiBurnRate);
+                _burnTo(ownerOf, burnRate);
                 return isGrinded;
             } catch {
                 return false;
             }
         } else if (op == uint8(Op.HEDGE_REBUY)){
             try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                _burnTo(ownerOf, graiBurnRate);
+                _burnTo(ownerOf, burnRate);
                 return isGrinded;
             } catch {
                 return false;
@@ -365,7 +365,7 @@ contract GrinderAI is IGrinderAI {
         } else if (op == uint8(Op.BRANCH)) {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
             try agent.branch(poolId) returns (uint256 branchPoolId) {
-                _burnTo(ownerOf, graiBurnRate);
+                _burnTo(ownerOf, burnRate);
                 return poolId != branchPoolId;
             } catch {
                 return false;
@@ -373,7 +373,7 @@ contract GrinderAI is IGrinderAI {
         } else if (op == uint8(Op.UNBRANCH)) {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
             try agent.unbranch(poolId) returns (uint256 abovePoolId) {
-                _burnTo(ownerOf, graiBurnRate);
+                _burnTo(ownerOf, burnRate);
                 return poolId != abovePoolId;
             } catch {
                 return false;
@@ -406,7 +406,7 @@ contract GrinderAI is IGrinderAI {
         uint256[] memory _poolIds
     ) {
         _account = account;
-        _grinds = grAI.balanceOf(account) / graiBurnRate;
+        _grinds = grAI.balanceOf(account) / burnRate;
         _poolIds = poolsNFT.getPoolIdsOf(account);
     }
 
