@@ -325,7 +325,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             revert StrategyStopped();
         }
         poolId = _mintTo(to, strategyId, baseToken, quoteToken);
-        _deposit(msg.sender, poolId, quoteTokenAmount);
+        _deposit(poolId, quoteTokenAmount);
         royaltyPrice[poolId] = (quoteTokenAmount * royaltyPriceInitNumerator) / DENOMINATOR;
     }
 
@@ -377,12 +377,11 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         uint256 quoteTokenAmount
     ) external override returns (uint256) {
         _onlyAgentOf(poolId);
-        return _deposit(msg.sender, poolId, quoteTokenAmount);
+        return _deposit(poolId, quoteTokenAmount);
     }
 
     /// @dev make transfer from msg.sender, approve to pool, call deposit on pool
     function _deposit(
-        address depositor,
         uint256 poolId,
         uint256 quoteTokenAmount
     ) internal returns (uint256 depositedAmount) {
@@ -419,7 +418,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         baseToken.forceApprove(address(pool), baseTokenAmount);
         depositedBaseTokenAmount = pool.deposit2(baseTokenAmount, baseTokenPrice);
         emit Deposit2(
-            poolId, 
+            poolId,
             address(pool), 
             address(baseToken), 
             baseTokenAmount, 
