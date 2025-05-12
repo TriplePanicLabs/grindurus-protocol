@@ -129,7 +129,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @dev poolId => address of creator of NFT
     mapping (uint256 poolId => address) public agentOf;
 
-    constructor() ERC721("", "") {
+    constructor() ERC721("GrindURUS Pools Collection", "GRINDURUS_POOLS") {
         totalPools = 0;
         pendingOwner = payable(address(0));
         owner = payable(msg.sender);
@@ -381,6 +381,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             baseToken,
             quoteToken
         );
+    }
+
+    /// @notice checks if `agent` is agent of poolId
+    /// @param poolId id of pool in array `pools`
+    /// @param agent address of agent
+    function setAgentOf(uint256 poolId, address agent) public override {
+        _onlyAgentOf(poolId);
+        agentOf[poolId] = agent;
     }
 
     /// @notice deposit `quoteToken` to pool with `poolId`
@@ -800,16 +808,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     {
         _requireOwned(poolId);
         uri = poolsNFTLens.tokenURI(poolId);
-    }
-
-    /// @notice return the name of PoolsNFT
-    function name() public pure override returns (string memory) {
-        return "GrindURUS Pools Collection";
-    }
-
-    /// @notice return the symbol of PoolsNFT
-    function symbol() public pure override returns (string memory) {
-        return "GRINDURUS_POOLS";
     }
 
     /// @inheritdoc ERC721

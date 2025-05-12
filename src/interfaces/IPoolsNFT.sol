@@ -200,6 +200,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 quoteTokenAmount
     ) external returns (uint256 poolId);
 
+    function setAgentOf(uint256 poolId, address agent) external;
+
     function deposit(
         uint256 poolId,
         uint256 quoteTokenAmount
