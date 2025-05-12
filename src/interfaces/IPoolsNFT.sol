@@ -13,16 +13,13 @@ interface IPoolsNFT is IERC721, IERC2981 {
     
     error NotOwner();
     error NotAgent();
-    error NotGrinderAI();
     error NoCapital();
     error NotMicroOp();
     error InvalidShares();
     error InvalidRoyaltyPriceInit();
     error StrategyStopped();
-    error InsufficientMinDeposit();
-    error ExceededMaxDeposit();
-    error ForbidWithAgentManagedPoolId();
-    error DifferentTokens();
+    error HasAgent();
+    error RebalanceDifferentTokens();
 
     event Mint(
         uint256 poolId,
@@ -42,12 +39,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 baseTokenAmount,
         uint256 baseTokenPrice
     );
-    event Deposit3(
-        uint256 poolId,
-        address pool,
-        address quoteToken,
-        uint256 quoteTokenAmount
-    );
+
     event Withdraw(
         uint256 poolId,
         address to,
@@ -143,10 +135,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function poolIds(address pool) external view returns (uint256);
 
-    function minDeposit(address token) external view returns (uint256);
-
-    function maxDeposit(address token) external view returns (uint256);
-
     function init(address _poolsNFTLens, address _grETH, address _grinderAI) external;
 
     //// OWNER FUNCTIONS
@@ -156,10 +144,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function setStrategyFactory(address _strategyFactory) external;
 
     function setPoolsNFTLens(address _poolsNFTLens) external;
-
-    function setMinDeposit(address token, uint256 _minDeposit) external;
-
-    function setMaxDeposit(address token, uint256 _minDeposit) external;
 
     function setRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator) external;
 

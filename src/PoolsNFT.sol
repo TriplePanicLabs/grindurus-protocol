@@ -117,14 +117,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @dev pool strategy address => poolId
     mapping (address pool => uint256) public poolIds;
 
-    /// @dev token address => minimum amount to deposit
-    /// @dev if minDeposit == 0, that no limit for minimum deposit
-    mapping (address token => uint256) public minDeposit;
-
-    /// @dev token address => maximum amount of deposit
-    /// @dev if maxDeposit == 0, that no limut for maximum deposit
-    mapping (address token => uint256) public maxDeposit;
-
     /// @notice store minter of pool for airdrop points
     /// @dev poolId => address of creator of NFT
     mapping (uint256 poolId => address) public agentOf;
@@ -197,22 +189,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         _onlyOwner();
         poolsNFTLens = IPoolsNFTLens(_poolsNFTLens);
         require(address(poolsNFTLens.poolsNFT()) == address(this));
-    }
-
-    /// @notice sets minimum deposit
-    /// @param token address of token
-    /// @param _minDeposit minimum amount of deposit
-    function setMinDeposit(address token, uint256 _minDeposit) external override {
-        _onlyOwner();
-        minDeposit[token] = _minDeposit;
-    }
-
-    /// @notice sets maximum deposit
-    /// @param token address of token
-    /// @param _maxDeposit maximum amount of deposit
-    function setMaxDeposit(address token, uint256 _maxDeposit) external override {
-        _onlyOwner();
-        maxDeposit[token] = _maxDeposit;
     }
 
     /// @notice set royalty price init numerator
@@ -412,10 +388,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     ) internal returns (uint256 depositedAmount) {
         IStrategy pool = IStrategy(pools[poolId]);
         IToken quoteToken = pool.quoteToken();
-        if (!isAgentOf(poolId, depositor)) {
-            _checkMinDeposit(address(quoteToken), quoteTokenAmount);
-            _checkMaxDeposit(address(quoteToken), quoteTokenAmount);
-        }
         if (quoteTokenAmount > 0) {
             quoteToken.safeTransferFrom(msg.sender, address(this), quoteTokenAmount);
             quoteToken.forceApprove(address(pool), quoteTokenAmount);
@@ -506,22 +478,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         emit Exit(poolId, quoteTokenAmount, baseTokenAmount);
     }
 
-    /// @notice checks min deposit
-    function _checkMinDeposit(address quoteToken, uint256 depositAmount) private view {
-        if (depositAmount < minDeposit[quoteToken]) {
-            revert InsufficientMinDeposit();
-        }
-    }
-
-    /// @notice checks TVL of quoteToken
-    /// @param quoteToken address of quoteToken
-    /// @param depositAmount amount of quote token
-    function _checkMaxDeposit(address quoteToken, uint256 depositAmount) private view {
-        if (maxDeposit[quoteToken] != 0 && depositAmount > maxDeposit[quoteToken]) {
-            revert ExceededMaxDeposit();
-        }
-    }
-
     /// @notice checks capital on pool
     /// @param pool address of pool
     function _checkCapital(IStrategy pool) private view {
@@ -547,7 +503,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         IStrategy pool0 = IStrategy(pools[poolId0]);
         IStrategy pool1 = IStrategy(pools[poolId1]);
         if (address(pool0.quoteToken()) != address(pool1.quoteToken()) || address(pool0.baseToken()) != address(pool1.baseToken())) {
-            revert DifferentTokens();
+            revert RebalanceDifferentTokens();
         }
 
         (uint256 baseTokenAmount0, uint256 price0) = pool0.beforeRebalance();
@@ -643,7 +599,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @param poolId pool id of pool in array `pools`
     function transfer(address to, uint256 poolId) public {
         if (agentOf[poolId] != ownerOf(poolId)) {
-            revert ForbidWithAgentManagedPoolId();
+            revert HasAgent();
         }
         _transfer(msg.sender, to, poolId);
     }
