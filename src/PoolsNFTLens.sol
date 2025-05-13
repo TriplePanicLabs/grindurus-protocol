@@ -57,9 +57,9 @@ contract PoolsNFTLens is IPoolsNFTLens {
 
     /// @notice get pool nft info by pool ids
     /// @param poolIds array of poolIds
-    function getPoolNFTInfosBy(uint256[] memory poolIds) external view override returns (PoolNFTInfo[] memory poolInfos) {
+    function getPoolInfosBy(uint256[] memory poolIds) external view override returns (PoolInfo[] memory poolInfos) {
         uint256 poolIdsLen = poolIds.length;
-        poolInfos = new PoolNFTInfo[](poolIdsLen);
+        poolInfos = new PoolInfo[](poolIdsLen);
         uint256 index = 0;
         for (; index < poolIdsLen; ) {
             poolInfos[index] = _formPoolInfo(poolIds[index]);
@@ -283,9 +283,9 @@ contract PoolsNFTLens is IPoolsNFTLens {
 
     /// @notice forms pool info
     /// @param poolId pool id of pool in array `pools` on PoolsNFT
-    function _formPoolInfo(uint256 poolId) private view returns (PoolNFTInfo memory poolInfo) {
+    function _formPoolInfo(uint256 poolId) private view returns (PoolInfo memory poolInfo) {
         IStrategy pool = IStrategy(poolsNFT.pools(poolId));
-        poolInfo = PoolNFTInfo({
+        poolInfo = PoolInfo({
             poolId: poolId,
             strategyId: pool.strategyId(),
             pool: address(pool),

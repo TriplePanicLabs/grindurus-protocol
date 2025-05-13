@@ -810,8 +810,8 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
 
     /// @notice get pool nft info by pool ids
     /// @param _poolIds array of poolIds
-    function getPoolNFTInfosBy(uint256[] memory _poolIds) external view override returns (IPoolsNFTLens.PoolNFTInfo[] memory poolNFTInfos) {
-        return poolsNFTLens.getPoolNFTInfosBy(_poolIds);
+    function getPoolInfosBy(uint256[] memory _poolIds) external view override returns (IPoolsNFTLens.PoolInfo[] memory poolInfos) {
+        return poolsNFTLens.getPoolInfosBy(_poolIds);
     }
 
     /// @notice get positions by pool ids

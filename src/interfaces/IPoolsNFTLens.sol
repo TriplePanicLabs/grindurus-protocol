@@ -43,7 +43,7 @@ interface IPoolsNFTLens {
         uint256 newRoyaltyPrice;
     }
 
-    struct PoolNFTInfo {
+    struct PoolInfo {
         uint256 poolId;
         uint256 strategyId;
         address pool;
@@ -101,7 +101,7 @@ interface IPoolsNFTLens {
 
     function getRoyaltyParams(uint256 poolId) external view returns (RoyaltyParams memory);
 
-    function getPoolNFTInfosBy(uint256[] memory poolIds) external view returns (PoolNFTInfo[] memory poolInfos);
+    function getPoolInfosBy(uint256[] memory poolIds) external view returns (PoolInfo[] memory poolInfos);
 
     function execute(address target, uint256 value, bytes calldata data) external payable returns (bool success, bytes memory result);
 
