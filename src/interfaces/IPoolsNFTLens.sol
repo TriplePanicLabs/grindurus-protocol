@@ -47,6 +47,7 @@ interface IPoolsNFTLens {
         uint256 poolId;
         uint256 strategyId;
         address pool;
+        bool reinvest;
         bool isDrawdown;
         Positions positions;
         IURUS.Config config;
