@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.28;
 
-import {IDexAdapter, IToken} from "src/interfaces/IDexAdapter.sol";
-import {ISwapRouterBase} from "src/interfaces/uniswapV3/base/ISwapRouterBase.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IDexAdapter, IToken } from "src/interfaces/IDexAdapter.sol";
+import { ISwapRouterBase } from "src/interfaces/uniswapV3/base/ISwapRouterBase.sol";
+import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title UniswapV3AdapterBase
 /// @notice Adapter for UniswapV3
