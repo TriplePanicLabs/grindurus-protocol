@@ -60,8 +60,6 @@ contract URUS is IURUS {
     /// @dev total profits of pool
     Profits public totalProfits;
 
-    constructor() {} // only for verification simplification. As constructor call initURUS()
-
     /// @notice constructor of URUS core
     /// @dev config of URUS can be catched from structure `Config`
     /// @dev _oracleQuoteTokenPerFeeToken and _oracleQuoteTokenPerBaseToken may be address(0). And will not calculate fees

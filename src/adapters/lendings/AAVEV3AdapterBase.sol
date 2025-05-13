@@ -18,8 +18,6 @@ contract AAVEV3AdapterBase is ILendingAdapter {
     /// @dev address of Token => invested amount
     mapping(IToken token => uint256) public investedAmount;
 
-    constructor() {}
-
     /// @dev constructor of AAVEV3AdapterBase
     function initLending(bytes memory args) public {
         if (address(aaveV3Pool) != address(0)) {
