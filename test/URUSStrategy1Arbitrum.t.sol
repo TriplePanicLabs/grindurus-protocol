@@ -83,8 +83,7 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         registry = new RegistryArbitrum(address(poolsNFT));
         strategy1 = new Strategy1Arbitrum();
-        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry));
-        factory1.setStrategyImplementation(address(strategy1));
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry), address(strategy1));
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
         poolsNFT.setStrategyFactory(address(factory1));

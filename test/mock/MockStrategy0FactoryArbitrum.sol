@@ -5,7 +5,7 @@ import {Strategy0FactoryArbitrum} from "src/strategies/arbitrum/strategy0/Strate
 
 contract MockStrategy0FactoryArbitrum is Strategy0FactoryArbitrum {
 
-    constructor (address _poolsNFT, address _registry, address mockSwapRouter) Strategy0FactoryArbitrum(_poolsNFT, _registry) {
+    constructor (address _poolsNFT, address _registry, address mockSwapRouter) Strategy0FactoryArbitrum(_poolsNFT, _registry, address(0)) {
         uniswapV3SwapRouterArbitrum = mockSwapRouter;
     }
     

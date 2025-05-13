@@ -40,13 +40,14 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
 
     /// @param _poolsNFT address of PoolsNFT
     /// @param _registry address of registry
-    constructor(address _poolsNFT, address _registry) {
+    constructor(address _poolsNFT, address _registry, address initialStrategyImplementation) {
         if (_poolsNFT != address(0)) {
             poolsNFT = IPoolsNFT(_poolsNFT);
         } else {
             poolsNFT = IPoolsNFT(msg.sender);
         }
         registry = IRegistry(_registry);
+        strategyImplementation = initialStrategyImplementation;
         defaultConfig = IURUS.Config({
             // maxLiquidity = initLiquidity * (extraCoef + 1) ** (longNumberMax - 1)
             longNumberMax: 3,

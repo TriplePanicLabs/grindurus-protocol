@@ -77,19 +77,16 @@ contract GrinderAITest is Test {
         registry = new RegistryArbitrum(address(poolsNFT));
 
         strategy0 = new Strategy0Arbitrum();
-        factory0 = new Strategy0FactoryArbitrum(address(poolsNFT), address(registry));
-        factory0.setStrategyImplementation(address(strategy0));
+        factory0 = new Strategy0FactoryArbitrum(address(poolsNFT), address(registry), address(strategy0));
 
         strategy1 = new Strategy1Arbitrum();
-        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry));
-        factory1.setStrategyImplementation(address(strategy1));
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry), address(strategy1));
 
         poolsNFT.setStrategyFactory(address(factory0));
         poolsNFT.setStrategyFactory(address(factory1));
 
         agent = new Agent();
-        agentsNFT = new AgentsNFT(address(poolsNFT));
-        agentsNFT.setAgentImplementation(address(agent));
+        agentsNFT = new AgentsNFT(address(poolsNFT), address(agent));
     
         vm.stopBroadcast();
     }
