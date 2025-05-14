@@ -777,7 +777,7 @@ contract URUS is IURUS {
     /// @notice iteration of URUS algorithm
     /// @dev calls long_buy, long_sell, hedge_sell, hedge_rebuy
     /// @return iterated true if successfully operation made, false otherwise
-    function iterate() public returns (bool iterated) {
+    function grind() public returns (bool iterated) {
         IURUS strategy = IURUS(address(this));
         if (long.number == 0) {
             // BUY

@@ -163,7 +163,7 @@ interface IURUS is IERC5313 {
 
     function hedge_rebuy() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    function iterate() external returns (bool iterated);
+    function grind() external returns (bool iterated);
 
     function beforeRebalance() external returns (uint256 baseTokenAmount, uint256 price);
 

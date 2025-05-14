@@ -66,7 +66,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 newBaseTokenAmount1
     );
 
-    event Grind(
+    event GrindOp(
         uint256 poolId,
         uint8 op,
         address grinder,
@@ -217,7 +217,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function grind(uint256 poolId) external returns (bool isGrinded);
 
-    function grindOp(uint256 poolId, uint8 op) external returns (bool isGrinded);
+    function microOp(uint256 poolId, uint8 op) external returns (bool isGrinded);
 
     function buyRoyalty(
         uint256 poolId

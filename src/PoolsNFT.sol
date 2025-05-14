@@ -548,7 +548,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         uint256 gasStart = gasleft();
         IStrategy pool = IStrategy(pools[poolId]);
         _checkCapital(pool);
-        try pool.iterate() returns (bool iterated) {
+        try pool.grind() returns (bool iterated) {
             isGrinded = iterated;
         } catch {
             isGrinded = false;
@@ -557,13 +557,12 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             uint256 nativeFeeSpent = (gasStart - gasleft()) * tx.gasprice; // amount of native token as fee used for grind 
             _airdropGRETH(poolId, nativeFeeSpent);
         }
-        emit Grind(poolId, type(uint8).max, msg.sender, isGrinded);
     }
 
     /// @notice grind the exact operation on the pool with `poolId`
     /// @param poolId pool id of pool in array `pools`
     /// @param op operation on strategy pool
-    function grindOp(uint256 poolId, uint8 op) external returns (bool) {
+    function microOp(uint256 poolId, uint8 op) external override returns (bool) {
         uint256 gasStart = gasleft();
         IStrategy pool = IStrategy(pools[poolId]);
         _checkCapital(pool);
@@ -580,7 +579,6 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         }
         uint256 nativeFeeSpent = (gasStart - gasleft()) * tx.gasprice; // amount of native token used for grind 
         _airdropGRETH(poolId, nativeFeeSpent);
-        emit Grind(poolId, op, msg.sender, true);
         return true;
     }
 
