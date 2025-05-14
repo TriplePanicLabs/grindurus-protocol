@@ -71,7 +71,6 @@ contract GrinderAITest is Test {
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
         grinderAI.init(address(poolsNFT), address(grAI));
 
-
         registry = new RegistryArbitrum(address(poolsNFT));
 
         strategy0 = new Strategy0Arbitrum();
@@ -150,7 +149,6 @@ contract GrinderAITest is Test {
     }
 
     function test_grind() public {
-        address grinder = grinderAI.grinder();
         vm.startBroadcast(user);
         deal(user, 1e18);
         deal(usdtArbitrum, user, 1000e6);
@@ -170,15 +168,18 @@ contract GrinderAITest is Test {
         usdt.approve(address(agentsNFT), quoteTokenAmount);
         uint256 agentId = agentsNFT.mint(strategyId, baseToken, quoteToken, quoteTokenAmount, liquidityFragment, positionsMax, subnodesMax);        
         vm.stopBroadcast();
-
+        
+        address grinder = grinderAI.grinder();
         vm.startBroadcast(grinder);
         uint256[] memory poolIds = agentsNFT.getPoolIds(agentId);
         uint256 balanceBefore = grAI.balanceOf(user);
+        uint256 balanceGrinderBefore = grAI.balanceOf(grinder);
         bool success = grinderAI.grind(poolIds[0]);
         assert(success == true);
         uint256 balanceAfter = grAI.balanceOf(user);
+        uint256 balanceGrinderAfter = grAI.balanceOf(grinder);
         assert(balanceAfter < balanceBefore);
-
+        assert(balanceGrinderAfter > balanceGrinderBefore);
         vm.stopBroadcast();
 
     }

@@ -68,7 +68,7 @@ interface IGRAI is IOFT {
         uint256 amount
     ) external view returns (
         uint256 nativeFee, 
-        uint256 nativeBridgeFee, 
+        uint256 artificialFee, 
         uint256 totalNativeFee
     );
 
