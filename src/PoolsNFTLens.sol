@@ -62,7 +62,7 @@ contract PoolsNFTLens is IPoolsNFTLens {
         poolInfos = new PoolInfo[](poolIdsLen);
         uint256 index = 0;
         for (; index < poolIdsLen; ) {
-            poolInfos[index] = _formPoolInfo(poolIds[index]);
+            poolInfos[index] = formPoolInfo(poolIds[index]);
             unchecked {
                 ++index;
             }
@@ -283,7 +283,7 @@ contract PoolsNFTLens is IPoolsNFTLens {
 
     /// @notice forms pool info
     /// @param poolId pool id of pool in array `pools` on PoolsNFT
-    function _formPoolInfo(uint256 poolId) private view returns (PoolInfo memory poolInfo) {
+    function formPoolInfo(uint256 poolId) public view override returns (PoolInfo memory poolInfo) {
         IStrategy pool = IStrategy(poolsNFT.pools(poolId));
         poolInfo = PoolInfo({
             poolId: poolId,

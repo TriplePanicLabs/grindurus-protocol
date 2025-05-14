@@ -101,6 +101,8 @@ interface IPoolsNFTLens {
 
     function getRoyaltyParams(uint256 poolId) external view returns (RoyaltyParams memory);
 
+    function formPoolInfo(uint256 poolId) external view returns (PoolInfo memory poolInfo);
+
     function getPoolInfosBy(uint256[] memory poolIds) external view returns (PoolInfo[] memory poolInfos);
 
     function execute(address target, uint256 value, bytes calldata data) external payable returns (bool success, bytes memory result);
