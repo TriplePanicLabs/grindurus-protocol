@@ -1,31 +1,29 @@
 # GrindURUS Protocol 🚀
 
-Automated Market Taker 🤖
+Automated Market Taker Protocol 🤖
 
 Onchain yield harvesting and strategy trade protocol. 📈
 
 ## Use Cases (whole protocol) 🌟
-1. **Automated Trading**: Implements a fully automated trading strategy based on mathematical and market-driven rules. 📊
-2. **Risk Management**: Uses hedging and rebuying to mitigate unrealized loss. 🛡️
-3. **Capital Optimization**: Maximizes efficiency by dynamically adjusting liquidity and investment levels. 💰
+1. **Automated Onchain Trading**: Implements a fully automated trading strategy based on mathematical and market-driven rules by one button "GRIND". 📊
+2. **Capital Optimization**: Maximizes efficiency of liquidity by dynamically adjusting liquidity. 💰
 
 ## Architecture TLDR: 🏗️
 
 Architecture:
 1. **PoolsNFT** 🎴 - Enumerates all strategy pools. The gateway to the standardized interaction with strategy pools.
 2. **PoolsNFTLens** 🔍 - Lens contract that retrieves data from PoolsNFT and Strategies.
-3. **URUS** ⚙️ - Implements all URUS algorithm logic.
-4. **Registry** 📚 - Storage of quote tokens, base tokens, and oracles.
+3. **URUS** ⚙️ - Implements all URUS algorithm logic. Core of liquidity micromanagement
+4. **Registry** 📚 - Storage of quote tokens, base tokens, and oracles, grAI crosschain info.
 5. **GRETH** 🪙 - ERC20 token that stands as incentivization for `grind` and implements the index of collected profit.
 6. **Strategy** 📈 - Logic that utilizes URUS + interaction with onchain protocols like AAVE and Uniswap.
 7. **StrategyFactory** 🏭 - Factory that deploys ERC1967Proxy of Strategy as isolated smart contract with liquidity.
-8. **IntentsNFT** 🎯 - Intents for grind, that reads data from PoolsNFT.
-9. **GRAI** 🪙 - ERC20 token that tokenizes grinds on intent.
-10. **GrinderAI** 🤖 - Gateway for AI agent to interact with PoolsNFT and GRAI.
+8. **GRAI** 🪙 - ERC20 token that tokenizes grinds on intent.
+9. **GrinderAI** 🤖 - Gateway for AI agent to interact with PoolsNFT and GRAI.
 
 # PoolsNFT 🎴
 
-`PoolsNFT` is a gateway that facilitates the creation of strategy pools and links represented by NFTs. It supports royalty mechanisms upon strategy profits, isolated deposits, limited withdrawals, and strategy iterations.
+`PoolsNFT` is a gateway that facilitates the creation of strategy pools and links represented by NFTs. It supports royalty mechanisms upon strategy profits, deposits, withdrawals, and strategy grinding.
 
 ## Key Features ✨
 - **Pool Ownership**: Each NFT represents ownership of a strategy pool. 🏦
@@ -45,9 +43,6 @@ The `owner` has the highest level of authority in the contract and is responsibl
 
 ### Agent Role 🤝
 The `agent` acts as a delegate for the pool owner, authorized to perform configuration of strategy parameters in `URUS` and rebalancing strategy pools owned by `ownerOf`. 🔄
-
-### Depositor Role 💳
-The pools are isolated. The `depositor` is an account approved by the pool owner to contribute assets to a specific pool via `poolId`. This role ensures controlled access to deposits while allowing flexibility for liquidity contributions. 💧
 
 ## Royalty Price Parameters 💎
 - **`royaltyPriceInitNumerator`**: Determines the initial royalty price as a percentage of the deposited quote token. 📊
@@ -72,9 +67,6 @@ The pools are isolated. The `depositor` is an account approved by the pool owner
 ## Parameter Changes 🛠️
 ### Owner-only functions 👑
 - `setPoolsNFTLens(address _poolsNFTLens)` 🖼️: Set the PoolsNFTLens address.
-- `setGrinderAI(address _grinderAI)` 🤖: Set the GrinderAI address.
-- `setMinDeposit(address token, uint256 _minDeposit)` 💳: Set the minimal deposit amount.
-- `setMaxDeposit(address token, uint256 _maxDeposit)` 💰: Set the maximal deposit amount.
 - `setRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator)` 💎: Set the royalty price initial numerator.
 - `setRoyaltyPriceShares(...)` 📊: Adjust royalty price shares.
 - `setGRETHShares(...)` 🪙: Adjust GRETH share distributions.
@@ -101,28 +93,22 @@ The pools are isolated. The `depositor` is an account approved by the pool owner
   
 ## Deposit2 Process 💳
 - Deposits `baseToken` with specified `baseTokenPrice` to strategy pool with `poolId` 🏦
-  1. Checks that `msg.sender` is depositor of `poolId` ✅
+  1. Checks that `msg.sender` is agent of `poolId` ✅
   2. `baseToken` transfers from `msg.sender` to `PoolsNFT` 🔄
   3. Call `deposit2` on `Strategy` as gateway 🔑
 
-## Deposit3 Process 💰
-- Deposits `quoteToken` to strategy pool with `poolId` when pool has sufficient unrealized loss 📉
-  1. Checks that `msg.sender` is depositor of `poolId` ✅
-  2. `quoteToken` transfers from `msg.sender` to `PoolsNFT` 🔄
-  3. Call `deposit3` on `Strategy` as gateway 🔑
-
 ## Withdraw Process 🏧
 - Withdraw `quoteToken` from strategy pool with `poolId` 💵
-  1. Checks that `msg.sender` is owner of `poolId` ✅
+  1. Checks that `msg.sender` is agent of `poolId` ✅
   2. Call `withdraw` on `Strategy` as gateway 🔑
 
 ## Exit Process 🚪
 - Withdraw all liquidity of `quoteToken` and `baseToken` from strategy pool with `poolId` 💸
-  1. Checks that `msg.sender` is owner of `poolId` ✅
+  1. Checks that `msg.sender` is agent of `poolId` ✅
   2. Call `exit` on `Strategy` as gateway 🔑
 
 ## Set Agent Process 🤝
-- Sets agent of `msg.sender` 🛠️
+- Sets agent of `poolId` 🛠️
 
 ## Rebalance of Pools Process ⚖️
 - Rebalance funds of two different strategy pools `poolId0` and `poolId1` with portions `rebalance0` + `rebalance1` 🔄
@@ -137,7 +123,7 @@ The pools are isolated. The `depositor` is an account approved by the pool owner
 ## Grind Process 🛠️
   - **Grind strategy** with `poolId`:
     1. ✅ Checks that `poolId` has sufficient balance of `quoteToken` + `baseToken`.
-    2. 🔄 Call `iterate` on `Strategy`.
+    2. 🔄 Call `grind` on `Strategy`.
     3. 🏅 If the call is successful, the grinder earns `grETH`, equal to the spent transaction fee.
 
   ## Buy Royalty Process 💎
@@ -147,9 +133,9 @@ The pools are isolated. The `depositor` is an account approved by the pool owner
     3. 📤 `PoolsNFT` distributes shares.
     4. 👑 `msg.sender` becomes the royalty receiver of `poolId`.
 
-  # URUS ⚙️
+# URUS ⚙️
 
-  `URUS` is the core logic of the URUS trading algorithm implemented as a Solidity smart contract. It is designed to handle automated trading, hedging, and rebalancing strategies.
+  `URUS` is the core logic of the URUS trading algorithm. It is designed to handle automated trading, hedging, and rebalancing liqudity from `quoteToken` to `baseToken` and vise versa.
 
   ## Key Features ✨
   - **Position Management**: Supports long and hedge positions with configurable parameters. 📈📉
@@ -163,7 +149,6 @@ The pools are isolated. The `depositor` is an account approved by the pool owner
   - **Token Decimals**: Stores decimals for `baseToken`, `quoteToken`, and `feeToken`. 🔢
   - **Oracle Decimals**: Stores decimals and multipliers for price oracles. 📊
   - **Coefficient Multipliers**: Constants for fee and percentage calculations. ⚙️
-  - **Dynamic Data**: Includes `initLiquidity` (initial liquidity) and `investCoef` (investment coefficient). 💡
 
   ---
 
@@ -455,13 +440,12 @@ The `hedge` position tracks data for hedging against price declines:
 
 ---
 
-## 15. How `iterate` Works 🔁
+## 15. How `grind` Works 🔁
 - **Action**: Executes the appropriate trading operation based on the current state. ⚙️
 - **Steps**:
   1. 🛒 Calls `long_buy` if no positions exist.
   2. 🔄 Calls `long_sell` or `long_buy` if a long position is active.
   3. 🛡️ Calls `hedge_sell` or `hedge_rebuy` if hedging is active.
-  4. 📢 Emits events for each operation.
 
 ---
 
@@ -483,7 +467,7 @@ The `hedge` position tracks data for hedging against price declines:
 
 # grETH 🪙
 
-The **grETH** token is the incentivization token within the GrindURUS protocol. It rewards users (referred to as "grinders") for executing strategy iterations and serves as a mechanism to align incentives between participants and the protocol. The token is ERC-20 compliant and integrates seamlessly with the GrindURUS Pools NFT. 🎴
+**grETH** is the yield index token, representing profits accumulated in strategy pools.
 
 ### **Share Calculation** 📊
 - The `share` function calculates the proportional value of a specified amount of grETH in terms of a chosen asset (native or ERC-20 token). 🔄
@@ -492,126 +476,97 @@ The **grETH** token is the incentivization token within the GrindURUS protocol. 
 All ETH transfers to grETH are converted to WETH. 🌐
 
 ---
+# 📚 Registry Contract
 
-# Registry 📚
+The `Registry` contract is the metadata and configuration hub for the **GrindURUS** protocol. It maintains mappings between quote/base tokens, price oracles, strategy factories, and GRAI token configurations across chains. It also tracks token coherence for analytical and routing purposes.
 
-The **Registry** contract acts as a centralized hub for managing strategy configurations, token pairs, and their associated oracles within the GrindURUS protocol. It ensures seamless integration and consistency across all strategies and token interactions. 🔗
+## 🧠 Core Responsibilities
 
-### Key Functionalities ✨
-1. **Strategy Management**: Maintains a registry of strategy IDs and their metadata. 🏗️
-2. **Token Pairing**: Links quote tokens and base tokens to specific strategies. 💱
-3. **Oracle Integration**: Associates token pairs with their respective price oracles for accurate pricing data. 📈
-
-### Usage Examples 🛠️
-#### Adding a Strategy ➕
-```solidity
-registry.addStrategyInfo(666, address(0x1337), "Strategy666");
-```
-
-#### Altering a Strategy ✏️
-```solidity
-registry.altStrategyInfo(666, address(0x69), "Strategy777");
-```
-
-#### Removing a Strategy ❌
-```solidity
-registry.removeStrategyInfo(666);
-```
-
-#### Adding a GRAI Info ➕
-```solidity
-registry.addGRAIInfo(666, address(0x1337), "GrinderAI token on Arbitrum");
-```
-
-#### Altering a GRAI Info ✏️
-```solidity
-registry.altStrategyInfo(666, address(0x69), "GrinderAI token on Arbitrum One");
-```
-
-#### Removing a GRAI Info ❌
-```solidity
-registry.removeGRAIInfo(666);
-```
-
-#### Registering an Oracle 🛠️
-```solidity
-registry.setOracle(quoteTokenAddress, baseTokenAddress, oracleAddress);
-```
-
-#### Unregistering an Oracle ❌
-```solidity
-registry.unsetOracle(quoteTokenAddress, baseTokenAddress, oracleAddress);
-```
-
-#### Querying an Oracle for a Token Pair 🔍
-```solidity
-address oracle = registry.getOracle(quoteTokenAddress, baseTokenAddress);
-```
-
-#### Querying GRAI Infos 🔍
-```solidity
-function getGRAIInfos() public view override returns (GRAIInfo[] memory)
-```
+- Stores oracle connections between token pairs.
+- Tracks all available quote and base tokens.
+- Registers strategies and LayerZero endpoint information for GRAI tokens.
+- Computes token coherence (used for assessing oracle coverage).
+- Delegates ownership rights dynamically to the `PoolsNFT` contract's owner.
 
 ---
 
-# IntentsNFT 🎯
+## ⚙️ Function Reference
 
-IntentsNFT is an ERC721-based contract that represents "intents" for executing operations within the GrindURUS protocol. It acts as a pseudo-soulbound token, enabling users to manage "grinds" (units of work) and interact with the protocol's strategies. 🛠️
+### 🔐 Ownership & Access
+- `owner()` → Returns the current protocol owner via `PoolsNFT`.
+- `_onlyOwner()` → Reverts if caller is not owner.
 
-## Intent Structure 🏗️
-The `Intent` structure represents a user's intent to perform operations within the GrindURUS protocol. 📜
+### 🧩 Configuration
+- `setPoolsNFT(address _poolsNFT)`  
+  Set the reference address for the `PoolsNFT` contract.
 
-```solidity
-struct Intent {
-  address owner;       // The owner of the intent (user's address). 👤
-  uint256 grinds;      // The total number of grinds (units of work) associated with the intent. 🔄
-  uint256[] poolIds;   // An array of pool IDs linked to the intent. Retrieve from PoolsNFT 🎴
-}
-```
+- `setOracle(address quoteToken, address baseToken, address oracle)`  
+  Set an oracle for a token pair and automatically deploy the inverse oracle.
 
-## Mint Intent 🖨️
+- `unsetOracle(address quoteToken, address baseToken, address oracle)`  
+  Remove an existing oracle mapping and clean up coherence tracking.
 
-The `mint` function creates a new intent for the caller (`msg.sender`) and mints an NFT representing that intent. It calculates the required payment for the specified number of grinds and processes the payment. 💰
+- `setStrategyInfo(uint16 strategyId, address factory, string description)`  
+  Register a strategy with its factory and metadata.
 
-```solidity
-function mintTo(address paymentToken, address to, uint256 _grinds) external payable returns (uint256);
-```
+- `setGRAIInfo(uint32 endpointId, address grai, string description)`  
+  Register a GRAI token for a specific LayerZero endpoint.
 
-- **`paymentToken`**: The address of the token used for payment. If `paymentToken` is `address(0)`, the payment is made in ETH. 🪙
-- **`to`**: Address of the receiver of the intent. 📬
-- **`_grinds`**: The number of grinds (units of work) to associate with the new intent. 🔢
+## 🧮 Token Coherence
 
-### How It Works ⚙️
+**Token Coherence** is a metric used in the `Registry` contract to quantify how well-connected a token is within the oracle graph of the GrindURUS protocol.
 
-1. **Payment Calculation** 🧮
+Each token is either a **quote token** or **base token** in an oracle pair. A token's *coherence* is defined as:
 
-```solidity
-function calcPayment(address paymentToken, uint256 grinds) external view returns (uint256 paymentAmount);
-```
+coherence(token) = number of oracle connections (excluding self-pairs)
 
-The function calculates the required payment amount using the `calcPayment` function, based on the `ratePerGrind` of `paymentToken` for the specified payment token. 📊
+For example, if token `A` has oracles with `B`, `C`, and `D`, then:
+coherence(A) = 3 (assuming A ≠ B, C, D)
 
-2. **Payment Processing** 💳  
-  The payment is processed using the internal `_pay` function, which transfers the required amount to the `fundsReceiver`. 🏦
+---
 
-3. **Minting the Intent** 🎴  
-  - If the user does not already own an intent, a new NFT is minted, and the intent is initialized with the specified number of grinds. 🆕  
-  - If the user already owns an intent, the existing intent is updated with the new grinds. 🔄
+### 🔍 View Functions
 
-4. **Minting grAI token** 🪙
-  When minting an intent, the protocol automatically mints `grAI` tokens in an amount equal to the number of grinds purchased. For example, if a user buys 10 grinds, they will receive 10 `grAI` tokens. These tokens are minted directly to the user's wallet as part of the minting process. 🪙
+#### 📈 Oracle Management
+- `getOracle(address quoteToken, address baseToken)`  
+  Get oracle for a given token pair. Returns `PriceOracleSelf` if `quote == base`.
+
+- `hasOracle(address quoteToken, address baseToken)`  
+  Returns `true` if oracle exists between the given pair.
+
+#### 🪙 Token Lists
+- `getQuoteTokens()`  
+  Returns the list of all known quote tokens.
+
+- `getBaseTokens()`  
+  Returns the list of all known base tokens.
+
+- `getQuoteTokensBy(uint256[] quoteTokenIds)`  
+  Returns selected quote tokens by index.
+
+- `getBaseTokensBy(uint256[] baseTokenIds)`  
+  Returns selected base tokens by index.
+
+#### 🧠 Strategy Info
+- `getStrategyInfosBy(uint16[] strategyIds)`  
+  Batch query for `StrategyInfo` by IDs.
+
+- `getGRAIInfosBy(uint32[] endpointIds)`  
+  Batch query for `GRAIInfo` by endpoint IDs.
+
+
+---
 
 # GRAI 🪙
 
-`GRAI` is a cross-chain ERC20 token built on the LayerZero protocol. It facilitates seamless token transfers across multiple blockchains and serves as the primary token for the GrindURUS protocol. 🌐
+`GRAI` is the utility token of the GrindURUS protocol, burned when a grind is executed via `GrinderAI`. It is implemented as an Omnichain Fungible Token (OFT) using LayerZero and supports cross-chain usage.
 
-## Parameter Changes 🛠️
-### GrinderAI-only functions 🤖:
-- **`setMultiplierNumerator(uint256 _multiplierNumerator)`**: Sets the multiplier numerator. On LayerZero contracts, this is used for fee estimation for cross-chain messages. Parameter `_multiplierNumerator` sets the multiplier for fee estimation. The denominator is constant at `100_00` (100%). 📊
-- **`setNativeBridgeFee(uint256 _nativeBridgeFeeNumerator)`**: Sets the percentage of the native bridge fee. If the estimation is `x ETH`, the bridge fee is added to the estimated fee. 💰
-- **`setPeer(uint32 eid, bytes32 _peer)`**: Sets the peer for the endpoint ID. This is LayerZero-specific functionality. 🔗
-- **`mint(address to, uint256 amount)`**: Mints GRAI tokens to the specified address (`to`). 🖨️
+## GrinderAI-only Functions 🤖
+
+- `setMultiplierNumerator(uint256)` — Sets the multiplier for LayerZero fee estimation.
+- `setNativeBridgeFee(uint256)` — Sets additional LayerZero bridge fee percentage.
+- `setPeer(uint32, bytes32)` — Registers peer endpoint for cross-chain messaging.
+- `mint(address, uint256)` — Mints GRAI tokens when grinds are purchased.
 
 ## Bridging GRAI 🌉
 
@@ -638,38 +593,52 @@ The function calculates the required payment amount using the `calcPayment` func
 
 # GrinderAI 🤖
 
-`GrinderAI` 🤖 is a core contract in the GrindURUS protocol that acts as an AI-driven agent for managing and interacting with protocol components. It provides a transparent mechanism for automating operations such as minting tokens, managing pools, and configuring strategies. The contract integrates with PoolsNFT 🎴, IntentsNFT 🎯, and GRAI 🪙 to streamline protocol interactions.
+`GrinderAI` is the autonomous agent contract for the **GrindURUS** protocol. It enables gas-efficient, transparent automation of grind operations on strategy pools using the `grAI` utility token. It supports minting, payment processing, GRAI token management, and simulation of operations on pools.
 
-## Parameter Changes 🛠️
-### Owner-only functions 👑:
-- **`setAgent(address _agent, bool _isAgent)`** 🤝: Assigns or removes an agent. Agents can configure pools and strategies.
-- **`setPoolsNFT(address _poolsNFT)`** 🎴: Sets the address of the PoolsNFT contract.
-- **`setIntentsNFT(address _intentsNFT)`** 🎯: Sets the address of the IntentsNFT contract.
-- **`setGRAI(address _grAI)`** 🪙: Sets the address of the GRAI token contract.
-- **`setGrindsRate(uint256 _grindsRate)`** 🔄: Sets the grinds rate.
-- **`setGRAIReward(uint256 _graiReward)`** 🏅: Updates the reward amount of GRAI tokens for grinding operations.
-- **`setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value)`** ⛽: Configures LayerZero bridge gas limits and values.
-- **`setMultiplierNumerator(uint256 multiplierNumerator)`** 📊: Sets the multiplier numerator for LayerZero fee estimation. The denominator is fixed at 100_00 (100%).
-- **`setNativeBridgeFee(uint256 nativeBridgeFeeNumerator)`** 💰: Sets the percentage of native bridge fees for LayerZero operations.
-- **`setPeer(uint32 eid, bytes32 peer)`** 🔗: Sets the peer address for a specific endpoint ID. The peer is stored as a `bytes32` to support non-EVM chains.
-- **`execute(address target, uint256 value, bytes calldata data)`** 🚀: Executes arbitrary transactions on behalf of the contract.
-- **`executeGRAI(address target, uint256 value, bytes calldata data)`** 🪙: Executes arbitrary transactions on the GRAI contract.
+## 🛠 Configuration Functions
 
-### Delegate-only functions 🤝:
-- **`setConfig(uint256 poolId, IURUS.Config memory config)`** ⚙️: Sets the configuration for a specific pool.
-- **`batchSetConfig(uint256[] memory poolIds, IURUS.Config[] memory configs)`** 🔄: Sets configurations for multiple pools in a single transaction.
-- **`setLongNumberMax(uint256 poolId, uint8 longNumberMax)`** 📈: Updates the `longNumberMax` parameter for a pool.
-- **`setHedgeNumberMax(uint256 poolId, uint8 hedgeNumberMax)`** 🛡️: Updates the `hedgeNumberMax` parameter for a pool.
-- **`setExtraCoef(uint256 poolId, uint256 extraCoef)`** 🔧: Updates the `extraCoef` parameter for a pool.
-- **`setPriceVolatilityPercent(uint256 poolId, uint256 priceVolatilityPercent)`** 🌊: Updates the `priceVolatilityPercent` parameter for a pool.
-- **`setOpReturnPercent(uint256 poolId, uint8 op, uint256 returnPercent)`** 📊: Updates the return percentage for a specific operation in a pool.
-- **`setOpFeeCoef(uint256 poolId, uint8 op, uint256 feeCoef)`** 💵: Updates the fee coefficient for a specific operation in a pool.
+- `setRatePerGRAI(token, rate)` — Set price per `grAI` for a token.
+- `setBurnRate(rate)` — Set number of `grAI` burned per grind.
+- `setShares(grinderShare, liquidityShare)` — Configure revenue split.
+- `setGrinder(address)` — Set grinder address (payout recipient).
 
-### Public functions (callable by anyone) 🌐:
-- **`grind(uint256 poolId)`** 🛠️: Executes a grinding operation on a specific pool and mints GRAI rewards if successful.
-- **`grindOp(uint256 poolId, uint8 op)`** 🔄: Executes a specific operation (e.g., buy, sell, hedge) on a pool and mints GRAI rewards if successful.
-- **`batchGrind(uint256[] memory poolIds)`** 🔁: Executes grinding operations on multiple pools.
-- **`batchGrindOp(uint256[] memory poolIds, uint8[] memory ops)`** 🔄: Executes specific operations on multiple pools.
+## 🌐 grAI Cross-Chain Configuration Support
+
+- `setLzReceivOptions(endpointId, gasLimit, value)` — Set LayerZero options.
+- `setMultiplierNumerator(n)` — Adjust gas multiplier for fees.
+- `setArtificialFeeNumerator(endpointId, n)` — Set additional bridge fee.
+- `setPeer(eid, peer)` — Set remote peer for OFT sync.
+
+## 💸 grAI Minting
+
+- `mint(token, amount)` — Mint `grAI` to sender.
+- `mintTo(token, to, amount)` — Mint `grAI` to another user.
+- ETH or tokens are accepted depending on `ratePerGRAI`.
+
+## ⚙️ Grinding
+
+- `grind(poolId)` — Executes macro+micro grind on a pool.
+- `grindOp(poolId, op)` — Executes a specific operation (`buy`, `sell`, etc).
+- `batchGrind(poolIds[])` — Batch of grind pools.
+- `batchGrindOp(poolIds[], ops[])` — Batch of granular grind ops.
+- `microOp(poolId, op)` / `macroOp(poolId, op)` — Simulate operations.
+
+## 🔍 View Functions
+
+- `calcPayment(token, amount)` — Get payment needed to mint `grAI`.
+- `getIntentOf(account)` — Return how many grinds the user has and pool ownership.
+- `isPaymentToken(token)` — Check if token is valid for payment.
+- `owner()` — Get dynamic owner (forwarded from `PoolsNFT`).
+
+## 📥 ETH Handling
+
+When ETH is received:
+- A portion goes to the `grinder`.
+- The rest is converted to WETH as liquidity.
+
+
+
+
 
 # Build
 
@@ -706,3 +675,8 @@ $ source .env
 ```shell
 $ forge script script/DeployArbitrum.s.sol:DeployArbitrumScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY 
 ```
+
+
+# 📜 License
+
+[BUSL-1.1](https://spdx.org/licenses/BUSL-1.1.html)
