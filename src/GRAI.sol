@@ -109,6 +109,17 @@ contract GRAI is IGRAI, OFT {
         return amount;
     }
 
+    /// @notice transmit grAI for grind from `from` to `to  
+    /// @dev callable only by grinderAI
+    function transmit(address from, address to, uint256 amount) public override returns (uint256) {
+        _onlyGrinderAI();
+        if (balanceOf(from) < amount) {
+            return 0;
+        }
+        _transfer(from, to, amount);
+        return amount;
+    }
+
     function transferFrom(address from, address to, uint256 amount) public override(ERC20, IGRAI) returns (bool) {
         return ERC20.transferFrom(from, to, amount);
     }

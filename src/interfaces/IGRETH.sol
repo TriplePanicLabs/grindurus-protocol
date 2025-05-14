@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
+import { IWETH9 } from "src/interfaces/IWETH9.sol";
 import { IToken } from "src/interfaces/IToken.sol";
 import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
 
@@ -21,7 +22,11 @@ interface IGRETH is IToken {
 
     function poolsNFT() external view returns (IPoolsNFT);
 
+    function weth() external view returns (IWETH9);
+
     function totalGrinded() external view returns (uint256);
+
+    function totalGrindedBy(address account) external view returns (uint256);
 
     function mint() external payable returns (uint256 mintedAmount);
 

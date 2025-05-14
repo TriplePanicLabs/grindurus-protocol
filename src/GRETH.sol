@@ -24,7 +24,7 @@ contract GRETH is IGRETH, ERC20 {
     uint256 public totalGrinded;
 
     /// @dev account address => amount grETH minted
-    mapping (address account => uint256) public totalMintedBy;
+    mapping (address account => uint256) public totalGrindedBy;
 
     /// @param _poolsNFT address of poolsNFT
     /// @param _weth address of WETH
@@ -100,7 +100,7 @@ contract GRETH is IGRETH, ERC20 {
                 } else {
                     _mint(actors[i], amounts[i]);
                 }
-                totalMintedBy[actors[i]] += amounts[i];
+                totalGrindedBy[actors[i]] += amounts[i];
                 totalGrinded += amounts[i];
                 totalShares += amounts[i];
             }

@@ -818,6 +818,11 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         return poolsNFTLens.getPositionsBy(_poolIds);
     }
 
+    /// @notice returns wrapped eth address
+    function weth() public view override returns (address) {
+        return address(grETH.weth());
+    }
+
     /// @notice execute any transaction on target smart contract
     /// @dev callable only by owner
     /// @param target address of target contract

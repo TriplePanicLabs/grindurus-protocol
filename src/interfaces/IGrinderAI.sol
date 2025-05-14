@@ -5,7 +5,6 @@ import { IURUS } from "src/interfaces/IURUS.sol";
 import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
 import { IIntentsNFT } from "src/interfaces/IIntentsNFT.sol";
 import { IGRAI } from "src/interfaces/IGRAI.sol";
-import { IWETH9 } from "src/interfaces/IWETH9.sol";
 
 interface IGrinderAI {
 
@@ -36,21 +35,17 @@ interface IGrinderAI {
 
     function grAI() external view returns (IGRAI);
 
-    function weth() external view returns (IWETH9);
-
     function grinder() external view returns (address payable);
 
     function grinderShareNumerator() external view returns (uint16);
 
     function liquidityShareNumerator() external view returns (uint16);
 
-    function init(address _poolsNFT, address _grAI, address _weth) external;
+    function init(address _poolsNFT, address _grAI) external;
 
     function owner() external view returns (address);
 
     function setRatePerGRAI(address paymentToken, uint256 rate) external;
-
-    function setBurnRate(uint256 _graiBurnRate) external;
 
     function setShares(uint16 _grinderShareNumerator, uint16 _liquidityShareNumerator) external;
 

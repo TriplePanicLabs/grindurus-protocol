@@ -36,13 +36,10 @@ contract GRAITest is Test {
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
         grinderAI = new GrinderAI();
-        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), address(this), "");
+        grAI = new GRAI(lzEndpointArbitrum, address(grinderAI));
         
-        grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
-        grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(grAI), wethArbitrum);
-
-        poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
+        poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
+        grinderAI.init(address(poolsNFT), address(grAI));
 
         bytes32 peer = grAI.addressToBytes32(address(1337));
         grinderAI.setPeer(baseEndpointId, peer);

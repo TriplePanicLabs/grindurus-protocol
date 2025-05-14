@@ -49,16 +49,13 @@ contract IntentsNFTTest is Test {
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
         grinderAI = new GrinderAI();
-        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), address(this), "");
-        
-        grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
+        grAI = new GRAI(lzEndpointArbitrum, address(grinderAI));
         
         intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
-        grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(grAI), wethArbitrum);
+        poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
+        grinderAI.init(address(poolsNFT), address(grAI));
 
-        poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
 
         intentsNFT.setRatePerGrind(address(0), 1e12); // 0.000001 ETH
         intentsNFT.setRatePerGrind(usdtArbitrum, 1e6); // 1 USDT

@@ -69,9 +69,9 @@ contract PoolsNFTTest is Test {
         intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(grAI), wethArbitrum);
-        
         poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
+        grinderAI.init(address(poolsNFT), address(grAI));
+        
 
         registry = new RegistryArbitrum(address(poolsNFT));
 

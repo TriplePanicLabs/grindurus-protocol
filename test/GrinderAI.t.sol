@@ -64,15 +64,13 @@ contract GrinderAITest is Test {
         poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
 
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
-        grinderAI = new GrinderAI();
-        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), address(this), "");
-
-        grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
         
-        grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(grAI), wethArbitrum);
+        grinderAI = new GrinderAI();
+        grAI = new GRAI(lzEndpointArbitrum, address(grinderAI));
+        
+        poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
+        grinderAI.init(address(poolsNFT), address(grAI));
 
-        poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
 
         registry = new RegistryArbitrum(address(poolsNFT));
 

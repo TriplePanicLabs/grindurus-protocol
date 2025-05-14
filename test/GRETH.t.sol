@@ -46,15 +46,10 @@ contract GRETHTest is Test {
         greth = new GRETH(address(poolsNFT), wethArbitrum);
         
         grinderAI = new GrinderAI();
-        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), address(this), "");
-        
-        grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
-        intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
-
-        grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(grAI), wethArbitrum);
+        grAI = new GRAI(lzEndpointArbitrum, address(grinderAI));
 
         poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
+        grinderAI.init(address(poolsNFT), address(grAI));
 
         vm.stopPrank();
     }

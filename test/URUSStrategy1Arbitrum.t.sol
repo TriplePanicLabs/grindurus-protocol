@@ -73,19 +73,15 @@ contract URUSStrategy1ArbitrumTest is Test {
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
         grinderAI = new GrinderAI();
-        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), owner, "");
-        
         grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
-        intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
-        grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(grAI), wethArbitrum);
+        poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
+        grinderAI.init(address(poolsNFT), address(grAI));
 
         registry = new RegistryArbitrum(address(poolsNFT));
         strategy1 = new Strategy1Arbitrum();
         factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry), address(strategy1));
 
-        poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
         poolsNFT.setStrategyFactory(address(factory1));
 
         mockSwapRouter = new MockSwapRouterArbitrum();
