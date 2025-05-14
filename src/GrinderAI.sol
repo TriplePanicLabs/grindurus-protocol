@@ -172,7 +172,6 @@ contract GrinderAI is IGrinderAI {
     /// @param amount amount of token to withdraw
     /// @return withdrawn amount of token withdrawn
     function withdraw(address token, uint256 amount) public override returns (uint256) {
-        _onlyOwner();
         return withdrawTo(token, msg.sender, amount);
     }
 
@@ -184,7 +183,6 @@ contract GrinderAI is IGrinderAI {
     /// @return withdrawn amount of token withdrawn
     function withdrawTo(address token, address to, uint256 amount) public override returns (uint256 withdrawn) {
         _onlyOwner();
-
         uint256 balance;
         if (token == address(0)) {
             balance = address(this).balance;
@@ -317,17 +315,10 @@ contract GrinderAI is IGrinderAI {
     function microOp(uint256 poolId, uint8 op) public override returns (bool success) {
         address ownerOf = poolsNFT.ownerOf(poolId);
         uint256 burned = _burnTo(ownerOf, burnRate);
-        if (op == uint8(Op.LONG_BUY)) {
-            success = poolsNFT.grindOp(poolId, op);
-        } else if (op == uint8(Op.LONG_SELL)) { 
-            success = poolsNFT.grindOp(poolId, op);
-        } else if (op == uint8(Op.HEDGE_SELL)) { 
-            success = poolsNFT.grindOp(poolId, op);
-        } else if (op == uint8(Op.HEDGE_REBUY)) { 
-            success = poolsNFT.grindOp(poolId, op);
-        } else {
+        if (op > uint8(Op.HEDGE_REBUY)) {
             revert NotMicroOp();
-        }
+        } 
+        success = poolsNFT.microOp(poolId, op);
         if (!success) {
             _refundBurnTo(ownerOf, burned);
         }
@@ -360,26 +351,8 @@ contract GrinderAI is IGrinderAI {
     function grindOp(uint256 poolId, uint8 op) public override returns (bool success) {
         address ownerOf = poolsNFT.ownerOf(poolId);
         uint256 burned = _burnTo(ownerOf, burnRate);
-        if (op == uint8(Op.LONG_BUY)) {
-            try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                success = isGrinded;
-            } catch {
-                success = false;
-            }
-        } else if (op == uint8(Op.LONG_SELL)){
-            try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                success = isGrinded;
-            } catch {
-                success = false;
-            }
-        } else if (op == uint8(Op.HEDGE_SELL)){
-            try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
-                success = isGrinded;
-            } catch {
-                success = false;
-            }
-        } else if (op == uint8(Op.HEDGE_REBUY)){
-            try poolsNFT.grindOp(poolId, op) returns (bool isGrinded) {
+        if (op <= uint8(Op.HEDGE_REBUY)) {
+            try poolsNFT.microOp(poolId, op) returns (bool isGrinded) {
                 success = isGrinded;
             } catch {
                 success = false;
