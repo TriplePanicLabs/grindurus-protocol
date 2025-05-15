@@ -598,9 +598,6 @@ coherence(A) = 3 (assuming A ≠ B, C, D)
 ## 🛠 Configuration Functions
 
 - `setRatePerGRAI(token, rate)` — Set price per `grAI` for a token.
-- `setBurnRate(rate)` — Set number of `grAI` burned per grind.
-- `setShares(grinderShare, liquidityShare)` — Configure revenue split.
-- `setGrinder(address)` — Set grinder address (payout recipient).
 
 ## 🌐 grAI Cross-Chain Configuration Support
 
@@ -632,12 +629,7 @@ coherence(A) = 3 (assuming A ≠ B, C, D)
 
 ## 📥 ETH Handling
 
-When ETH is received:
-- A portion goes to the `grinder`.
-- The rest is converted to WETH as liquidity.
-
-
-
+When ETH is received: all ETH go to owner
 
 
 # Build
