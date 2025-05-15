@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {Script, console} from "forge-std/Script.sol";
-import {PoolsNFT} from "src/PoolsNFT.sol";
-import {IntentsNFT} from "src/IntentsNFT.sol";
-import {GRAI} from "src/GRAI.sol";
-import {GrinderAI} from "src/GrinderAI.sol";
-import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
-import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
-import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { Script, console } from "forge-std/Script.sol";
+import { GrinderAI } from "src/GrinderAI.sol";
+import { PoolsNFT } from "src/PoolsNFT.sol";
+import { GRAI } from "src/GRAI.sol";
 
 // Test purposes:
 // $ forge script script/arbitrum/manual/7_GrinderAI_init.s.sol:GrinderAIInitScript

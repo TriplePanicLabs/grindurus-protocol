@@ -2,18 +2,17 @@
 pragma solidity =0.8.28;
 
 import { Script, console } from "forge-std/Script.sol";
-import { GrinderAI } from "src/GrinderAI.sol";
+import { AgentsNFT } from "src/AgentsNFT.sol";
 
 // Test purposes:
-// $ forge script script/arbitrum/manual/4_GrinderAI.s.sol:GrinderAIScript
+// $ forge script script/arbitrum/manual/9_AgentsNFT.s.sol:AgentsNFTScript
 
 // Mainnet deploy command:
-// $ forge script script/arbitrum/manual/4_GrinderAI.s.sol:GrinderAIScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge script script/arbitrum/manual/9_AgentsNFT.s.sol:AgentsNFTScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
+contract AgentsNFTScript is Script {
 
-contract GrinderAIScript is Script {
-
-    GrinderAI public grinderAI;
+    AgentsNFT public agentsNFT;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -24,7 +23,7 @@ contract GrinderAIScript is Script {
         vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
 
-        grinderAI = new GrinderAI();
+        agentsNFT = new AgentsNFT();
         
         vm.stopBroadcast();
     }

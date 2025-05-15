@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {Script, console} from "forge-std/Script.sol";
-import {PoolsNFT} from "src/PoolsNFT.sol";
-import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
-import {GRAI} from "src/GRAI.sol";
-import {GrinderAI} from "src/GrinderAI.sol";
+import { Script, console } from "forge-std/Script.sol";
+import { PoolsNFT } from "src/PoolsNFT.sol";
+import { GrinderAI } from "src/GrinderAI.sol";
+import { GRAI } from "src/GRAI.sol";
 
 // Test purposes:
 // $ forge script script/arbitrum/manual/5_GRAI.s.sol:GRAI
@@ -17,6 +15,7 @@ import {GrinderAI} from "src/GrinderAI.sol";
 
 contract GRAIScript is Script {
 
+    // https://docs.layerzero.network/v2/deployments/deployed-contracts
     address public lzEndpointArbitrum = 0x1a44076050125825900e736c501f859c50fE728c;
     
     PoolsNFT public poolsNFT = PoolsNFT(payable(address(0))); // address can be replaced
