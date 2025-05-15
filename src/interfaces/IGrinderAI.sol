@@ -19,14 +19,21 @@ interface IGrinderAI {
     event Pay(address paymentToken, address payer, uint256 paymentAmount);
 
     enum Op {
-        // micro operations
+        // micro operations (URUS algorithm)
         LONG_BUY,   // 0
         LONG_SELL,  // 1
         HEDGE_SELL, // 2
         HEDGE_REBUY,// 3 
-        // macro operations
+        // macro operations (Agent)
         BRANCH,     // 4
-        UNBRANCH    // 5
+        UNBRANCH,   // 5
+        ASYNC_WITHDRAW // 6
+    }
+
+    struct Intent {
+        address account;
+        uint256 grinds;
+        uint256[] poolIds;
     }
 
     function DENOMINATOR() external view returns (uint16);
@@ -81,11 +88,13 @@ interface IGrinderAI {
 
     function batchGrindOp(uint256[] memory poolIds, uint8[] memory ops) external;
 
-    function getIntentOf(address account) external view returns (
-        address _account,
-        uint256 _grinds,
-        uint256[] memory _poolIds
-    );
+    function getIntent(address account) external view returns (Intent memory intent);
+
+    function getIntents(address[] memory accounts) external view returns (Intent[] memory intents);
+
+    function getEstimatedPnL(uint256 poolId) external view returns (IURUS.Profits memory) ;
+
+    function getEstimatedPnLBy(uint256[] memory poolIds) external view returns (IURUS.Profits[] memory profits);
 
     function isPaymentToken(address paymentToken) external view returns (bool);
 

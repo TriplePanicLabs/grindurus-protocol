@@ -223,6 +223,11 @@ contract GrinderAI is IGrinderAI {
         address ownerOf = poolsNFT.ownerOf(poolId);
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
         uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
+        try agent.asyncWithdraw(poolId) returns (uint256) {
+            return true;
+        } catch {
+            // go on
+        }
         try agent.unbranch(poolId) returns (uint256) {
             return true;
         } catch {
@@ -292,6 +297,9 @@ contract GrinderAI is IGrinderAI {
         } else if (op == uint8(Op.UNBRANCH)) {
             uint256 abovePoolId = agent.unbranch(poolId);
             success = abovePoolId != poolId;
+        } else if (op == uint8(Op.ASYNC_WITHDRAW)) {
+            uint256 withdrawnPoolId = agent.asyncWithdraw(poolId);
+            success = withdrawnPoolId == poolId;
         } else {
             revert NotMacroOp();
         }
@@ -335,6 +343,13 @@ contract GrinderAI is IGrinderAI {
             } catch {
                 success = false;
             }
+        } else if (op == uint8(Op.ASYNC_WITHDRAW)) {
+            IAgent agent = IAgent(poolsNFT.agentOf(poolId));
+            try agent.asyncWithdraw(poolId) returns (uint256 withdrawnPoolId) {
+                success = withdrawnPoolId == poolId;
+            } catch {
+                success = false;
+            }
         }
         if (!success) {
             _transmit(grinder, ownerOf, transmited);
@@ -359,7 +374,7 @@ contract GrinderAI is IGrinderAI {
 
     /// @notice return estimated profits and loses of pool with poolId
     /// @param poolId id of pool on poolsNFT
-    function getEstimatedPnL(uint256 poolId) public view returns (IURUS.Profits memory) {
+    function getEstimatedPnL(uint256 poolId) public view override returns (IURUS.Profits memory) {
         IStrategy pool = IStrategy(poolsNFT.pools(poolId));
         IToken baseToken = pool.getBaseToken();
         IToken quoteToken = pool.getQuoteToken();
@@ -389,7 +404,7 @@ contract GrinderAI is IGrinderAI {
     }
 
     /// @notice return batch of estimated profits and loses of poolIds
-    function getEstimatedPnLBy(uint256[] memory poolIds) public view returns (IURUS.Profits[] memory profits) {
+    function getEstimatedPnLBy(uint256[] memory poolIds) public view override returns (IURUS.Profits[] memory profits) {
         uint256 len = poolIds.length;
         for (uint256 i = 0; i < len;) {
             profits[i] = getEstimatedPnL(poolIds[i]);
@@ -397,26 +412,30 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
-    /// @notice get intent for grinding of `_account`
-    /// @param _account address of account
-    function getIntentOf(address account) public view override returns (
-        address _account,
-        uint256 _grinds,
-        uint256[] memory _poolIds
-    ) {
-        _account = account;
-        _grinds = grAI.balanceOf(account) / oneGRAI;
-        _poolIds = poolsNFT.getPoolIdsOf(account);
+    /// @notice get intent for grinding of `account`
+    /// @param account address of account
+    function getIntent(address account) public view override returns (Intent memory intent) {
+        intent = Intent({
+            account: account,
+            grinds: grAI.balanceOf(account) / oneGRAI,
+            poolIds: poolsNFT.getPoolIdsOf(account)
+        });
+    }
+
+    /// @notice get intents for grinding of `accounts`
+    /// @param accounts array of accounts
+    function getIntents(address[] memory accounts) public view override returns (Intent[] memory intents) {
+        uint256 len = accounts.length;
+        intents = new Intent[](len);
+        for (uint256 i; i < len; ) {
+            intents[i] = getIntent(accounts[i]);
+            unchecked { ++i; }
+        }
     }
 
     /// @notice return true if `paymentToken` is payment token 
     function isPaymentToken(address paymentToken) public view override returns (bool) {
         return ratePerGRAI[paymentToken] > 0;
-    }
-
-    /// @notice return version of GrinderAI
-    function version() external pure returns (uint256) {
-        return 0;
     }
 
     /// @notice execute any transaction on grAI
