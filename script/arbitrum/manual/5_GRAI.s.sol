@@ -16,6 +16,7 @@ import {GrinderAI} from "src/GrinderAI.sol";
 
 
 contract GRAIScript is Script {
+
     address public lzEndpointArbitrum = 0x1a44076050125825900e736c501f859c50fE728c;
     
     PoolsNFT public poolsNFT = PoolsNFT(payable(address(0))); // address can be replaced

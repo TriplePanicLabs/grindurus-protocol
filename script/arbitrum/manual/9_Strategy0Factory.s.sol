@@ -16,7 +16,11 @@ import {Strategy0FactoryArbitrum} from "src/strategies/arbitrum/strategy0/Strate
 
 
 contract Strategy0FactoryScript is Script {
+
     PoolsNFT public poolsNFT = PoolsNFT(payable(address(0))); // address can be change
+    
+    Strategy0Arbitrum public strategy0 = Strategy0Arbitrum(payable(address(0))); // address can be change
+    
     RegistryArbitrum public registry = RegistryArbitrum(payable(address(0))); // address can be change
 
     Strategy0FactoryArbitrum public factory0;
@@ -30,7 +34,9 @@ contract Strategy0FactoryScript is Script {
         vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
 
-        factory0 = new Strategy0FactoryArbitrum(address(poolsNFT), address(registry));
+        strategy0 = new Strategy0Arbitrum();
+
+        factory0 = new Strategy0FactoryArbitrum(address(poolsNFT), address(registry), address(strategy0));
         poolsNFT.setStrategyFactory(address(factory0));
 
         vm.stopBroadcast();

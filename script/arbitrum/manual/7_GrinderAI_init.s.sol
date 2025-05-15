@@ -19,13 +19,12 @@ import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/
 
 
 contract GrinderAIInitScript is Script {
+
     address wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     GrinderAI public grinderAI = GrinderAI(payable(address(0))); // address can be changed
 
     PoolsNFT public poolsNFT = PoolsNFT(payable(address(0))); // address can be changed
-
-    IntentsNFT public intentsNFT = IntentsNFT(payable(address(0))); // address can be changed
 
     GRAI public grAI = GRAI(payable(address(0))); // address can be changed
 
@@ -38,7 +37,7 @@ contract GrinderAIInitScript is Script {
         vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
 
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethArbitrum);
+        grinderAI.init(address(poolsNFT), address(grAI));
         
         vm.stopBroadcast();
     }

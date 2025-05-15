@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {Script, console} from "forge-std/Script.sol";
-import {PoolsNFT} from "src/PoolsNFT.sol";
-import {GRETH} from "src/GRETH.sol";
+import { Script, console } from "forge-std/Script.sol";
+import { PoolsNFT } from "src/PoolsNFT.sol";
+import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
+import { GRETH } from "src/GRETH.sol";
+import { GRAI} from "src/GRAI.sol";
+import { GrinderAI } from "src/GrinderAI.sol";
+import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { Agent } from "src/Agent.sol";
+import { AgentsNFT } from "src/AgentsNFT.sol";
+import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
 
-import {Strategy1Arbitrum, IToken, IStrategy} from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
-import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
-import {IntentsNFT} from "src/IntentsNFT.sol";
-import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
-import {GRAI} from "src/GRAI.sol";
-import {GrinderAI} from "src/GrinderAI.sol";
-import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { Strategy0Arbitrum } from "src/strategies/arbitrum/strategy0/Strategy0Arbitrum.sol";
+import { Strategy0FactoryArbitrum } from "src/strategies/arbitrum/strategy0/Strategy0FactoryArbitrum.sol";
+
+import { Strategy1Arbitrum } from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import { Strategy1FactoryArbitrum } from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 
 // Test purposes:
 // $ forge script script/arbitrum/DeployArbitrum.s.sol:DeployArbitrumScript
@@ -45,24 +49,21 @@ contract DeployArbitrumScript is Script {
     address lzEndpointArbitrum = 0x1a44076050125825900e736c501f859c50fE728c;
 
     PoolsNFT public poolsNFT;
-
     PoolsNFTLens public poolsNFTLens;
 
     GRETH public grETH;
 
-    IntentsNFT public intentsNFT;
-
     GRAI public grAI;
-
     GrinderAI public grinderAI;
-
     TransparentUpgradeableProxy public proxyGrinderAI;
 
     RegistryArbitrum public registry;
 
     Strategy1Arbitrum public strategy1;
-
     Strategy1FactoryArbitrum public factory1;
+
+    Agent public agent;
+    AgentsNFT public agentsNFT;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -74,41 +75,37 @@ contract DeployArbitrumScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         poolsNFT = new PoolsNFT();
-
         poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
         
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
         grinderAI = new GrinderAI();
-        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), deployer, "");
-        
-        grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
+        grAI = new GRAI(lzEndpointArbitrum, address(grinderAI));
 
-        intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
+        poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
+        grinderAI.init(address(poolsNFT), address(grAI));
 
-        grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethArbitrum);
-
-        poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
+        agent = new Agent();
+        agentsNFT = new AgentsNFT(address(poolsNFT), address(agent));
 
         registry = new RegistryArbitrum(address(poolsNFT));
 
         strategy1 = new Strategy1Arbitrum();
-        
-        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry));
-        factory1.setStrategyImplementation(address(strategy1));
+        factory1 = new Strategy1FactoryArbitrum(address(poolsNFT), address(registry), address(strategy1));
 
         poolsNFT.setStrategyFactory(address(factory1));
+
 
         console.log("PoolsNFT: ", address(poolsNFT));
         console.log("PoolsNFTLens: ", address(poolsNFTLens));
         console.log("GRETH: ", address(grETH));
         console.log("GrinderAI: ", address(grinderAI));
         console.log("GRAI: ", address(grAI));
-        console.log("IntentsNFT: ", address(intentsNFT));
         console.log("RegistryArbitrum: ", address(registry));
         console.log("Strategy1: ", address(strategy1));
         console.log("Strategy1Factory: ", address(factory1));
+        console.log("Agent: ", address(agent));
+        console.log("AgentsNFT: ", address(agentsNFT));
 
         vm.stopBroadcast();
     }

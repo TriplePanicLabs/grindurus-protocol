@@ -15,6 +15,7 @@ import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
 
 
 contract PoolsNFTLensScript is Script {
+
     PoolsNFT public poolsNFT = PoolsNFT(payable(address(0))); // address can be replaced
 
     PoolsNFTLens public poolsNFTLens;
@@ -29,8 +30,6 @@ contract PoolsNFTLensScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
-        
-        // poolsNFT.setPoolsNFTLens(address(poolsNFTLens));
 
         vm.stopBroadcast();
     }

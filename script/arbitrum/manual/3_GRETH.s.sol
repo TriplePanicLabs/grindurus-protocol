@@ -16,9 +16,10 @@ import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
 
 
 contract GRETHScript is Script {
-    PoolsNFT public poolsNFT = PoolsNFT(payable(address(0))); // address can be replaced
 
     address public wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+
+    PoolsNFT public poolsNFT = PoolsNFT(payable(address(0))); // address can be replaced
 
     GRETH public grETH;
 
@@ -33,8 +34,6 @@ contract GRETHScript is Script {
 
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
     
-        // poolsNFT.setGRETH(address(grETH));
-
         vm.stopBroadcast();
     }
 }

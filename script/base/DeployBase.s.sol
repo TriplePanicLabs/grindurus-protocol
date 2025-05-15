@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.8.28;
 
-import {Script, console} from "forge-std/Script.sol";
-import {PoolsNFT} from "src/PoolsNFT.sol";
-import {GRETH} from "src/GRETH.sol";
+import { Script, console } from "forge-std/Script.sol";
+import { PoolsNFT } from "src/PoolsNFT.sol";
+import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
+import { GRETH } from "src/GRETH.sol";
+import { GRAI } from "src/GRAI.sol";
+import { GrinderAI } from "src/GrinderAI.sol";
+import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { Agent } from "src/Agent.sol";
+import { AgentsNFT } from "src/AgentsNFT.sol";
+import { RegistryBase } from "src/registries/RegistryBase.sol";
 
-import {Strategy1Base, IToken, IStrategy} from "src/strategies/base/strategy1/Strategy1Base.sol";
-import {Strategy1FactoryBase} from "src/strategies/base/strategy1/Strategy1FactoryBase.sol";
-import {RegistryBase} from "src/registries/RegistryBase.sol";
-import {IntentsNFT} from "src/IntentsNFT.sol";
-import {PoolsNFTLens} from "src/PoolsNFTLens.sol";
-import {GRAI} from "src/GRAI.sol";
-import {GrinderAI} from "src/GrinderAI.sol";
-import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
+// import { Strategy0Base } from "src/strategies/arbitrum/strategy0/Strategy0Base.sol";
+// import { Strategy0FactoryBase } from "src/strategies/arbitrum/strategy0/Strategy0FactoryBase.sol";
+
+import { Strategy1Base } from "src/strategies/base/strategy1/Strategy1Base.sol";
+import { Strategy1FactoryBase } from "src/strategies/base/strategy1/Strategy1FactoryBase.sol";
 
 // Test purposes:
 // $ forge script script/base/DeployBase.s.sol:DeployBaseScript
@@ -69,24 +74,20 @@ contract DeployBaseScript is Script {
     address lzEndpointBase = 0x1a44076050125825900e736c501f859c50fE728c;
 
     PoolsNFT public poolsNFT;
-
     PoolsNFTLens public poolsNFTLens;
-
     GRETH public grETH;
 
-    IntentsNFT public intentsNFT;
-
     GRAI public grAI;
-
     GrinderAI public grinderAI;
-
     TransparentUpgradeableProxy public proxyGrinderAI;
 
     RegistryBase public registry;
 
     Strategy1Base public strategy1;
-
     Strategy1FactoryBase public factory1;
+
+    Agent public agent;
+    AgentsNFT public agentsNFT;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -98,41 +99,37 @@ contract DeployBaseScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         poolsNFT = new PoolsNFT();
-
         poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
         
         grETH = new GRETH(address(poolsNFT), wethBase);
 
         grinderAI = new GrinderAI();
-        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), deployer, "");
-        
-        grAI = new GRAI(lzEndpointBase, address(proxyGrinderAI));
+        grAI = new GRAI(lzEndpointBase, address(grinderAI));
 
-        intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
+        poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
+        grinderAI.init(address(poolsNFT), address(grAI));
 
-        grinderAI = GrinderAI(payable(proxyGrinderAI));
-        grinderAI.init(address(poolsNFT), address(intentsNFT), address(grAI), wethBase);
-
-        poolsNFT.init(address(poolsNFTLens), address(grETH), address(proxyGrinderAI));
+        agent = new Agent();
+        agentsNFT = new AgentsNFT(address(poolsNFT), address(agent));
 
         registry = new RegistryBase(address(poolsNFT));
 
         strategy1 = new Strategy1Base();
-        
-        factory1 = new Strategy1FactoryBase(address(poolsNFT), address(registry));
-        factory1.setStrategyImplementation(address(strategy1));
+        factory1 = new Strategy1FactoryBase(address(poolsNFT), address(registry), address(strategy1));
 
         poolsNFT.setStrategyFactory(address(factory1));
+
 
         console.log("PoolsNFT: ", address(poolsNFT));
         console.log("PoolsNFTLens: ", address(poolsNFTLens));
         console.log("GRETH: ", address(grETH));
         console.log("GrinderAI: ", address(grinderAI));
         console.log("GRAI: ", address(grAI));
-        console.log("IntentsNFT: ", address(intentsNFT));
         console.log("RegistryBase: ", address(registry));
         console.log("Strategy1: ", address(strategy1));
         console.log("Strategy1Factory: ", address(factory1));
+        console.log("Agent: ", address(agent));
+        console.log("AgentsNFT: ", address(agentsNFT));
 
         vm.stopBroadcast();
     }

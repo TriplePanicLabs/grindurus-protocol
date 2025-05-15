@@ -13,9 +13,10 @@ import {RegistryArbitrum} from "src/registries/RegistryArbitrum.sol";
 
 
 contract RegistryArbitrumScript is Script {
-    PoolsNFT public poolsNFT = PoolsNFT(payable(address(0)));
 
     RegistryArbitrum public registry;
+    
+    PoolsNFT public poolsNFT = PoolsNFT(payable(address(0)));
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");

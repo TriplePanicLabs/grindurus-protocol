@@ -14,6 +14,7 @@ import {Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strate
 // $ forge script script/arbitrum/manual/1_PoolsNFT.s.sol:PoolsNFTScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 contract PoolsNFTScript is Script {
+
     PoolsNFT public poolsNFT;
 
     function run() public {

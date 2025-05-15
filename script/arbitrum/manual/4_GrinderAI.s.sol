@@ -19,9 +19,8 @@ import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/
 
 
 contract GrinderAIScript is Script {
-    GrinderAI public grinderAI;
 
-    TransparentUpgradeableProxy public proxyGrinderAI;
+    GrinderAI public grinderAI;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -33,9 +32,6 @@ contract GrinderAIScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         grinderAI = new GrinderAI();
-        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), deployer, "");
-        grinderAI = GrinderAI(payable(proxyGrinderAI));
-
         
         vm.stopBroadcast();
     }
