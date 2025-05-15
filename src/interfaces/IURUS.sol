@@ -264,6 +264,22 @@ interface IURUS is IERC5313 {
             uint256 hedgeRebuySwapPriceThreshold
         );
 
+    function getRealtimePnL() external view 
+        returns (
+            int256 longSellPnL,
+            int256 hedgeSellInitPnL,
+            int256 hedgeSellPnL,
+            int256 hedgeRebuyPnL
+        );
+
+    function getRealtimePnL(uint256 spotPrice) external view 
+        returns (
+            int256 longSellPnL,
+            int256 hedgeSellInitPnL,
+            int256 hedgeSellPnL,
+            int256 hedgeRebuyPnL
+        );
+
     function getLong()
         external
         view

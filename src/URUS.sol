@@ -887,7 +887,6 @@ contract URUS is IURUS {
         }
     }
 
-
     /// @notice returns price of `feeToken` in terms of `quoteToken`
     /// @dev dimention [price]=quoteToken/feeToken
     function getPriceQuoteTokenPerFeeToken() public view virtual override returns (uint256 price) {
@@ -917,7 +916,6 @@ contract URUS is IURUS {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //// CALCULATE FUNCTIONS
-
 
     /// @notice calculates the price of `baseToken` in terms of `quoteToken` based on `quoteTokenAmount` and `baseTokenAmount`
     /// @param quoteTokenAmount amount of `quoteToken`
@@ -1260,15 +1258,20 @@ contract URUS is IURUS {
     /// @notice return thresholds
     function getThresholds() public view virtual
         returns (
+            // long buy
             uint256 longBuyPriceMin,
+            // long sell
             uint256 longSellQuoteTokenAmountThreshold,
             uint256 longSellSwapPriceThreshold,
+            // init hedge sell
             uint256 hedgeSellInitPriceThresholdHigh,
             uint256 hedgeSellInitPriceThresholdLow,
+            // hedge sell
             uint256 hedgeSellLiquidity,
             uint256 hedgeSellQuoteTokenAmountThreshold,
             uint256 hedgeSellTargetPrice,
             uint256 hedgeSellSwapPriceThreshold,
+            // hedge rebuy
             uint256 hedgeRebuyBaseTokenAmountThreshold,
             uint256 hedgeRebuySwapPriceThreshold
         ) {
@@ -1295,6 +1298,53 @@ contract URUS is IURUS {
                 ,
                 hedgeRebuySwapPriceThreshold
             ) = calcHedgeRebuyThreshold();
+        }
+    }
+
+    /// @notice return realtime PnL of positions
+    function getRealtimePnL() public view override virtual  
+        returns (
+            int256 longSellPnL,
+            int256 hedgeSellInitPnL,
+            int256 hedgeSellPnL,
+            int256 hedgeRebuyPnL
+        ) {
+        uint256 spotPrice = getPriceQuoteTokenPerBaseToken();
+        return getRealtimePnL(spotPrice);
+    }
+
+    /// @notice return realtime PnL of positions based on `spotPrice`
+    /// @param spotPrice spot price of base token
+    /// @dev [longSellPnL] = quoteToken
+    /// @dev [hedgeSellInitPnL] = quoteToken
+    /// @dev [hedgeSellPnL] = quoteToken
+    /// @dev [hedgeRebuyPnL] = baseToken
+    function getRealtimePnL(uint256 spotPrice) public view virtual 
+        returns (
+            int256 longSellPnL,    
+            int256 hedgeSellInitPnL,
+            int256 hedgeSellPnL,
+            int256 hedgeRebuyPnL
+        ) {
+        if (long.number == 0) {
+            return (0, 0, 0, 0);
+        }
+        if (long.number > 0 && hedge.number == 0) {
+            longSellPnL = int256(calcQuoteTokenByBaseToken(long.qty, spotPrice)) - int256(calcQuoteTokenByBaseToken(long.qty, long.price));
+        }
+        if (long.number == long.numberMax && hedge.number == 0) {
+            uint256 baseTokenAmount = long.qty / (2 ** (config.hedgeNumberMax - 1));
+            hedgeSellInitPnL = int256(calcQuoteTokenByBaseToken(baseTokenAmount, spotPrice)) - int256(calcQuoteTokenByBaseToken(baseTokenAmount, long.price)); 
+        }
+        if (hedge.number > 0) {
+            (
+                /**uint256 liquidity */,
+                /** uint256 quoteTokenAmountThreshold */,
+                uint256 targetPrice,
+                /** uint256 hedgeSellPriceThreshold */
+            ) = calcHedgeSellThreshold();
+            hedgeSellPnL = int256(calcQuoteTokenByBaseToken(hedge.qty, spotPrice)) - int256(calcQuoteTokenByBaseToken(hedge.qty, targetPrice));            
+            hedgeRebuyPnL = int256(calcBaseTokenByQuoteToken(hedge.liquidity, hedge.price)) - int256(calcBaseTokenByQuoteToken(hedge.liquidity, spotPrice));
         }
     }
 
