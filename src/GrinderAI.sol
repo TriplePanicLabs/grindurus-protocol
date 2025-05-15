@@ -28,16 +28,11 @@ contract GrinderAI is IGrinderAI {
     IGRAI public grAI;
 
     /// @dev address of grinder
+    /// @dev intime variable of initiator of grind tx
     address payable public grinder;
 
-    /// @dev grinder share of value
-    uint16 public grinderShareNumerator;
-
-    /// @dev grinder share of value
-    uint16 public liquidityShareNumerator;
-
-    /// @dev reward of grind
-    uint256 public grindReward;
+    /// @dev 1 grAI token
+    uint256 public oneGRAI;
 
     /// @dev address of token => rate for 1 grAI
     /// @dev [rate] = amount of token / 1 grAI
@@ -54,27 +49,16 @@ contract GrinderAI is IGrinderAI {
         );
         poolsNFT = IPoolsNFT(_poolsNFT);
         grAI = IGRAI(_grAI);
-        grinder = payable(owner());
-        grinderShareNumerator = 80_00;
-        liquidityShareNumerator = 20_00;
-        grindReward = 1e18; // 1 GRAI
-        checkShares(grinderShareNumerator, liquidityShareNumerator);
-        ratePerGRAI[address(0)] = 0.0001 ether; // 0.0001 ETH per grind
-    }
-
-    /// @notice checks that shares are valid
-    function checkShares(uint16 _grinderShareNumerator, uint16 _liquidityShareNumerator) public pure {
-        if (_grinderShareNumerator + _liquidityShareNumerator != DENOMINATOR) {
-            revert InvalidShares();
-        }
+        oneGRAI = 1e18; // 1 GRAI
+        ratePerGRAI[address(0)] = 0.0001 ether; // 0.0001 ETH per 1 grAI
     }
 
     /// @notice return owner of grinderAI
-    function owner() public view returns (address) {
+    function owner() public view returns (address payable) {
         try poolsNFT.owner() returns(address payable _owner){
             return _owner;
         } catch {
-            return address(poolsNFT);
+            return payable(address(poolsNFT));
         }
     }
 
@@ -94,24 +78,6 @@ contract GrinderAI is IGrinderAI {
     function setRatePerGRAI(address paymentToken, uint256 rate) public override {
         _onlyOwner();
         ratePerGRAI[paymentToken] = rate;
-    }
-
-    /// @notice sets grinder share numerator
-    /// @dev requires that _grinderShareNumerator + _liquidityShareNumerator == DENOMINATOR
-    /// @param _grinderShareNumerator numerator of grinder share
-    /// @param _liquidityShareNumerator numerator of liquidity share
-    function setShares(uint16 _grinderShareNumerator, uint16 _liquidityShareNumerator) public override {
-        _onlyOwner();
-        grinderShareNumerator = _grinderShareNumerator;
-        liquidityShareNumerator = _liquidityShareNumerator;
-        checkShares(grinderShareNumerator, liquidityShareNumerator);
-    }
-
-    /// @notice sets grinder
-    /// @param _grinder address of grinder
-    function setGrinder(address payable _grinder) public override {
-        _onlyOwner();
-        grinder = _grinder;
     }
 
     //// END GRINDER AI CONFIGURATION
@@ -152,7 +118,7 @@ contract GrinderAI is IGrinderAI {
         grAI.setPeer(eid, peer);
     }
 
-    //// END GRAI CONFIGURATION
+    //// END GRAI CONFIGURATION ////////////////////////////////////////////////////////////////
 
     /// @notice withdraws amount of token to `msg.sender`
     /// @dev callable only by owner
@@ -220,13 +186,12 @@ contract GrinderAI is IGrinderAI {
     function mintTo(address paymentToken, address to, uint256 graiAmount) public payable override returns (uint256) {
         uint256 paymentAmount = calcPayment(paymentToken, graiAmount);
         if (paymentAmount > 0) {
-            uint256 grinderShare = (paymentAmount * grinderShareNumerator) / DENOMINATOR;
+            address payable _owner = owner();
             if (paymentToken == address(0)) {
-                (bool success, ) = grinder.call{value: grinderShare}("");
+                (bool success, ) = _owner.call{value: paymentAmount}("");
                 success;
-                // rest hold on GrinderAI
             } else {
-                IToken(paymentToken).safeTransferFrom(msg.sender, address(this), grinderShare);
+                IToken(paymentToken).safeTransferFrom(msg.sender, _owner, paymentAmount);
             }
             emit Pay(paymentToken, msg.sender, paymentAmount);
         }
@@ -246,10 +211,18 @@ contract GrinderAI is IGrinderAI {
     /// @notice grind
     /// @dev first make macromanagement, second micromamagement
     /// @param poolId id of pool
-    function grind(uint256 poolId) public override returns (bool success) {
+    function grind(uint256 poolId) public override returns (bool) {
+        return grindTo(poolId, payable(msg.sender));
+    }
+
+    /// @notice grind with defined 
+    /// @dev first make macromanagement, second micromamagement
+    /// @param poolId id of pool
+    function grindTo(uint256 poolId, address payable metaGrinder) public override returns (bool success) {
+        grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
-        uint256 transmited = _transmit(ownerOf, msg.sender, grindReward);
+        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
         try agent.unbranch(poolId) returns (uint256) {
             return true;
         } catch {
@@ -266,7 +239,7 @@ contract GrinderAI is IGrinderAI {
             success = false;
         }
         if (!success) {
-            _transmit(msg.sender, ownerOf, transmited);
+            _transmit(grinder, ownerOf, transmited);
         }
     }
 
@@ -282,25 +255,37 @@ contract GrinderAI is IGrinderAI {
     }
 
     /// @notice microOp for simulation purposes
+    function microOp(uint256 poolId, uint8 op) public override returns (bool) {
+        return microOpTo(poolId, op, payable(msg.sender));
+    }
+
+    /// @notice microOpTo for simulation purposes on behalf of metaGrinder
     /// @dev grinder make offchain microOp.staticCall(poolId, op) and receive success or fail of simulation
-    function microOp(uint256 poolId, uint8 op) public override returns (bool success) {
+    function microOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
+        grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
-        uint256 transmited = _transmit(ownerOf, msg.sender, grindReward);
+        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
         if (op > uint8(Op.HEDGE_REBUY)) {
             revert NotMicroOp();
         }
         success = poolsNFT.microOp(poolId, op);
         if (!success) {
-            _transmit(msg.sender, ownerOf, transmited);
+            _transmit(grinder, ownerOf, transmited);
         }
     }
 
     /// @notice macroOp for simulation purposes
+    function macroOp(uint256 poolId, uint8 op) public override returns (bool) {
+        return macroOpTo(poolId, op, payable(msg.sender));
+    }
+
+    /// @notice macroOp for simulation purposes
     /// @dev grinder make offchain macroOp.staticCall(poolId, op) and receive success or fail of simulation
-    function macroOp(uint256 poolId, uint8 op) public override returns (bool success) {
+    function macroOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
+        grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
-        uint256 transmited = _transmit(ownerOf, msg.sender, grindReward);
+        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
         if (op == uint8(Op.BRANCH)) {
             uint256 branchPoolId = agent.branch(poolId);
             success = (branchPoolId != poolId);
@@ -311,17 +296,25 @@ contract GrinderAI is IGrinderAI {
             revert NotMacroOp();
         }
         if (!success) {
-            _transmit(msg.sender, ownerOf, transmited);
+            _transmit(grinder, ownerOf, transmited);
         }
+    }
+
+    /// @notice grind operation on behalf of `msg.sender`
+    /// @param poolId id of pool
+    /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy, 4 - branch, 5 unbranch
+    function grindOp(uint256 poolId, uint8 op) public override returns (bool) {
+        return grindOpTo(poolId, op, payable(msg.sender));
     }
 
     /// @notice grind operation
     /// @dev can be called by anyone, especially by grinder EOA
     /// @param poolId id of pool
     /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy, 4 - branch, 5 unbranch
-    function grindOp(uint256 poolId, uint8 op) public override returns (bool success) {
+    function grindOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
+        grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
-        uint256 transmited = _transmit(ownerOf, msg.sender, grindReward);
+        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
         if (op <= uint8(Op.HEDGE_REBUY)) {
             try poolsNFT.microOp(poolId, op) returns (bool isGrinded) {
                 success = isGrinded;
@@ -344,7 +337,7 @@ contract GrinderAI is IGrinderAI {
             }
         }
         if (!success) {
-            _transmit(msg.sender, ownerOf, transmited);
+            _transmit(grinder, ownerOf, transmited);
         }
     }
 
@@ -364,6 +357,46 @@ contract GrinderAI is IGrinderAI {
 
     //// END GRINDING FUNCTIONS
 
+    /// @notice return estimated profits and loses of pool with poolId
+    /// @param poolId id of pool on poolsNFT
+    function getEstimatedPnL(uint256 poolId) public view returns (IURUS.Profits memory) {
+        IStrategy pool = IStrategy(poolsNFT.pools(poolId));
+        IToken baseToken = pool.getBaseToken();
+        IToken quoteToken = pool.getQuoteToken();
+
+        uint256 quoteTokenYieldProfit = pool.getPendingYield(quoteToken);
+        uint256 baseTokenYieldProfit = pool.getPendingYield(baseToken);
+        (   
+            int256 _longSellPnL,
+            int256 _hedgeSellInitPnL,
+            int256 _hedgeSellPnL,
+            int256 _hedgeRebuyPnL
+        ) = pool.getRealtimePnL();
+
+        uint256 longSellPnL = _longSellPnL > 0 ? uint256(_longSellPnL) : 0;
+        uint256 hedgeSellInitPnL = _hedgeSellInitPnL > 0 ? uint256(_hedgeSellInitPnL) : 0;
+        uint256 hedgeSellPnL = _hedgeSellPnL > 0 ? uint256(_hedgeSellPnL) : 0;
+        uint256 hedgeRebuyPnL = _hedgeRebuyPnL > 0 ? uint256(_hedgeRebuyPnL) : 0;
+
+        uint256 quoteTokenTradeProfit = longSellPnL + hedgeSellPnL;
+        uint256 baseTokenTradeProfit = hedgeRebuyPnL;
+        return IURUS.Profits({
+            quoteTokenYieldProfit: quoteTokenYieldProfit,
+            baseTokenYieldProfit: baseTokenYieldProfit,
+            quoteTokenTradeProfit: quoteTokenTradeProfit,
+            baseTokenTradeProfit: baseTokenTradeProfit
+        });
+    }
+
+    /// @notice return batch of estimated profits and loses of poolIds
+    function getEstimatedPnLBy(uint256[] memory poolIds) public view returns (IURUS.Profits[] memory profits) {
+        uint256 len = poolIds.length;
+        for (uint256 i = 0; i < len;) {
+            profits[i] = getEstimatedPnL(poolIds[i]);
+            unchecked { ++i; }
+        }
+    }
+
     /// @notice get intent for grinding of `_account`
     /// @param _account address of account
     function getIntentOf(address account) public view override returns (
@@ -372,7 +405,7 @@ contract GrinderAI is IGrinderAI {
         uint256[] memory _poolIds
     ) {
         _account = account;
-        _grinds = grAI.balanceOf(account) / grindReward;
+        _grinds = grAI.balanceOf(account) / oneGRAI;
         _poolIds = poolsNFT.getPoolIdsOf(account);
     }
 
@@ -408,12 +441,9 @@ contract GrinderAI is IGrinderAI {
     receive() external payable {
         uint256 value = msg.value;
         if (value > 0) {
-            uint256 grinderShare = (value * grinderShareNumerator) / DENOMINATOR;
-            bool success;
-            (success, ) = grinder.call{value: grinderShare}("");
-            uint256 liquidity = value - grinderShare;
-            IWETH9 weth = IWETH9(poolsNFT.weth());
-            try weth.deposit{value: liquidity}() {} catch {}
+            address _owner = owner();
+            (bool success, ) = _owner.call{value: value}("");
+            success;
         }
     }
 

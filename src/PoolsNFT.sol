@@ -679,7 +679,11 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         receivers[0] = ownerOf(poolId); // pool owner
         receivers[1] = getRoyaltyReceiver(poolId); // royalty receiver
         receivers[2] = (address(grETH) != address(0)) ? address(grETH) : owner; // reserve
-        receivers[3] = owner; // owner
+        try grinderAI.grinder() returns (address payable _grinder) {
+            receivers[3] = (_grinder != payable(0)) ? _grinder : owner;
+        } catch {
+            receivers[3] = owner;
+        }
         uint256 denominator = DENOMINATOR;
         amounts[0] = (profit * poolOwnerShareNumerator) / denominator;
         amounts[1] = (profit * royaltyReceiverShareNumerator) / denominator;

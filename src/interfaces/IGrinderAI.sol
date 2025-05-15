@@ -37,19 +37,11 @@ interface IGrinderAI {
 
     function grinder() external view returns (address payable);
 
-    function grinderShareNumerator() external view returns (uint16);
-
-    function liquidityShareNumerator() external view returns (uint16);
-
     function init(address _poolsNFT, address _grAI) external;
 
-    function owner() external view returns (address);
+    function owner() external view returns (address payable);
 
     function setRatePerGRAI(address paymentToken, uint256 rate) external;
-
-    function setShares(uint16 _grinderShareNumerator, uint16 _liquidityShareNumerator) external;
-
-    function setGrinder(address payable _grinder) external;
 
     function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) external;
 
@@ -71,13 +63,21 @@ interface IGrinderAI {
 
     function grind(uint256 poolId) external returns (bool);
 
+    function grindTo(uint256 poolId, address payable metaGrinder) external returns (bool);
+
     function batchGrind(uint256[] memory poolIds) external;
 
     function microOp(uint256 poolId, uint8 op) external returns (bool success);
 
-    function macroOp(uint256 poolId, uint8 op) external returns (bool);
+    function microOpTo(uint256 poolId, uint8 op, address payable metaGrinder) external returns (bool success);
+
+    function macroOp(uint256 poolId, uint8 op) external returns (bool success);
+
+    function macroOpTo(uint256 poolId, uint8 op, address payable metaGrinder) external returns (bool success);
 
     function grindOp(uint256 poolId, uint8 op) external returns (bool);
+
+    function grindOpTo(uint256 poolId, uint8 op, address payable metaGrinder) external returns (bool);
 
     function batchGrindOp(uint256[] memory poolIds, uint8[] memory ops) external;
 
