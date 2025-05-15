@@ -10,7 +10,6 @@ import { Ownable2Step, Ownable } from "lib/openzeppelin-contracts/contracts/acce
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IGRAI } from "src/interfaces/IGRAI.sol";
 import { IGrinderAI } from "src/interfaces/IGrinderAI.sol";
-import { IIntentsNFT } from "src/interfaces/IIntentsNFT.sol";
 
 /// @title GrinderAI
 /// @notice provide transpanet mechanism for effective interaction with GrindURUS protocol via AI agent

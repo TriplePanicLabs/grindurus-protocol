@@ -12,8 +12,6 @@ import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
 import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
 import { GRAI } from "src/GRAI.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
-import { IntentsNFT } from "src/IntentsNFT.sol";
-import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // $ forge test --match-path test/URUSStrategy1Arbitrum.t.sol -vvv
 contract URUSStrategy1ArbitrumTest is Test {
@@ -40,11 +38,7 @@ contract URUSStrategy1ArbitrumTest is Test {
     
     GRETH public grETH;
 
-    IntentsNFT public intentsNFT;
-
     GRAI public grAI;
-
-    TransparentUpgradeableProxy public proxyGrinderAI;
 
     GrinderAI public grinderAI;
 
@@ -73,7 +67,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
         grinderAI = new GrinderAI();
-        grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
+        grAI = new GRAI(lzEndpointArbitrum, address(grinderAI));
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
         grinderAI.init(address(poolsNFT), address(grAI));

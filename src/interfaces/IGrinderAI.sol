@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import { IURUS } from "src/interfaces/IURUS.sol";
 import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
-import { IIntentsNFT } from "src/interfaces/IIntentsNFT.sol";
 import { IGRAI } from "src/interfaces/IGRAI.sol";
 
 interface IGrinderAI {

@@ -10,7 +10,6 @@ import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
 import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
 import { GRAI } from "src/GRAI.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
-import { IntentsNFT } from "src/IntentsNFT.sol";
 import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // $ forge test --match-path test/PoolsNFT.t.sol -vvv
@@ -33,8 +32,6 @@ contract PoolsNFTTest is Test {
     PoolsNFTLens public poolsNFTLens;
 
     GRETH public greth;
-
-    IntentsNFT public intentsNFT;
 
     GRAI public grAI;
 
@@ -66,7 +63,6 @@ contract PoolsNFTTest is Test {
         proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), address(this), "");
         
         grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
-        intentsNFT = new IntentsNFT(address(poolsNFT), address(grAI));
 
         grinderAI = GrinderAI(payable(proxyGrinderAI));
         poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
