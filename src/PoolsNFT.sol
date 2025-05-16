@@ -39,40 +39,40 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     //// GRETH SHARES //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// @dev numerator of pool owner share
-    /// @dev example: grETHPoolOwnerShareNumerator == 10_00 == 10%
+    /// @dev example: grethPoolOwnerShareNumerator == 10_00 == 10%
     uint16 public grethPoolOwnerShareNumerator;
 
     /// @dev numerator of royalty receiver share
-    /// @dev example: grETHRoyaltyReceiverShareNumerator == 10_00 == 10%
+    /// @dev example: grethRoyaltyReceiverShareNumerator == 10_00 == 10%
     uint16 public grethRoyaltyReceiverShareNumerator;
 
     /// @dev numerator of grETH reserve share
-    /// @dev grETHReserveShareNumerator == 80_00 == 80%
+    /// @dev grethReserveShareNumerator == 80_00 == 80%
     uint16 public grethReserveShareNumerator;
 
     //// ROYALTY SHARES ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice the numerator of royalty
-    /// @dev royaltyNumerator = DENIMINATOR - poolOwnerShareNumerator
+    /// @dev royaltyNumerator = DENOMINATOR - royaltyPoolOwnerShareNumerator
     /// @dev example: royaltyNumerator == 20_00 == 20%
     uint16 public royaltyNumerator;
 
     /// @notice the numerator of pool owner share
-    /// @dev poolOwnerShareNumerator = DENOMINATOR - royaltyNumerator
-    /// @dev example: poolOwnerShareNumerator == 80_00 == 80%
-    uint16 public poolOwnerShareNumerator;
+    /// @dev royaltyPoolOwnerShareNumerator = DENOMINATOR - royaltyNumerator
+    /// @dev example: royaltyPoolOwnerShareNumerator == 80_00 == 80%
+    uint16 public royaltyPoolOwnerShareNumerator;
 
     /// @notice royalty share of royalty receiver. You can buy it
-    /// @dev example: royaltyReceiverShareNumerator == 10_00 == 10%
+    /// @dev example: royaltyReceiverShareNumerator == 5_00 == 5%
     uint16 public royaltyReceiverShareNumerator;
 
     /// @notice royalty share of reserve. Reserve on grETH
-    /// @dev example: poolOwnerShareNumerator == 5_00 == 5%
+    /// @dev example: royaltyPoolOwnerShareNumerator == 5_00 == 5%
     uint16 public royaltyReserveShareNumerator;
 
     /// @notice royalty share of owner
-    /// @dev example: royaltyOwnerShareNumerator == 5_00 == 5%
-    uint16 public royaltyOwnerShareNumerator;
+    /// @dev example: royaltyGrinderShareNumerator == 10_00 == 10%
+    uint16 public royaltyGrinderShareNumerator;
 
     //// PoolsNFT OWNERSHIP DATA ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -141,14 +141,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         require(grethPoolOwnerShareNumerator + grethRoyaltyReceiverShareNumerator + grethReserveShareNumerator == DENOMINATOR);
 
         royaltyNumerator = 20_00; // 20%
-        poolOwnerShareNumerator = 80_00; // 80%
-        royaltyReceiverShareNumerator = 10_00; // 10%
+        royaltyPoolOwnerShareNumerator = 80_00; // 80%
+        royaltyReceiverShareNumerator = 5_00; // 5%
         royaltyReserveShareNumerator = 5_00; // 5%
-        royaltyOwnerShareNumerator = 5_00; // 5%
+        royaltyGrinderShareNumerator = 10_00; // 10%
         // total royalty + owner share = 20% + 80% = 100%
         // total royalty share = 80% + 10% + 5% + 5% = 100%
-        require(royaltyNumerator + poolOwnerShareNumerator == DENOMINATOR);
-        require(poolOwnerShareNumerator + royaltyReceiverShareNumerator + royaltyReserveShareNumerator + royaltyOwnerShareNumerator == DENOMINATOR);
+        require(royaltyNumerator + royaltyPoolOwnerShareNumerator == DENOMINATOR);
+        require(royaltyPoolOwnerShareNumerator + royaltyReceiverShareNumerator + royaltyReserveShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR);
         //  profit = 1 USDT
         //  profit to pool owner = 1 * 80% = 0.8 USDT
         //  royalty = 1 * 20% = 0.2 USDT
@@ -241,17 +241,17 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         uint16 _poolOwnerRoyaltyShareNumerator,
         uint16 _royaltyReceiverShareNumerator,
         uint16 _royaltyReserveShareNumerator,
-        uint16 _royaltyOwnerShareNumerator
+        uint16 _royaltyGrinderShareNumerator
     ) external override {
         _onlyOwner();
-        if (_poolOwnerRoyaltyShareNumerator + _royaltyReceiverShareNumerator + _royaltyReserveShareNumerator + _royaltyOwnerShareNumerator != DENOMINATOR) {
+        if (_poolOwnerRoyaltyShareNumerator + _royaltyReceiverShareNumerator + _royaltyReserveShareNumerator + _royaltyGrinderShareNumerator != DENOMINATOR) {
             revert InvalidShares();
         }
         royaltyNumerator = DENOMINATOR - _poolOwnerRoyaltyShareNumerator;
-        poolOwnerShareNumerator = _poolOwnerRoyaltyShareNumerator;
+        royaltyPoolOwnerShareNumerator = _poolOwnerRoyaltyShareNumerator;
         royaltyReceiverShareNumerator = _royaltyReceiverShareNumerator;
         royaltyReserveShareNumerator = _royaltyReserveShareNumerator;
-        royaltyOwnerShareNumerator = _royaltyOwnerShareNumerator;
+        royaltyGrinderShareNumerator = _royaltyGrinderShareNumerator;
     }
 
     /// @notice First step - transfering ownership to `newOwner`
@@ -685,7 +685,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             receivers[3] = owner;
         }
         uint256 denominator = DENOMINATOR;
-        amounts[0] = (profit * poolOwnerShareNumerator) / denominator;
+        amounts[0] = (profit * royaltyPoolOwnerShareNumerator) / denominator;
         amounts[1] = (profit * royaltyReceiverShareNumerator) / denominator;
         amounts[2] = (profit * royaltyReserveShareNumerator) / denominator;
         amounts[3] = profit - (amounts[0] + amounts[1] + amounts[2]);
