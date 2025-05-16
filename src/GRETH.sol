@@ -63,6 +63,7 @@ contract GRETH is IGRETH, ERC20 {
     }
 
     /// @notice mint GRETH
+    /// @dev mint rate 1:1
     /// @param receiver address of receiver
     function _mintTo(address receiver) internal returns (uint256 mintedAmount) {
         mintedAmount = msg.value;
