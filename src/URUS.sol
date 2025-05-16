@@ -88,9 +88,9 @@ contract URUS is IURUS {
 
         // default fee config
         feeConfig = FeeConfig({
-            longSellFeeCoef: 1_00, // x1.00
-            hedgeSellFeeCoef: 1_00, // x1.00
-            hedgeRebuyFeeCoef: 1_00 // x1.00
+            longSellFeeCoef: 0, // x0
+            hedgeSellFeeCoef: 0, // x0
+            hedgeRebuyFeeCoef: 0 // x0
         });
 
         _checkConfig(_config);
@@ -1047,7 +1047,7 @@ contract URUS is IURUS {
          *      L = q * sp + fee + profit = q * sp + q * fee / q + q * profit / q = q * sp + q * sp1 + q * sp2 = q * (sp + sp1 + sp2)
          *      L - this is quote token amount after swap
          *      So, we get:
-         *      (h.q + q) * tp <=xf h.q * h.p + L - fee - profit
+         *      (h.q + q) * tp <= h.q * h.p + L - fee - profit
          *      (h.q + q) * tp - h.q * h.p + fee + profit <= L
          *      So, criteria: (h.q + q) * tp - h.q * h.p + fee + profit <= L
          *      Rewrite profit for more convinient form in ReturnPercent as we did in long sell:
@@ -1319,7 +1319,7 @@ contract URUS is IURUS {
     /// @dev [hedgeSellInitPnL] = quoteToken
     /// @dev [hedgeSellPnL] = quoteToken
     /// @dev [hedgeRebuyPnL] = baseToken
-    function getRealtimePnL(uint256 spotPrice) public view virtual 
+    function getRealtimePnL(uint256 spotPrice) public view virtual override
         returns (
             int256 longSellPnL,    
             int256 hedgeSellInitPnL,
