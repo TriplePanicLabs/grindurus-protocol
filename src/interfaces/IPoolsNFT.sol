@@ -75,35 +75,26 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     event BuyRoyalty(uint256 poolId, address buyer, uint256 paidPrice);
 
-    //// ROYALTY PRICE SHARES
+    struct RoyaltyPriceShares {
+        uint16 auctionStartShare;
+        uint16 compensationShare;
+        uint16 reserveShare;
+        uint16 poolOwnerShare;
+        uint16 ownerShare;
+    }
 
-    function royaltyPriceCompensationShareNumerator() external view returns (uint16);
+    struct GRETHShares {
+        uint16 poolOwnerShare;
+        uint16 poolBuyerShare;
+        uint16 reserveShare;
+    }
 
-    function royaltyPriceReserveShareNumerator() external view returns (uint16);
-    
-    function royaltyPricePoolOwnerShareNumerator() external view returns (uint16);
-
-    function royaltyPriceOwnerShareNumerator() external view returns (uint16);
-
-    //// GRETH SHARES
-
-    function grethPoolOwnerShareNumerator() external view returns (uint16);
-
-    function grethRoyaltyReceiverShareNumerator() external view returns (uint16);
-
-    function grethReserveShareNumerator() external view returns (uint16);
-
-    //// ROYALTY SHARES
-
-    function royaltyNumerator() external view returns (uint16);
-
-    function poolOwnerShareNumerator() external view returns (uint16);
-
-    function royaltyReceiverShareNumerator() external view returns (uint16);
-
-    function royaltyReserveShareNumerator() external view returns (uint16);
-
-    function royaltyOwnerShareNumerator() external view returns (uint16);
+    struct RoyaltyShares {
+        uint16 poolOwnerShare;
+        uint16 poolBuyerShare;
+        uint16 reserveShare;
+        uint16 grinderShare;
+    }
 
     //// ADDRESSES
 
@@ -145,27 +136,11 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function setPoolsNFTLens(address _poolsNFTLens) external;
 
-    function setRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator) external;
+    function setRoyaltyShares(RoyaltyShares memory _royaltyShares) external;
 
-    function setRoyaltyShares(
-        uint16 _poolOwnerRoyaltyShareNumerator,
-        uint16 _treasuryRoyaltyShareNumerator,
-        uint16 _royaltyReceiverShareNumerator,
-        uint16 _grinderRoyaltyShareNumerator
-    ) external;
+    function setGRETHShares(GRETHShares memory _grethShares) external;
 
-    function setGRETHShares(
-        uint16 _grethPoolOwnerShareNumerator,
-        uint16 _grethRoyaltyReceiverShareNumerator,
-        uint16 _grethReserveShareNumerator
-    ) external;
-
-    function setRoyaltyPriceShares(
-        uint16 _royaltyPriceCompensationShareNumerator,
-        uint16 _royaltyPricePrimaryReceiverShareNumerator,
-        uint16 _royaltyPricePoolOwnerShareNumerator,
-        uint16 _royaltyPriceLastGrinderShareNumerator
-    ) external;
+    function setRoyaltyPriceShares(RoyaltyPriceShares memory _royaltyPriceShares) external;
 
     function transferOwnership(address payable _owner) external;
 
@@ -280,6 +255,12 @@ interface IPoolsNFT is IERC721, IERC2981 {
     ) external view returns (IPoolsNFTLens.PoolInfo[] memory poolInfos);
 
     function getPositionsBy(uint256[] memory _poolIds) external view returns (IPoolsNFTLens.Positions[] memory);
+
+    function getRoyaltyPriceShares() external view returns (RoyaltyPriceShares memory);
+
+    function getGRETHShares() external view returns (GRETHShares memory);
+
+    function getRoyaltyShares() external view returns (RoyaltyShares memory);
 
     function weth() external view returns (address);
 

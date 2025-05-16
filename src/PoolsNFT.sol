@@ -18,61 +18,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @dev this value of denominator is 100%
     uint16 public constant DENOMINATOR = 100_00;
 
-    //// ROYALTY PRICE PARAMS AND SHARES //////////////////////////////////////////////////////////////////////////////////////////////////
-    /// require CompensationShareNumerator + ReserveShareNumerator + PoolOwnerShareNumerator + OwnerShareNumerator > 100%
+    /// @dev royalty price shares
+    RoyaltyPriceShares public royaltyPriceShares;
 
-    /// @dev numerator of init royalty price
-    uint16 public royaltyPriceInitNumerator;
+    /// @dev greth shares
+    GRETHShares public grethShares;
 
-    /// @dev numerator of royalty price compensation to previous owner share
-    uint16 public royaltyPriceCompensationShareNumerator;
-
-    /// @dev numerator of royalty price primary receiver share
-    uint16 public royaltyPriceReserveShareNumerator;
-
-    /// @dev numerator of royalty price pool owner share
-    uint16 public royaltyPricePoolOwnerShareNumerator;
-
-    /// @dev numerator of royalty price owner share
-    uint16 public royaltyPriceOwnerShareNumerator;
-
-    //// GRETH SHARES //////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /// @dev numerator of pool owner share
-    /// @dev example: grethPoolOwnerShareNumerator == 10_00 == 10%
-    uint16 public grethPoolOwnerShareNumerator;
-
-    /// @dev numerator of royalty receiver share
-    /// @dev example: grethRoyaltyReceiverShareNumerator == 10_00 == 10%
-    uint16 public grethRoyaltyReceiverShareNumerator;
-
-    /// @dev numerator of grETH reserve share
-    /// @dev grethReserveShareNumerator == 80_00 == 80%
-    uint16 public grethReserveShareNumerator;
-
-    //// ROYALTY SHARES ////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /// @notice the numerator of royalty
-    /// @dev royaltyNumerator = DENOMINATOR - royaltyPoolOwnerShareNumerator
-    /// @dev example: royaltyNumerator == 20_00 == 20%
-    uint16 public royaltyNumerator;
-
-    /// @notice the numerator of pool owner share
-    /// @dev royaltyPoolOwnerShareNumerator = DENOMINATOR - royaltyNumerator
-    /// @dev example: royaltyPoolOwnerShareNumerator == 80_00 == 80%
-    uint16 public royaltyPoolOwnerShareNumerator;
-
-    /// @notice royalty share of royalty receiver. You can buy it
-    /// @dev example: royaltyReceiverShareNumerator == 5_00 == 5%
-    uint16 public royaltyReceiverShareNumerator;
-
-    /// @notice royalty share of reserve. Reserve on grETH
-    /// @dev example: royaltyPoolOwnerShareNumerator == 5_00 == 5%
-    uint16 public royaltyReserveShareNumerator;
-
-    /// @notice royalty share of owner
-    /// @dev example: royaltyGrinderShareNumerator == 10_00 == 10%
-    uint16 public royaltyGrinderShareNumerator;
+    /// @notice royalty shares
+    RoyaltyShares public royaltyShares;
 
     //// PoolsNFT OWNERSHIP DATA ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -126,35 +79,35 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         pendingOwner = payable(address(0));
         owner = payable(msg.sender);
 
-        royaltyPriceInitNumerator = 1_00; // 1%
-        royaltyPriceCompensationShareNumerator = 101_00; // 101%
-        royaltyPriceReserveShareNumerator = 1_00; // 1%
-        royaltyPricePoolOwnerShareNumerator = 5_00; // 5%
-        royaltyPriceOwnerShareNumerator = 1_00; // 1%
-        // total royalty price = 101% + 1% + 5% + 1% = 108% > 100%
-        require(royaltyPriceCompensationShareNumerator + royaltyPriceReserveShareNumerator + royaltyPricePoolOwnerShareNumerator + royaltyPriceOwnerShareNumerator > DENOMINATOR);
+        royaltyPriceShares = RoyaltyPriceShares({
+            auctionStartShare: 1_00,
+            compensationShare: 101_00, 
+            reserveShare: 1_00,
+            poolOwnerShare: 5_00,
+            ownerShare: 1_00
+        });
+        _checkRoyaltyPriceShares(royaltyPriceShares);
 
-        grethPoolOwnerShareNumerator = 10_00; // 10%
-        grethRoyaltyReceiverShareNumerator = 10_00; // 10%;
-        grethReserveShareNumerator = 80_00; // 80%
-        // total greth share = 80% + 10% + 10% = 100%
-        require(grethPoolOwnerShareNumerator + grethRoyaltyReceiverShareNumerator + grethReserveShareNumerator == DENOMINATOR);
+        grethShares = GRETHShares({
+            poolOwnerShare: 10_00,
+            poolBuyerShare: 10_00,
+            reserveShare: 80_00
+        });
+        _checkGRETHShares(grethShares);
 
-        royaltyNumerator = 20_00; // 20%
-        royaltyPoolOwnerShareNumerator = 80_00; // 80%
-        royaltyReceiverShareNumerator = 5_00; // 5%
-        royaltyReserveShareNumerator = 5_00; // 5%
-        royaltyGrinderShareNumerator = 10_00; // 10%
-        // total royalty + owner share = 20% + 80% = 100%
-        // total royalty share = 80% + 10% + 5% + 5% = 100%
-        require(royaltyNumerator + royaltyPoolOwnerShareNumerator == DENOMINATOR);
-        require(royaltyPoolOwnerShareNumerator + royaltyReceiverShareNumerator + royaltyReserveShareNumerator + royaltyGrinderShareNumerator == DENOMINATOR);
+        royaltyShares = RoyaltyShares({
+            poolOwnerShare: 80_00,
+            poolBuyerShare: 5_00,
+            reserveShare: 5_00,
+            grinderShare: 10_00
+        });
+        _checkRoyaltyShares(royaltyShares);
         //  profit = 1 USDT
         //  profit to pool owner = 1 * 80% = 0.8 USDT
         //  royalty = 1 * 20% = 0.2 USDT
-        //      royalty to royaly receiver = 1 USDT * 10% = 0.1 USDT
+        //      royalty to royaly receiver = 1 USDT * 5% = 0.05 USDT
         //      royalty to reserve = 1 USDT * 5% = 0.05 USDT
-        //      royalty owner = 1 * 5% = 0.05 USDT
+        //      royalty to grinder = 1 * 10% = 0.1 USDT
     }
 
     /// @notice sets grETH token
@@ -181,6 +134,42 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         }
     }
 
+    /// @notice checks royalty price shares
+    function _checkRoyaltyPriceShares(RoyaltyPriceShares memory _royaltyPriceShares) private pure {
+        if ( 
+            _royaltyPriceShares.auctionStartShare + 
+            _royaltyPriceShares.compensationShare +
+            _royaltyPriceShares.reserveShare + 
+            _royaltyPriceShares.poolOwnerShare + 
+            _royaltyPriceShares.ownerShare <= DENOMINATOR
+        ) {
+            revert InvalidShares();
+        }
+    }
+
+    /// @notice checks greth shares
+    function _checkGRETHShares(GRETHShares memory _grethShares) private pure {
+        if (
+            _grethShares.poolOwnerShare + 
+            _grethShares.poolBuyerShare + 
+            _grethShares.reserveShare != DENOMINATOR
+        ) {
+            revert InvalidShares();
+        }
+    }
+
+    /// @notice checks that royalty shares
+    function _checkRoyaltyShares(RoyaltyShares memory _royaltyShares) private pure {
+        if (
+            _royaltyShares.poolOwnerShare + 
+            _royaltyShares.poolBuyerShare + 
+            _royaltyShares.reserveShare + 
+            _royaltyShares.grinderShare != DENOMINATOR
+        ) {
+            revert InvalidShares();
+        }
+    }
+
     /////// ONLY OWNER FUNCTIONS
 
     /// @notice sets pools NFT Image
@@ -191,67 +180,28 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         require(address(poolsNFTLens.poolsNFT()) == address(this));
     }
 
-    /// @notice set royalty price init numerator
-    /// @param _royaltyPriceInitNumerator numerator of royalty price init
-    function setRoyaltyPriceInitNumerator(uint16 _royaltyPriceInitNumerator) external override {
-        _onlyOwner();
-        if (_royaltyPriceInitNumerator >= DENOMINATOR) {
-            revert InvalidRoyaltyPriceInit();
-        }
-        royaltyPriceInitNumerator = _royaltyPriceInitNumerator;
-    }
-
     /// @notice sets royalty price share to actors
     /// @dev callable only by owner
-    function setRoyaltyPriceShares(
-        uint16 _royaltyPriceCompensationShareNumerator,
-        uint16 _royaltyPriceReserveShareNumerator,
-        uint16 _royaltyPricePoolOwnerShareNumerator,
-        uint16 _royaltyPriceOwnerShareNumerator
-    ) external override {
+    function setRoyaltyPriceShares(RoyaltyPriceShares memory _royaltyPriceShares) external override {
         _onlyOwner();
-        if (_royaltyPriceCompensationShareNumerator <= DENOMINATOR) {
-            revert InvalidShares();
-        }
-        royaltyPriceCompensationShareNumerator = _royaltyPriceCompensationShareNumerator;
-        royaltyPriceReserveShareNumerator = _royaltyPriceReserveShareNumerator;
-        royaltyPricePoolOwnerShareNumerator = _royaltyPricePoolOwnerShareNumerator;
-        royaltyPriceOwnerShareNumerator = _royaltyPriceOwnerShareNumerator;
+        _checkRoyaltyPriceShares(_royaltyPriceShares);
+        royaltyPriceShares = _royaltyPriceShares;
     }
 
     /// @notice sets greth shares
     /// @dev callable only by owner
-    function setGRETHShares(
-        uint16 _grethPoolOwnerShareNumerator,
-        uint16 _grethRoyaltyReceiverShareNumerator,
-        uint16 _grethReserveShareNumerator
-    ) external override {
+    function setGRETHShares(GRETHShares memory _grethShares) external override {
         _onlyOwner();
-        if (_grethPoolOwnerShareNumerator + _grethRoyaltyReceiverShareNumerator + _grethReserveShareNumerator != DENOMINATOR) {
-            revert InvalidShares();
-        }
-        grethPoolOwnerShareNumerator = _grethPoolOwnerShareNumerator;
-        grethRoyaltyReceiverShareNumerator = _grethRoyaltyReceiverShareNumerator;
-        grethReserveShareNumerator = _grethReserveShareNumerator;
+        _checkGRETHShares(_grethShares);
+        grethShares = _grethShares;
     }
 
     /// @notice sets primary receiver royalty share
     /// @dev callable only by owner
-    function setRoyaltyShares(
-        uint16 _poolOwnerRoyaltyShareNumerator,
-        uint16 _royaltyReceiverShareNumerator,
-        uint16 _royaltyReserveShareNumerator,
-        uint16 _royaltyGrinderShareNumerator
-    ) external override {
+    function setRoyaltyShares(RoyaltyShares memory _royaltyShares) external override {
         _onlyOwner();
-        if (_poolOwnerRoyaltyShareNumerator + _royaltyReceiverShareNumerator + _royaltyReserveShareNumerator + _royaltyGrinderShareNumerator != DENOMINATOR) {
-            revert InvalidShares();
-        }
-        royaltyNumerator = DENOMINATOR - _poolOwnerRoyaltyShareNumerator;
-        royaltyPoolOwnerShareNumerator = _poolOwnerRoyaltyShareNumerator;
-        royaltyReceiverShareNumerator = _royaltyReceiverShareNumerator;
-        royaltyReserveShareNumerator = _royaltyReserveShareNumerator;
-        royaltyGrinderShareNumerator = _royaltyGrinderShareNumerator;
+        _checkRoyaltyShares(_royaltyShares);
+        royaltyShares = _royaltyShares;
     }
 
     /// @notice First step - transfering ownership to `newOwner`
@@ -326,7 +276,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         }
         poolId = _mintTo(to, strategyId, baseToken, quoteToken);
         _deposit(poolId, quoteTokenAmount);
-        royaltyPrice[poolId] = (quoteTokenAmount * royaltyPriceInitNumerator) / DENOMINATOR;
+        royaltyPrice[poolId] = (quoteTokenAmount * royaltyPriceShares.auctionStartShare) / DENOMINATOR;
     }
 
     /// @notice mint NFT and deploy strategy
@@ -584,11 +534,11 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
 
     /// @notice rewards the grinder
     function _airdropGRETH(uint256 poolId, uint256 nativeFeeSpent) internal {
-        (address[] memory actors, uint256[] memory grethShares) = calcGRETHShares(
+        (address[] memory actors, uint256[] memory _grethShares) = calcGRETHShares(
             poolId,
             nativeFeeSpent
         );
-        grETH.mint(actors, grethShares);
+        grETH.mint(actors, _grethShares);
     }
 
     /// @notice transfert poolId from `msg.sender` to `to`
@@ -662,7 +612,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         uint256 salePrice
     ) public view override returns (address receiver, uint256 royaltyAmount) {
         receiver = getRoyaltyReceiver(tokenId);
-        royaltyAmount = (salePrice * royaltyNumerator) / DENOMINATOR;
+        royaltyAmount = (salePrice * (DENOMINATOR - royaltyShares.poolOwnerShare)) / DENOMINATOR;
     }
 
     /// @notice calculates royalty shares
@@ -684,10 +634,9 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         } catch {
             receivers[3] = owner;
         }
-        uint256 denominator = DENOMINATOR;
-        amounts[0] = (profit * royaltyPoolOwnerShareNumerator) / denominator;
-        amounts[1] = (profit * royaltyReceiverShareNumerator) / denominator;
-        amounts[2] = (profit * royaltyReserveShareNumerator) / denominator;
+        amounts[0] = (profit * royaltyShares.poolOwnerShare) / DENOMINATOR;
+        amounts[1] = (profit * royaltyShares.poolBuyerShare) / DENOMINATOR;
+        amounts[2] = (profit * royaltyShares.reserveShare) / DENOMINATOR;
         amounts[3] = profit - (amounts[0] + amounts[1] + amounts[2]);
     }
 
@@ -716,14 +665,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         uint256 _royaltyPrice = royaltyPrice[poolId];
         uint256 _denominator = DENOMINATOR;
         if (_royaltyPrice > 0) {
-            compensationShare = (_royaltyPrice * royaltyPriceCompensationShareNumerator) / _denominator;
-            poolOwnerShare = (_royaltyPrice * royaltyPricePoolOwnerShareNumerator) / _denominator;
-            reserveShare = (_royaltyPrice * royaltyPriceReserveShareNumerator) / _denominator;
-            ownerShare = (_royaltyPrice * royaltyPriceOwnerShareNumerator) / _denominator;
+            compensationShare = (_royaltyPrice * royaltyPriceShares.compensationShare) / _denominator;
+            poolOwnerShare = (_royaltyPrice * royaltyPriceShares.poolOwnerShare) / _denominator;
+            reserveShare = (_royaltyPrice * royaltyPriceShares.reserveShare) / _denominator;
+            ownerShare = (_royaltyPrice * royaltyPriceShares.ownerShare) / _denominator;
             oldRoyaltyPrice = _royaltyPrice;
             newRoyaltyPrice = compensationShare + poolOwnerShare + reserveShare + ownerShare;
         } else {
-            newRoyaltyPrice = IStrategy(pools[poolId]).getActiveCapital() * royaltyPriceInitNumerator / _denominator;
+            newRoyaltyPrice = IStrategy(pools[poolId]).getActiveCapital() * royaltyPriceShares.auctionStartShare / _denominator;
         }
     }
 
@@ -733,17 +682,17 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     function calcGRETHShares(
         uint256 poolId,
         uint256 nativeFeeSpent
-    ) public view override returns (address[] memory actors, uint256[] memory grethShares)
+    ) public view override returns (address[] memory actors, uint256[] memory _grethShares)
     {
         actors = new address[](3);
-        grethShares = new uint256[](3);
+        _grethShares = new uint256[](3);
         actors[0] = ownerOf(poolId); // poolOwner
         actors[1] = getRoyaltyReceiver(poolId); // royalty receiver
         actors[2] = address(grETH) != address(0) ? address(grETH) : owner; // grETH
 
-        grethShares[0] = (nativeFeeSpent * grethPoolOwnerShareNumerator) / DENOMINATOR;
-        grethShares[1] = (nativeFeeSpent * grethRoyaltyReceiverShareNumerator) / DENOMINATOR;
-        grethShares[2] = nativeFeeSpent - (grethShares[0] + grethShares[1]);
+        _grethShares[0] = (nativeFeeSpent * grethShares.poolOwnerShare) / DENOMINATOR;
+        _grethShares[1] = (nativeFeeSpent * grethShares.poolBuyerShare) / DENOMINATOR;
+        _grethShares[2] = nativeFeeSpent - (_grethShares[0] + _grethShares[1]);
     }
 
     /// @notice return base URI
@@ -825,6 +774,21 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @notice returns wrapped eth address
     function weth() public view override returns (address) {
         return address(grETH.weth());
+    }
+
+    /// @notice returns royalty price shares
+    function getRoyaltyPriceShares() external view returns (RoyaltyPriceShares memory) {
+        return royaltyPriceShares;
+    }
+
+    /// @notice returns greth shares
+    function getGRETHShares() external view returns(GRETHShares memory) {
+        return grethShares;
+    }
+
+    /// @notice returns royalty shares
+    function getRoyaltyShares() external view returns (RoyaltyShares memory) {
+        return royaltyShares;
     }
 
     /// @notice execute any transaction on target smart contract
