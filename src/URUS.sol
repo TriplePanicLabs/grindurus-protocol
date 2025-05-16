@@ -961,7 +961,6 @@ contract URUS is IURUS {
             buyFee = calcQuoteTokenByFeeToken(feeQty, long.feePrice); // [buyFee] = feeToken *  quoteToken / feeToken = quoteToken
         }
         uint256 sellFee = buyFee / long.number; // estimated sell fee. [sellFee] = quoteToken
-        uint256 fees = buyFee + sellFee;
         /**
          * PROOF of liquidity threshold:
          *         returnPercent = (qty * price + buyFee + sellFee + profit) / qty * price + buyFee + sellFee
@@ -985,7 +984,7 @@ contract URUS is IURUS {
          *                                              ||
          *                                   quoteTokenAmountThreshold
          */
-        quoteTokenAmountThreshold = ((long.liquidity + fees) * config.returnPercentLongSell) / helper.percentMultiplier;
+        quoteTokenAmountThreshold = ((long.liquidity + buyFee + sellFee) * config.returnPercentLongSell) / helper.percentMultiplier;
         longSellPriceThreshold = calcSwapPrice(quoteTokenAmountThreshold, long.qty);
     }
 
@@ -1235,7 +1234,7 @@ contract URUS is IURUS {
             baseTokenAmount = (feeTokenAmount * baseTokenPerFeeTokenPrice) / (helper.oracleQuoteTokenPerFeeTokenMultiplier * (10 ** (fd - bd)));
         }
     }
-    
+
     /// @notice calculate feeTokenAmount in terms of `baseToken`
     /// @dev baseTokenAmount = quoteTokenAmount / quoteTokenPerBaseTokenPrice
     /// @dev [baseTokenAmount] = quoteToken / (quoteToken / baseToken) = baseToken
