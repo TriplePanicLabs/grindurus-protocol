@@ -177,16 +177,6 @@ contract Strategy1Base is IStrategy, URUS, AAVEV3AdapterBase, UniswapV3AdapterBa
         reinvest = storedReinvest;
     }
 
-    function beforeRebalance() public override(URUS, IURUS) returns (uint256 baseTokenAmount, uint256 price) {
-        _onlyGateway();
-        return URUS.beforeRebalance();
-    }
-
-    function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public override(URUS, IURUS) {
-        _onlyGateway();
-        return URUS.afterRebalance(baseTokenAmount, newPrice);
-    }
-
     /// @notice set lending params
     function setLendingParams(bytes memory args) public override(AAVEV3AdapterBase, ILendingAdapter) {
         _onlyAgent();

@@ -131,7 +131,7 @@ contract PoolsNFTTest is Test {
             config
         );
 
-        poolsNFT.grind(poolId);
+        poolsNFT.microOps(poolId);
 
         pool = Strategy1Arbitrum(payable(poolsNFT.pools(poolId)));
 
@@ -174,7 +174,7 @@ contract PoolsNFTTest is Test {
     
         pool.setLongNumberMax(1);
 
-        poolsNFT.grind(poolId);
+        poolsNFT.microOps(poolId);
         address to = address(this);        
         (, , , , uint256 qty, , ,) = pool.long();
         uint256 baseTokenAmount = qty / 2;

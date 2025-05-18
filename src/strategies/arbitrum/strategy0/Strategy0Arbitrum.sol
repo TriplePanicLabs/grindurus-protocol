@@ -171,16 +171,6 @@ contract Strategy0Arbitrum is IStrategy, URUS, NoLendingAdapter, UniswapV3Adapte
         reinvest = storedReinvest;
     }
 
-    function beforeRebalance() public override(URUS, IURUS) returns (uint256 baseTokenAmount, uint256 price) {
-        _onlyGateway();
-        return URUS.beforeRebalance();
-    }
-
-    function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public override(URUS, IURUS) {
-        _onlyGateway();
-        return URUS.afterRebalance(baseTokenAmount, newPrice);
-    }
-
     function _put(IToken token, uint256 amount) internal override(NoLendingAdapter, URUS) returns (uint256){
         return NoLendingAdapter._put(token, amount);
     }

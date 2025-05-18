@@ -110,7 +110,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         (uint256 qty0, uint256 price0) = printLongPosition(poolId0);
         assert(qty0 == 0); // no long position
         assert(price0 == 0); // no long position
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("1) First purchase made.");
         (uint256 qty1, uint256 price1) = printLongPosition(poolId0);
         assert(qty1 > 0); // assert that purchase is made
@@ -119,7 +119,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         mockSwapRouter.setRate(3100 * 10 ** 8);
         console.log("2) Price set to 3100");
 
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("3) Sell made");
         (uint256 qty3, uint256 price3) = printLongPosition(poolId0);
         assert(qty3 == 0); // close position
@@ -150,7 +150,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         (uint256 qty0, uint256 price0) = printLongPosition(poolId0);
         assert(qty0 == 0); // no long position
         assert(price0 == 0); // no long position
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("1) First purchase made.");
         (uint256 qty1, uint256 price1) = printLongPosition(poolId0);
         assert(qty1 > 0); // purchase is made
@@ -159,7 +159,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         mockSwapRouter.setRate(2700 * 10 ** 8); // Decrease price by setting new rate
         console.log("2) Price decreased by 10%.");
 
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("3) Second purchase made.");
         (uint256 qty3, uint256 price3) = printLongPosition(poolId0);
         assert(qty3 > qty1);
@@ -168,7 +168,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         mockSwapRouter.setRate(2400 * 10 ** 8); // Decrease price further
         console.log("4) Price decreased by another 10%.");
 
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("5) Third purchase made.");
         (uint256 qty5, uint256 price5) = printLongPosition(poolId0);
         assert(qty5 > qty3);
@@ -177,7 +177,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         mockSwapRouter.setRate(2100 * 10 ** 8); // Decrease price further
         console.log("6) Price decreased by another 10%.");
 
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("7) Fourth purchase made.");
         (uint256 qty7, uint256 price7) = printLongPosition(poolId0);
         assert(qty7 > qty5);
@@ -191,7 +191,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         console.log("HedgeSell High: ", uintToDecimal(thresholdHigh,8));
         console.log("HedgeSell Low:  ", uintToDecimal(thresholdLow,8));
         
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log();
         console.log("9) Hedge sell executed.");
         (uint256 qty9, uint256 price9) = printLongPosition(poolId0);
@@ -205,7 +205,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         mockSwapRouter.setRate(2140 * 10 ** 8); // Decrease price further
         console.log("10) Price set to 2140.");
 
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("11) Rebuy executed.");
         (uint256 qty11, uint256 price11) = printLongPosition(poolId0);
         (uint256 hqty11, uint256 hprice11) = printHedgePosition(poolId0);
@@ -224,7 +224,7 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         mockSwapRouter.setRate(2190 * 10 ** 8); // Decrease price further
         console.log("12) Price set to 2190");
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("13) Init hedge sell");
         (uint256 qty13, uint256 price13) = printLongPosition(poolId0);
         (uint256 hqty13, uint256 hprice13) = printHedgePosition(poolId0);
@@ -235,14 +235,14 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         mockSwapRouter.setRate(2250 * 10 ** 8);
         console.log("14) Price set to 2240");
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("15) Hedge sell");
         printLongPosition(poolId0);
         (uint256 hqty15, uint256 hprice15) = printHedgePosition(poolId0);
         assert(hqty15 > hqty13); // hedge selling increase qty
         assert(hprice15 > hprice13); // hedge selling increase price 
 
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log();
         console.log("16) Hedge sell");
         printLongPosition(poolId0);
@@ -250,7 +250,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         assert(hqty16 > hqty15); // hedge selling increase qty
         assert(hprice16 > hprice15); // hedge selling increase price 
 
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log();
         console.log("17) Hedge sell with close the position");
         printLongPosition(poolId0);
@@ -268,7 +268,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         (uint256 qty0, uint256 price0) = printLongPosition(poolId0);
         (uint256 hqty0, uint256 hprice0) = printHedgePosition(poolId0);
 
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("1) Long buy");
         (uint256 qty1, uint256 price1) = printLongPosition(poolId0);
         (uint256 hqty1, uint256 hprice1) = printHedgePosition(poolId0);
@@ -284,7 +284,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         console.log();
         (uint256 qty2, uint256 price2) = printLongPosition(poolId0);
         (uint256 hqty2, uint256 hprice2) = printHedgePosition(poolId0);
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("3) hedge sell init");
         (uint256 qty3, uint256 price3) = printLongPosition(poolId0);
         (uint256 hqty3, uint256 hprice3) = printHedgePosition(poolId0);
@@ -293,57 +293,10 @@ contract URUSStrategy1ArbitrumTest is Test {
 
         mockSwapRouter.setRate(1960 * 10 ** 8);
 
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("4) hedge rebuy");
         (uint256 qty4, uint256 price4) = printLongPosition(poolId0);
         (uint256 hqty4, uint256 hprice4) = printHedgePosition(poolId0);
-
-    }
-
-    function test_rebalance() public {
-        
-        uint256 amount1 = 1000 * 10**6;
-        IURUS.Config memory config = poolsNFT.getZeroConfig();
-        IToken(usdtArbitrum).approve(address(poolsNFT), amount1);
-
-        uint256 poolId1 = poolsNFT.mint(
-            1,                      // strategyId
-            wethArbitrum,           // baseToken
-            usdtArbitrum,           // quoteToken
-            amount1,                // quoteTokenAmount
-            config
-        );
-        address pool1Address = poolsNFT.pools(poolId1);
-        Strategy1Arbitrum pool1 = Strategy1Arbitrum(payable(pool1Address));
-        pool1.setLongNumberMax(1);
-        pool1.setDexParams(pool1.encodeDexConstructorArgs(address(mockSwapRouter), 100, address(0x1337), address(0x101)));
-
-        uint256 amount2 = 1000 * 10**6;
-        config = poolsNFT.getZeroConfig();
-        IToken(usdtArbitrum).approve(address(poolsNFT), amount2);
-        uint256 poolId2 = poolsNFT.mint(
-            1,                      // strategyId
-            wethArbitrum,           // baseToken
-            usdtArbitrum,           // quoteToken
-            amount2,                // quoteTokenAmount
-            config
-        );
-        address pool2Address = poolsNFT.pools(poolId2);
-        Strategy1Arbitrum pool2 = Strategy1Arbitrum(payable(pool2Address));
-        pool2.setLongNumberMax(1);
-        pool2.setDexParams(pool2.encodeDexConstructorArgs(address(mockSwapRouter), 100, address(0x1337), address(0x101)));
-        
-        mockSwapRouter.setRate(3000 * 10 ** 8);
-        poolsNFT.grind(poolId1);
-        printLongPosition(poolId1);
-
-        mockSwapRouter.setRate(2000 * 10 ** 8);
-        poolsNFT.grind(poolId2);
-        printLongPosition(poolId2);
-
-        poolsNFT.rebalance(poolId1, poolId2, 1, 1);
-        printLongPosition(poolId1);
-        printLongPosition(poolId2);
 
     }
 
@@ -382,7 +335,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         pool0.setExtraCoef(2_00); // x2.00
         pool0.setPriceVolatilityPercent(1_00); // 1%
         
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("1) Long buy");
         printLongPosition(poolId0);
         
@@ -402,7 +355,7 @@ contract URUSStrategy1ArbitrumTest is Test {
         mockSwapRouter.setRate(3000 * 10 ** 8);
         console.log("3) Set price 3000");
 
-        poolsNFT.grind(poolId0);
+        poolsNFT.microOps(poolId0);
         console.log("4) Long sell");
         printLongPosition(poolId0);
 
