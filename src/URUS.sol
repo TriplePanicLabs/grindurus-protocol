@@ -784,7 +784,7 @@ contract URUS is IURUS {
     /// @notice iteration of URUS algorithm
     /// @dev calls long_buy, long_sell, hedge_sell, hedge_rebuy
     /// @return iterated true if successfully operation made, false otherwise
-    function grind() public returns (bool iterated) {
+    function microOps() public returns (bool iterated) {
         IURUS strategy = IURUS(address(this));
         if (long.number == 0) {
             // BUY
@@ -826,57 +826,6 @@ contract URUS is IURUS {
                 }
             }
         }
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //// REBALANCE FUNCTIONS
-
-    /// @notice first step for rebalance the positions via poolsNFT
-    /// @dev called before rebalance by gateway
-    /// @return baseTokenAmount base token amount that take part in rebalance
-    /// @return price base token price scaled by price multuplier
-    function beforeRebalance() public virtual override returns (uint256 baseTokenAmount, uint256 price) {
-        if (hedge.number > 0) {
-            revert Hedged();
-        }
-        if (long.number != long.numberMax) {
-            revert NotLongNumberMax();
-        }
-        if (long.qty > 0) {
-            baseTokenAmount = _take(baseToken, long.qty);
-            baseToken.forceApprove(msg.sender, baseTokenAmount);
-            long.qty -= baseTokenAmount;
-            price = long.price;
-        }
-    }
-
-    /// @notice third step for rebalance the positions via poolsNFT
-    /// @dev called after rebalance by poolsNFT
-    function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) public virtual override {
-        if (baseTokenAmount > 0) {
-            baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
-            baseTokenAmount = _put(baseToken, baseTokenAmount);
-            long.qty = baseTokenAmount;
-            long.price = newPrice;
-            long.liquidity = calcQuoteTokenByBaseToken(long.qty, long.price);
-            if (long.number == 0) {
-                long.number = 1;
-                long.numberMax = 1;
-                long.priceMin = calcLongPriceMin();
-            }
-        } else {
-            long = Position({
-                number: 0,
-                numberMax: 0,
-                priceMin: type(uint256).max,
-                liquidity: 0,
-                qty: 0,
-                price: 0,
-                feeQty: 0,
-                feePrice: 0
-            });
-        }
-        runtime.initLiquidity = (long.liquidity * helper.coefMultiplier) / runtime.investCoef;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1308,49 +1257,44 @@ contract URUS is IURUS {
     }
 
     /// @notice return realtime PnL of positions
-    function getRealtimePnL() public view override virtual  
-        returns (
-            int256 longSellPnL,
-            int256 hedgeSellInitPnL,
-            int256 hedgeSellPnL,
-            int256 hedgeRebuyPnL
-        ) {
+    function getPnL() public view override virtual returns (PnL memory) {
         uint256 spotPrice = getPriceQuoteTokenPerBaseToken();
-        return getRealtimePnL(spotPrice);
+        return getPnL(spotPrice);
     }
 
     /// @notice return realtime PnL of positions based on `spotPrice`
     /// @param spotPrice spot price of base token
-    /// @dev [longSellPnL] = quoteToken
+    /// @dev [longSellRealtimePnL] = quoteToken
     /// @dev [hedgeSellInitPnL] = quoteToken
-    /// @dev [hedgeSellPnL] = quoteToken
-    /// @dev [hedgeRebuyPnL] = baseToken
-    function getRealtimePnL(uint256 spotPrice) public view virtual override
-        returns (
-            int256 longSellPnL,    
-            int256 hedgeSellInitPnL,
-            int256 hedgeSellPnL,
-            int256 hedgeRebuyPnL
-        ) {
-        if (long.number == 0) {
-            return (0, 0, 0, 0);
-        }
+    /// @dev [hedgeSellRealtimePnL] = quoteToken
+    /// @dev [hedgeRebuyRealtimePnL] = baseToken
+    function getPnL(uint256 spotPrice) public view virtual override returns (PnL memory pnl) {
         if (long.number > 0 && hedge.number == 0) {
-            longSellPnL = int256(calcQuoteTokenByBaseToken(long.qty, spotPrice)) - int256(calcQuoteTokenByBaseToken(long.qty, long.price));
+            pnl.longSellRealtime = int256(calcQuoteTokenByBaseToken(long.qty, spotPrice)) - int256(calcQuoteTokenByBaseToken(long.qty, long.price));
+            (uint256 quoteTokenAmountThreshold,) = calcLongSellThreshold();
+            pnl.longSellTarget = int256(quoteTokenAmountThreshold) - int256(calcQuoteTokenByBaseToken(long.qty, long.price));
         }
         if (long.number == long.numberMax && hedge.number == 0) {
             uint256 baseTokenAmount = long.qty / (2 ** (config.hedgeNumberMax - 1));
-            hedgeSellInitPnL = int256(calcQuoteTokenByBaseToken(baseTokenAmount, spotPrice)) - int256(calcQuoteTokenByBaseToken(baseTokenAmount, long.price)); 
+            pnl.hedgeSellInitRealtime = int256(calcQuoteTokenByBaseToken(baseTokenAmount, spotPrice)) - int256(calcQuoteTokenByBaseToken(baseTokenAmount, long.price)); 
         }
         if (hedge.number > 0) {
             (
                 /**uint256 liquidity */,
-                /** uint256 quoteTokenAmountThreshold */,
+                uint256 quoteTokenAmountThreshold,
                 uint256 targetPrice,
                 /** uint256 hedgeSellPriceThreshold */
             ) = calcHedgeSellThreshold();
-            hedgeSellPnL = int256(calcQuoteTokenByBaseToken(hedge.qty, spotPrice)) - int256(calcQuoteTokenByBaseToken(hedge.qty, targetPrice));            
-            hedgeRebuyPnL = int256(calcBaseTokenByQuoteToken(hedge.liquidity, hedge.price)) - int256(calcBaseTokenByQuoteToken(hedge.liquidity, spotPrice));
+            pnl.hedgeSellRealtime = int256(calcQuoteTokenByBaseToken(hedge.qty, spotPrice)) - int256(calcQuoteTokenByBaseToken(hedge.qty, targetPrice));            
+            pnl.hedgeSellTarget = int256(quoteTokenAmountThreshold) - int256(calcQuoteTokenByBaseToken(hedge.qty, targetPrice));
+            ( 
+                uint256 baseTokenAmountThreshold,
+                /** uint256 hedgeLossInQuoteToken */,
+                /** uint256 hedgeLossInBaseToken */,
+                /** uint256 hedgeRebuyPriceThreshold */
+            ) = calcHedgeRebuyThreshold();
+            pnl.hedgeRebuyRealtime = int256(calcBaseTokenByQuoteToken(hedge.liquidity, hedge.price)) - int256(calcBaseTokenByQuoteToken(hedge.liquidity, spotPrice));
+            pnl.hedgeRebuyTarget = int256(baseTokenAmountThreshold) - int256(calcBaseTokenByQuoteToken(hedge.liquidity, hedge.price));
         }
     }
 

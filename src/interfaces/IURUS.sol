@@ -42,6 +42,16 @@ interface IURUS is IERC5313 {
         uint256 hedgeRebuyFeeCoef; // [hedgeRebuyFeeCoef] = (no dimension)
     }
 
+    struct PnL {
+        int256 longSellRealtime;
+        int256 longSellTarget;
+        int256 hedgeSellInitRealtime;
+        int256 hedgeSellRealtime;
+        int256 hedgeSellTarget;
+        int256 hedgeRebuyRealtime;
+        int256 hedgeRebuyTarget;
+    }
+
     /**
     Possible values:
         longNumberMax = 3
@@ -164,11 +174,7 @@ interface IURUS is IERC5313 {
 
     function hedge_rebuy() external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    function grind() external returns (bool iterated);
-
-    function beforeRebalance() external returns (uint256 baseTokenAmount, uint256 price);
-
-    function afterRebalance(uint256 baseTokenAmount, uint256 newPrice) external;
+    function microOps() external returns (bool iterated);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //// PRICES
@@ -265,21 +271,9 @@ interface IURUS is IERC5313 {
             uint256 hedgeRebuySwapPriceThreshold
         );
 
-    function getRealtimePnL() external view 
-        returns (
-            int256 longSellPnL,
-            int256 hedgeSellInitPnL,
-            int256 hedgeSellPnL,
-            int256 hedgeRebuyPnL
-        );
+    function getPnL() external view returns (PnL memory);
 
-    function getRealtimePnL(uint256 spotPrice) external view 
-        returns (
-            int256 longSellPnL,
-            int256 hedgeSellInitPnL,
-            int256 hedgeSellPnL,
-            int256 hedgeRebuyPnL
-        );
+    function getPnL(uint256 spotPrice) external view returns (PnL memory);
 
     function getLong()
         external
