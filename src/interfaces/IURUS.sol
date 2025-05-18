@@ -7,6 +7,7 @@ import { IOracle } from "src/interfaces/IOracle.sol";
 
 interface IURUS is IERC5313 {
 
+    error InvalidConfig();
     error InvalidOp();
     error NotLongNumberMax();
     error Longed();
@@ -315,6 +316,8 @@ interface IURUS is IERC5313 {
         uint256 liquidity,
         uint256 investCoef
     );
+
+    function checkConfig(Config memory conf) external pure returns (bool);
 
     function getConfig()
         external

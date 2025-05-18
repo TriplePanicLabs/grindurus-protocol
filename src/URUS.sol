@@ -93,7 +93,9 @@ contract URUS is IURUS {
             hedgeRebuyFeeCoef: 0 // x0
         });
 
-        _checkConfig(_config);
+        if (!checkConfig(_config)) {
+            revert InvalidConfig();
+        }
         config = _config;
 
         _initHelperTokensDecimals();
@@ -172,11 +174,14 @@ contract URUS is IURUS {
     }
 
     /// @dev checks config
-    function _checkConfig(Config memory conf) private pure {
-        require(conf.longNumberMax > 0);
-        require(conf.hedgeNumberMax > 0);
-        require(conf.priceVolatilityPercent > 0);
-        require(conf.extraCoef > 0);
+    function checkConfig(Config memory conf) public pure override virtual returns (bool) {
+        if (
+            conf.longNumberMax >= MIN_LONG_NUMBER_MAX && 
+            conf.hedgeNumberMax >= MIN_HEDGE_NUMBER_MAX &&
+            conf.extraCoef > 0
+        ) {
+            return true;
+        }
     }
 
     //// ONLY AGENT //////////////////////////////////////////////////////////////////////////
@@ -193,7 +198,9 @@ contract URUS is IURUS {
     /// @notice sets config for URUS
     /// @param conf config structure
     function setConfig(Config memory conf) public virtual override {
-        _checkConfig(conf);
+        if (!checkConfig(conf)) {
+            revert InvalidConfig();
+        }
         if (long.number > 0) {
             require(conf.longNumberMax == config.longNumberMax);
             require(conf.extraCoef == config.extraCoef);
