@@ -442,70 +442,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         }
     }
 
-    /// @notice rebalance the pools with poolIds `poolId0` and `poolId1`
-    /// @dev only owner or AI-agent of pools can rebalance with equal strategy id
-    /// @param poolId0 pool id of pool to rebalance
-    /// @param poolId1 pool id of pool to rebalance
-    /// @param rebalance0 left fraction of rebalanced amount
-    /// @param rebalance1 right fraction of rebalanced amount
-    function rebalance(
-        uint256 poolId0,
-        uint256 poolId1,
-        uint8 rebalance0,
-        uint8 rebalance1
-    ) external override {
-        _onlyAgentOf(poolId0);
-        _onlyAgentOf(poolId1);
-        IStrategy pool0 = IStrategy(pools[poolId0]);
-        IStrategy pool1 = IStrategy(pools[poolId1]);
-        if (address(pool0.quoteToken()) != address(pool1.quoteToken()) || address(pool0.baseToken()) != address(pool1.baseToken())) {
-            revert RebalanceDifferentTokens();
-        }
-
-        (uint256 baseTokenAmount0, uint256 price0) = pool0.beforeRebalance();
-        pool0.baseToken().safeTransferFrom(address(pool0), address(this), baseTokenAmount0);
-        (uint256 baseTokenAmount1, uint256 price1) = pool1.beforeRebalance();
-        pool1.baseToken().safeTransferFrom(address(pool1), address(this), baseTokenAmount1);
-
-        // second step: rebalance
-        uint256 totalBaseTokenAmount = baseTokenAmount0 + baseTokenAmount1;
-        uint256 rebalancedPrice = ((baseTokenAmount0 * price0) + (baseTokenAmount1 * price1)) / totalBaseTokenAmount;
-        uint256 newBaseTokenAmount0 = (rebalance0 * totalBaseTokenAmount) / (rebalance0 + rebalance1);
-        uint256 newBaseTokenAmount1 = totalBaseTokenAmount - newBaseTokenAmount0;
-
-        if (newBaseTokenAmount0 > 0) {
-            pool0.baseToken().forceApprove(
-                address(pool0),
-                newBaseTokenAmount0
-            );
-        }
-        pool0.afterRebalance(newBaseTokenAmount0, rebalancedPrice);
-
-        if (newBaseTokenAmount1 > 0) {
-            pool1.baseToken().forceApprove(
-                address(pool1),
-                newBaseTokenAmount1
-            );
-        }
-        pool1.afterRebalance(newBaseTokenAmount1, rebalancedPrice);
-
-        emit Rebalance(
-            poolId0,
-            poolId1,
-            rebalancedPrice,
-            newBaseTokenAmount0,
-            newBaseTokenAmount1
-        );
-    }
-
     /// @notice grind the pool with `poolId`
     /// @dev grETH == fee spend on iterate
     /// @param poolId pool id of pool in array `pools`
-    function grind(uint256 poolId) external override returns (bool isGrinded) {
+    function microOps(uint256 poolId) external override returns (bool isGrinded) {
         uint256 gasStart = gasleft();
         IStrategy pool = IStrategy(pools[poolId]);
         _checkCapital(pool);
-        try pool.grind() returns (bool iterated) {
+        try pool.microOps() returns (bool iterated) {
             isGrinded = iterated;
         } catch {
             isGrinded = false;

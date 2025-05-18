@@ -19,7 +19,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
     error InvalidRoyaltyPriceInit();
     error StrategyStopped();
     error HasAgent();
-    error RebalanceDifferentTokens();
 
     event Mint(
         uint256 poolId,
@@ -32,6 +31,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         address quoteToken,
         uint256 quoteTokenAmount
     );
+
     event Deposit2(
         uint256 poolId,
         address pool,
@@ -46,6 +46,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         address quoteToken,
         uint256 quoteTokenAmount
     );
+
     event Withdraw2(
         uint256 poolId,
         address to,
@@ -57,13 +58,6 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 poolId,
         uint256 quoteTokenAmount,
         uint256 baseTokenAmount
-    );
-    event Rebalance(
-        uint256 poolId0, 
-        uint256 poolId1,
-        uint256 rebalancedPrice,
-        uint256 newBaseTokenAmount0,
-        uint256 newBaseTokenAmount1
     );
 
     event GrindOp(
@@ -190,9 +184,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 poolId
     ) external returns (uint256 quoteTokenAmount, uint256 baseTokenAmount);
 
-    function rebalance(uint256 poolIdLeft, uint256 poolIdRight, uint8 rebalanceLeft, uint8 rebalnceRight) external;
-
-    function grind(uint256 poolId) external returns (bool isGrinded);
+    function microOps(uint256 poolId) external returns (bool isGrinded);
 
     function microOp(uint256 poolId, uint8 op) external returns (bool isGrinded);
 
