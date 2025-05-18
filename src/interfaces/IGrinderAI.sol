@@ -91,9 +91,9 @@ interface IGrinderAI {
 
     function getIntents(address[] memory accounts) external view returns (Intent[] memory intents);
 
-    function getEstimatedPnL(uint256 poolId) external view returns (IURUS.Profits memory) ;
+    function getPnL(uint256 poolId) external view returns (IURUS.Profits memory) ;
 
-    function getEstimatedPnLBy(uint256[] memory poolIds) external view returns (IURUS.Profits[] memory profits);
+    function getPnLBy(uint256[] memory poolIds) external view returns (IURUS.Profits[] memory profits);
 
     function isPaymentToken(address paymentToken) external view returns (bool);
 
