@@ -27,11 +27,11 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         if (address(swapRouter) != address(0)) {
             revert DexInitialized();
         }
-        (address _swapRouter, uint24 _uniswapV3PoolFee, address _quoteToken, address _baseToken) = decodeDexConstructorArgs(args);
+        (address _swapRouter, uint24 _uniswapV3PoolFee, address _baseToken, address _quoteToken) = decodeDexConstructorArgs(args);
 
         // infinite approve for transferFrom Uniswap
-        IToken(_quoteToken).forceApprove(_swapRouter, type(uint256).max);
         IToken(_baseToken).forceApprove(_swapRouter, type(uint256).max);
+        IToken(_quoteToken).forceApprove(_swapRouter, type(uint256).max);
 
         swapRouter = ISwapRouterArbitrum(_swapRouter);
         uniswapV3PoolFee = _uniswapV3PoolFee;
@@ -45,23 +45,23 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
     function encodeDexConstructorArgs(
         address _swapRouter,
         uint24 _uniswapV3PoolFee,
-        address _quoteToken,
-        address _baseToken
+        address _baseToken,
+        address _quoteToken
     ) public pure returns (bytes memory) {
-        return abi.encode(_swapRouter, _uniswapV3PoolFee, _quoteToken, _baseToken);
+        return abi.encode(_swapRouter, _uniswapV3PoolFee, _baseToken, _quoteToken);
     }
 
     /// @notice decode dex constructor args
     /// @param args encoded args of constructor via `encodeDexConstructorArgs`
     function decodeDexConstructorArgs(
         bytes memory args
-    ) public pure returns (address _swapRouter, uint24 _uniswapV3PoolFee, address _quoteToken, address _baseToken) {
-        (_swapRouter, _uniswapV3PoolFee, _quoteToken, _baseToken) = abi.decode(args, (address, uint24, address, address));
+    ) public pure returns (address _swapRouter, uint24 _uniswapV3PoolFee, address _baseToken, address _quoteToken) {
+        (_swapRouter, _uniswapV3PoolFee, _baseToken, _quoteToken) = abi.decode(args, (address, uint24, address, address));
     }
 
     /// @notice gets dex params
     function getDexParams() public view virtual override returns (bytes memory args) {
-        args = encodeDexConstructorArgs(address(swapRouter), uniswapV3PoolFee, address(getQuoteToken()), address(getBaseToken()));
+        args = encodeDexConstructorArgs(address(swapRouter), uniswapV3PoolFee, address(getBaseToken()), address(getQuoteToken()));
     }
 
     /// @notice sets dex params
@@ -108,15 +108,16 @@ contract UniswapV3AdapterArbitrum is IDexAdapter {
         amountOut = tokenOutBalanceAfter - tokenOutBalanceBefore;
     }
 
+    /// @notice gets base token
+    /// @dev should be reimplemented in inherrited contract
+    function getBaseToken() public view virtual returns (IToken) {
+        return IToken(address(0));
+    }
+
     /// @notice gets quote token
     /// @dev should be reimplemented in inherrited contract
     function getQuoteToken() public view virtual returns (IToken) {
         return IToken(address(0));
     }
 
-    /// @notice gets base token
-    /// @dev should be reimplemented in inherrited contract
-    function getBaseToken() public view virtual returns (IToken) {
-        return IToken(address(0));
-    }
 }
