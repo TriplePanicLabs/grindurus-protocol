@@ -89,6 +89,8 @@ interface IPoolsNFTLens {
 
     function getPositionsBy(uint256[] memory poolIds) external view returns(Positions[] memory positions);
 
+    function getZeroConfig() external view returns (IURUS.Config memory);
+
     function getConfig(uint256 poolId) external view returns(IURUS.Config memory);
 
     function getFeeConfig(uint256 poolId) external view returns (IURUS.FeeConfig memory);

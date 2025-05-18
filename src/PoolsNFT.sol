@@ -243,18 +243,21 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @param baseToken address of baseToken
     /// @param quoteToken address of quoteToken
     /// @param quoteTokenAmount amount of quoteToken to be deposited after mint
+    /// @param config URUS.Config structure. May be zeroify structure
     function mint(
         uint16 strategyId,
         address baseToken,
         address quoteToken,
-        uint256 quoteTokenAmount
+        uint256 quoteTokenAmount,
+        IURUS.Config memory config
     ) external override returns (uint256) {
         return mintTo(
             msg.sender,
             strategyId,
             baseToken,
             quoteToken,
-            quoteTokenAmount
+            quoteTokenAmount,
+            config
         );
     }
 
@@ -264,17 +267,19 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @param baseToken address of baseToken
     /// @param quoteToken address of quoteToken
     /// @param quoteTokenAmount amount of quoteToken to be deposited after mint
+    /// @param config URUS.Config structure. May be zeroify structure
     function mintTo(
         address to,
         uint16 strategyId,
         address baseToken,
         address quoteToken,
-        uint256 quoteTokenAmount
+        uint256 quoteTokenAmount,
+        IURUS.Config memory config
     ) public override returns (uint256 poolId) {
         if (isStrategyStopped[strategyId]) {
             revert StrategyStopped();
         }
-        poolId = _mintTo(to, strategyId, baseToken, quoteToken);
+        poolId = _mintTo(to, strategyId, baseToken, quoteToken, config);
         _deposit(poolId, quoteTokenAmount);
         royaltyPrice[poolId] = (quoteTokenAmount * royaltyPriceShares.auctionStartShare) / DENOMINATOR;
     }
@@ -288,13 +293,15 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         address to,
         uint16 strategyId,
         address baseToken,
-        address quoteToken
+        address quoteToken,
+        IURUS.Config memory config
     ) internal returns (uint256 poolId) {
         poolId = totalPools;
         address pool = IStrategyFactory(strategyFactory[strategyId]).deploy(
             poolId,
             baseToken,
-            quoteToken
+            quoteToken,
+            config
         );
         agentOf[poolId] = msg.sender;
         pools[poolId] = pool;
@@ -697,7 +704,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
 
     /// @notice return base URI
     /// @dev base URI holds on poolsNFTLens
-    function baseURI() public view returns (string memory) {
+    function baseURI() public view override returns (string memory) {
         return poolsNFTLens.baseURI();
     }
 
@@ -714,6 +721,11 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     {
         _requireOwned(poolId);
         uri = poolsNFTLens.tokenURI(poolId);
+    }
+
+    /// @notice get zero config
+    function getZeroConfig() external view returns (IURUS.Config memory) {
+        return poolsNFTLens.getZeroConfig();
     }
 
     /// @inheritdoc ERC721

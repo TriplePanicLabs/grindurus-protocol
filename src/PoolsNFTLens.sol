@@ -123,6 +123,19 @@ contract PoolsNFTLens is IPoolsNFTLens {
         });
     }
 
+    /// @notice gets zero config
+    function getZeroConfig() public pure override returns (IURUS.Config memory) {
+        return IURUS.Config({
+            longNumberMax: 0,
+            hedgeNumberMax: 0,
+            extraCoef: 0,
+            priceVolatilityPercent: 0,
+            returnPercentLongSell: 0,
+            returnPercentHedgeSell: 0,
+            returnPercentHedgeRebuy: 0
+        });
+    }
+
     /// @notice forms config structure for `getPoolNFTInfosBy`
     /// @param poolId id of pool
     function getConfig(uint256 poolId) public view returns (IURUS.Config memory) {

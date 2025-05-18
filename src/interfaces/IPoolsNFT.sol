@@ -148,7 +148,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint16 strategyId,
         address baseToken,
         address quoteToken,
-        uint256 quoteTokenAmount
+        uint256 quoteTokenAmount,
+        IURUS.Config memory config
     ) external returns (uint256 poolId);
 
     function mintTo(
@@ -156,7 +157,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint16 strategyId,
         address baseToken,
         address quoteToken,
-        uint256 quoteTokenAmount
+        uint256 quoteTokenAmount,
+        IURUS.Config memory config
     ) external returns (uint256 poolId);
 
     function setAgentOf(uint256 poolId, address agent) external;
@@ -235,7 +237,11 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint256 grethReward
     ) external view returns (address[] memory actors, uint256[] memory shares);
 
+    function baseURI() external view returns (string memory);
+
     function tokenURI(uint256 poolId) external view returns (string memory uri);
+
+    function getZeroConfig() external view returns (IURUS.Config memory);
 
     function getRoyaltyReceiver(
         uint256 poolId
