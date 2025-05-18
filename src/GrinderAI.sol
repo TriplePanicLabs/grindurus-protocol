@@ -373,7 +373,7 @@ contract GrinderAI is IGrinderAI {
 
     /// @notice return estimated profits and loses of pool with poolId
     /// @param poolId id of pool on poolsNFT
-    function getEstimatedPnL(uint256 poolId) public view override returns (IURUS.Profits memory) {
+    function getPnL(uint256 poolId) public view override returns (IURUS.Profits memory) {
         IStrategy pool = IStrategy(poolsNFT.pools(poolId));
         IToken baseToken = pool.getBaseToken();
         IToken quoteToken = pool.getQuoteToken();
@@ -403,10 +403,10 @@ contract GrinderAI is IGrinderAI {
     }
 
     /// @notice return batch of estimated profits and loses of poolIds
-    function getEstimatedPnLBy(uint256[] memory poolIds) public view override returns (IURUS.Profits[] memory profits) {
+    function getPnLBy(uint256[] memory poolIds) public view override returns (IURUS.Profits[] memory profits) {
         uint256 len = poolIds.length;
         for (uint256 i = 0; i < len;) {
-            profits[i] = getEstimatedPnL(poolIds[i]);
+            profits[i] = getPnL(poolIds[i]);
             unchecked { ++i; }
         }
     }
