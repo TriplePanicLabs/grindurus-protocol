@@ -1,63 +1,28 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import { IStrategyFactory } from "src/interfaces/IStrategyFactory.sol";
-import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
-import { Strategy1Arbitrum, IStrategy, IToken } from "./Strategy1Arbitrum.sol";
-import { IURUS } from "src/interfaces/IURUS.sol";
-import { IRegistry } from "src/interfaces/IRegistry.sol";
-import { ERC1967Proxy } from "lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { Strategy1Arbitrum } from "./Strategy1Arbitrum.sol";
+import { StrategyFactory, IURUS } from "src/strategies/StrategyFactory.sol";
 
 /// @title GrindURUS Strategy1 Factory
 /// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
 /// @notice factory, that is responsible for deployment of Strategy1 on Arbitrum
-contract Strategy1FactoryArbitrum is IStrategyFactory {
-    /// @dev address of grindurus pools NFT
-    IPoolsNFT public poolsNFT;
+contract Strategy1FactoryArbitrum is StrategyFactory {
 
-    /// @dev default config for strategyV1
-    IURUS.Config public defaultConfig;
-
-    address internal oracleWethUsdArbitrum;
-    address internal wethArbitrum;
-    address internal usdtArbitrum;
-    address internal usdcArbitrum;
+    address public oracleWethUsdArbitrum;
+    address public wethArbitrum;
+    address public usdtArbitrum;
+    address public usdcArbitrum;
 
     address public aaveV3PoolArbitrum;
     address public uniswapV3SwapRouterArbitrum;
-
-    /// @dev address of fee token
-    address public feeToken;
-
-    /// @dev addess of oracle registry
-    IRegistry public registry;
-
-    /// @dev address of implementation of strategy1
-    address public strategyImplementation;
 
     /// @dev quoteToken => baseToken => uniswapV3PoolFee
     mapping (address quoteToken => mapping(address baseToken => uint24)) public uniswapV3PoolFee;
 
     /// @param _poolsNFT address of PoolsNFT
     /// @param _registry address of registry
-    constructor(address _poolsNFT, address _registry, address initialStrategyImplementation) {
-        if (_poolsNFT != address(0)) {
-            poolsNFT = IPoolsNFT(_poolsNFT);
-        } else {
-            poolsNFT = IPoolsNFT(msg.sender);
-        }
-        registry = IRegistry(_registry);
-        strategyImplementation = initialStrategyImplementation;
-        defaultConfig = IURUS.Config({
-            // maxLiquidity = initLiquidity * (extraCoef + 1) ** (longNumberMax - 1)
-            longNumberMax: 3,
-            hedgeNumberMax: 3,
-            priceVolatilityPercent: 1_00, // 1%
-            extraCoef: 2_00, // x2.00
-            returnPercentLongSell: 100_50, // 100.50% // returnPercent = (amountInvested + profit) * 100 / amountInvested
-            returnPercentHedgeSell: 100_50, // 100.50%
-            returnPercentHedgeRebuy: 100_50 // 100.50%
-        });
+    constructor(address _poolsNFT, address _registry, address initialStrategyImplementation) StrategyFactory(_poolsNFT, _registry, initialStrategyImplementation) {
         oracleWethUsdArbitrum = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612; // chainlink WETH/USD oracle;
         wethArbitrum = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
         usdtArbitrum = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
@@ -67,36 +32,11 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
         uniswapV3SwapRouterArbitrum = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
         uniswapV3PoolFee[usdtArbitrum][wethArbitrum] = 100;
+        uniswapV3PoolFee[wethArbitrum][usdtArbitrum] = 100;
         uniswapV3PoolFee[usdcArbitrum][wethArbitrum] = 100;
+        uniswapV3PoolFee[wethArbitrum][usdcArbitrum] = 100;
 
         feeToken = wethArbitrum;
-    }
-
-    /// @dev checks that msg.sender is gateway
-    function _onlyGateway() internal view virtual {
-        if (msg.sender != address(poolsNFT)) {
-            revert NotGateway();
-        }
-    }
-
-    /// @notice checks that msg.sender is owner
-    function _onlyOwner() internal view {
-        if (msg.sender != owner()) {
-            revert NotOwner();
-        }
-    }
-
-    /// @notice sets strategy implementation
-    function setStrategyImplementation(address _stategyImplementation) external {
-        _onlyOwner();
-        strategyImplementation = _stategyImplementation;
-    }
-
-    /// @notice sets default config
-    /// @param config new filled config
-    function setDefaultConfig(IURUS.Config memory config) external {
-        _onlyOwner();
-        defaultConfig = config;
     }
 
     /// @notice sets aave v3 pool
@@ -114,16 +54,17 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
     }
 
     /// @notice sets uniswapV3 fee
-    /// @param _quoteToken address of quoteToken
-    /// @param _baseToken address of baseToken
+    /// @param quoteToken address of quoteToken
+    /// @param baseToken address of baseToken
     /// @param _uniswapV3PoolFee price scaled by 10**8
     function setUniswapV3PoolFee(
-        address _quoteToken,
-        address _baseToken,
+        address quoteToken,
+        address baseToken,
         uint24 _uniswapV3PoolFee
     ) public {
         _onlyOwner();
-        uniswapV3PoolFee[_quoteToken][_baseToken] = _uniswapV3PoolFee;
+        uniswapV3PoolFee[quoteToken][baseToken] = _uniswapV3PoolFee;
+        uniswapV3PoolFee[baseToken][quoteToken] = _uniswapV3PoolFee;
     }
 
     /// @notice deploy strategy pool
@@ -134,16 +75,23 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
     function deploy(
         uint256 poolId,
         address baseToken,
-        address quoteToken
+        address quoteToken,
+        IURUS.Config memory config
     ) public override returns (address) {
         _onlyGateway();
-        address oracleQuoteTokenPerFeeToken = registry.getOracle(quoteToken, feeToken); // may be address(0)
-        address oracleQuoteTokenPerBaseToken = registry.getOracle(quoteToken, baseToken); // may be address(0)
+        if (isZeroConfig(config)) {
+            config = getDefaultConfig();
+        }
         Strategy1Arbitrum pool = Strategy1Arbitrum(_deploy());
-        uint24 uniswapV3Fee = uniswapV3PoolFee[quoteToken][baseToken];
-        bytes memory lendingArgs = abi.encode(aaveV3PoolArbitrum);
-        bytes memory dexArgs = abi.encode(uniswapV3SwapRouterArbitrum, uniswapV3Fee, quoteToken, baseToken);
-        
+        address oracleQuoteTokenPerFeeToken = registry.getOracle(quoteToken, feeToken); // may be address(0)
+        address oracleQuoteTokenPerBaseToken = registry.getOracle(quoteToken, baseToken); //  may be address(0)
+        bytes memory lendingArgs = pool.encodeLendingConstructorArgs(aaveV3PoolArbitrum);
+        bytes memory dexArgs = pool.encodeDexConstructorArgs(
+            uniswapV3SwapRouterArbitrum,
+            uniswapV3PoolFee[quoteToken][baseToken],
+            baseToken,
+            quoteToken
+        );
         pool.init(
             address(poolsNFT),
             poolId,
@@ -152,26 +100,11 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
             feeToken,
             baseToken,
             quoteToken,
-            defaultConfig,
+            config,
             lendingArgs,
             dexArgs
         );
         return address(pool);
-    }
-
-    /// @notice deploy proxy of strategy implementation
-    function _deploy() internal returns (address payable) {
-        ERC1967Proxy proxy = new ERC1967Proxy(strategyImplementation, "");
-        return payable(proxy);
-    }
-
-    /// @notice returns address of owner
-    function owner() public view returns (address) {
-        try IPoolsNFT(poolsNFT).owner() returns (address payable _owner) {
-            return _owner;
-        } catch {
-            return address(poolsNFT);
-        }
     }
 
     /// @notice returns strategy id of factory
@@ -179,14 +112,4 @@ contract Strategy1FactoryArbitrum is IStrategyFactory {
         return 1;
     }
 
-    /// @notice execute any transaction
-    /// @param target address of target contract
-    /// @param value amount of ETH
-    /// @param data data to execute on target contract
-    /// @return success true if transaction was successful
-    /// @return result data returned from target contract
-    function execute(address target, uint256 value, bytes calldata data) public override returns (bool success, bytes memory result) {
-        _onlyOwner();
-        (success, result) = target.call{value: value}(data);
-    }
 }
