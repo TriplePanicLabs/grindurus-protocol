@@ -2,16 +2,23 @@
 pragma solidity =0.8.28;
 
 import { Test, console } from "forge-std/Test.sol";
+import { IURUS } from "src/interfaces/IURUS.sol";
+
 import { PoolsNFT } from "src/PoolsNFT.sol";
-import { GRETH } from "src/GRETH.sol";
-import { Strategy1Arbitrum, IToken, IStrategy } from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import { Strategy1FactoryArbitrum } from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
-import { MockToken } from "test/mock/MockToken.sol";
-import { MockSwapRouterArbitrum } from "test/mock/MockSwapRouterArbitrum.sol";
-import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
 import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
+
+import { GRETH } from "src/GRETH.sol";
+
 import { GRAI } from "src/GRAI.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
+
+import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
+
+import { Strategy1Arbitrum, IToken, IStrategy } from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import { Strategy1FactoryArbitrum } from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
+
+import { MockToken } from "test/mock/MockToken.sol";
+import { MockSwapRouterArbitrum } from "test/mock/MockSwapRouterArbitrum.sol";
 
 // $ forge test --match-path test/URUSStrategy1Arbitrum.t.sol -vvv
 contract URUSStrategy1ArbitrumTest is Test {
@@ -33,13 +40,11 @@ contract URUSStrategy1ArbitrumTest is Test {
     uint256 poolId0;
 
     PoolsNFT public poolsNFT;
-
     PoolsNFTLens public poolsNFTLens;
     
     GRETH public grETH;
 
     GRAI public grAI;
-
     GrinderAI public grinderAI;
 
     Strategy1Arbitrum public pool0;
@@ -47,7 +52,6 @@ contract URUSStrategy1ArbitrumTest is Test {
     RegistryArbitrum public registry;
 
     Strategy1Arbitrum public strategy1;
-
     Strategy1FactoryArbitrum public factory1;
 
     MockSwapRouterArbitrum public mockSwapRouter;
@@ -84,13 +88,15 @@ contract URUSStrategy1ArbitrumTest is Test {
         deal(usdtArbitrum, address(mockSwapRouter), 1_000_000e6);
 
         uint256 amount =  1000 * 10**6;
+        IURUS.Config memory config = poolsNFT.getZeroConfig();
         IToken(usdtArbitrum).approve(address(poolsNFT), amount);
 
         poolId0 = poolsNFT.mint(
             1,                      // strategyId
             wethArbitrum,           // baseToken
             usdtArbitrum,           // quoteToken
-            amount                  // quoteTokenAmount
+            amount,                 // quoteTokenAmount
+            config
         );
         address pool0Address = poolsNFT.pools(poolId0);
         pool0 = Strategy1Arbitrum(payable(pool0Address));    
@@ -297,13 +303,15 @@ contract URUSStrategy1ArbitrumTest is Test {
     function test_rebalance() public {
         
         uint256 amount1 = 1000 * 10**6;
+        IURUS.Config memory config = poolsNFT.getZeroConfig();
         IToken(usdtArbitrum).approve(address(poolsNFT), amount1);
 
         uint256 poolId1 = poolsNFT.mint(
             1,                      // strategyId
             wethArbitrum,           // baseToken
             usdtArbitrum,           // quoteToken
-            amount1                 // quoteTokenAmount
+            amount1,                // quoteTokenAmount
+            config
         );
         address pool1Address = poolsNFT.pools(poolId1);
         Strategy1Arbitrum pool1 = Strategy1Arbitrum(payable(pool1Address));
@@ -311,12 +319,14 @@ contract URUSStrategy1ArbitrumTest is Test {
         pool1.setDexParams(pool1.encodeDexConstructorArgs(address(mockSwapRouter), 100, address(0x1337), address(0x101)));
 
         uint256 amount2 = 1000 * 10**6;
+        config = poolsNFT.getZeroConfig();
         IToken(usdtArbitrum).approve(address(poolsNFT), amount2);
         uint256 poolId2 = poolsNFT.mint(
             1,                      // strategyId
             wethArbitrum,           // baseToken
             usdtArbitrum,           // quoteToken
-            amount2                 // quoteTokenAmount
+            amount2,                // quoteTokenAmount
+            config
         );
         address pool2Address = poolsNFT.pools(poolId2);
         Strategy1Arbitrum pool2 = Strategy1Arbitrum(payable(pool2Address));

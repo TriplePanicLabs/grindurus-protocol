@@ -3,17 +3,22 @@ pragma solidity =0.8.28;
 
 import { Test, console } from "forge-std/Test.sol";
 import { IToken } from "src/interfaces/IToken.sol";
+import { IURUS } from "src/interfaces/IURUS.sol";
+
 import { PoolsNFT } from "src/PoolsNFT.sol";
 import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
 import { GRETH } from "src/GRETH.sol";
+
 import { GRAI } from "src/GRAI.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
-import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { Agent } from "src/Agent.sol";
+
+import { Agent, IAgent } from "src/Agent.sol";
 import { AgentsNFT } from "src/AgentsNFT.sol";
+
 import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
 import { Strategy0Arbitrum } from "src/strategies/arbitrum/strategy0/Strategy0Arbitrum.sol";
 import { Strategy0FactoryArbitrum} from "src/strategies/arbitrum/strategy0/Strategy0FactoryArbitrum.sol";
+
 import { Strategy1Arbitrum } from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
 import { Strategy1FactoryArbitrum} from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 
@@ -42,7 +47,6 @@ contract GrinderAITest is Test {
 
     GRAI public grAI;
     GrinderAI public grinderAI;
-    TransparentUpgradeableProxy public proxyGrinderAI;
 
     RegistryArbitrum public registry;
 
@@ -54,6 +58,9 @@ contract GrinderAITest is Test {
     
     Agent public agent;
     AgentsNFT public agentsNFT;
+
+    IURUS.Config public config;
+    IAgent.AgentConfig public agentConfig;
 
     function setUp() public {
         vm.createSelectFork("arbitrum");
@@ -164,9 +171,15 @@ contract GrinderAITest is Test {
         uint256 liquidityFragment = 100e6; // 1 USDT
         uint16 positionsMax = 2;
         uint16 subnodesMax = 1;
+        config = poolsNFT.getZeroConfig();
+        agentConfig = IAgent.AgentConfig({
+            liquidityFragment: liquidityFragment,
+            positionsMax: positionsMax,
+            subnodesMax: subnodesMax
+        });
         IToken usdt = IToken(quoteToken);
         usdt.approve(address(agentsNFT), quoteTokenAmount);
-        uint256 agentId = agentsNFT.mint(strategyId, baseToken, quoteToken, quoteTokenAmount, liquidityFragment, positionsMax, subnodesMax);        
+        uint256 agentId = agentsNFT.mint(strategyId, baseToken, quoteToken, quoteTokenAmount, config, agentConfig);
         vm.stopBroadcast();
         
         address grinder = grinderAI.grinder();
@@ -196,9 +209,15 @@ contract GrinderAITest is Test {
         uint256 liquidityFragment = 100e6; // 1 USDT
         uint16 positionsMax = 2;
         uint16 subnodesMax = 1;
+        config = poolsNFT.getZeroConfig();
+        agentConfig = IAgent.AgentConfig({
+            liquidityFragment: liquidityFragment,
+            positionsMax: positionsMax,
+            subnodesMax: subnodesMax
+        });
         IToken usdt = IToken(quoteToken);
         usdt.approve(address(agentsNFT), quoteTokenAmount);
-        uint256 agentId = agentsNFT.mint(strategyId, baseToken, quoteToken, quoteTokenAmount, liquidityFragment, positionsMax, subnodesMax);        
+        uint256 agentId = agentsNFT.mint(strategyId, baseToken, quoteToken, quoteTokenAmount, config, agentConfig);        
         vm.stopBroadcast();
         
         address grinder = grinderAI.grinder();

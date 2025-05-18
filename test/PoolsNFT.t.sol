@@ -2,15 +2,19 @@
 pragma solidity =0.8.28;
 
 import { Test, console } from "forge-std/Test.sol";
+import { IURUS } from "src/interfaces/IURUS.sol";
+
 import { PoolsNFT } from "src/PoolsNFT.sol";
-import { GRETH } from "src/GRETH.sol";
-import { Strategy1Arbitrum, IToken, IStrategy } from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
-import { Strategy1FactoryArbitrum } from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
-import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
 import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
+import { GRETH } from "src/GRETH.sol";
+
 import { GRAI } from "src/GRAI.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
-import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
+import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
+
+import { Strategy1Arbitrum, IToken, IStrategy } from "src/strategies/arbitrum/strategy1/Strategy1Arbitrum.sol";
+import { Strategy1FactoryArbitrum } from "src/strategies/arbitrum/strategy1/Strategy1FactoryArbitrum.sol";
 
 // $ forge test --match-path test/PoolsNFT.t.sol -vvv
 contract PoolsNFTTest is Test {
@@ -28,14 +32,10 @@ contract PoolsNFTTest is Test {
     uint24 fee = 500;
 
     PoolsNFT public poolsNFT;
-
     PoolsNFTLens public poolsNFTLens;
 
     GRETH public greth;
-
     GRAI public grAI;
-
-    TransparentUpgradeableProxy public proxyGrinderAI;
 
     GrinderAI public grinderAI;
 
@@ -44,7 +44,6 @@ contract PoolsNFTTest is Test {
     RegistryArbitrum public registry;
 
     Strategy1Arbitrum public strategy1;
-
     Strategy1FactoryArbitrum public factory1;
 
     function setUp() public {
@@ -54,20 +53,15 @@ contract PoolsNFTTest is Test {
         deal(usdtArbitrum, address(this), 1000e6);
 
         poolsNFT = new PoolsNFT();
-
         poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
         
         greth = new GRETH(address(poolsNFT), wethArbitrum);
 
-        grinderAI = new GrinderAI();
-        proxyGrinderAI = new TransparentUpgradeableProxy(address(grinderAI), address(this), "");
-        
-        grAI = new GRAI(lzEndpointArbitrum, address(proxyGrinderAI));
+        grinderAI = new GrinderAI();        
+        grAI = new GRAI(lzEndpointArbitrum, address(grinderAI));
 
-        grinderAI = GrinderAI(payable(proxyGrinderAI));
         poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
         grinderAI.init(address(poolsNFT), address(grAI));
-        
 
         registry = new RegistryArbitrum(address(poolsNFT));
 
@@ -82,13 +76,15 @@ contract PoolsNFTTest is Test {
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 1e6;
+        IURUS.Config memory config = poolsNFT.getZeroConfig();
         deal(quoteToken, address(this), quoteTokenAmount);
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
             baseToken,
             quoteToken,
-            quoteTokenAmount
+            quoteTokenAmount,
+            config
         );
 
         pool = Strategy1Arbitrum(payable(poolsNFT.pools(poolId)));
@@ -124,13 +120,15 @@ contract PoolsNFTTest is Test {
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 270e6;
+        IURUS.Config memory config = poolsNFT.getZeroConfig();
         deal(quoteToken, address(this), quoteTokenAmount);
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
             baseToken,
             quoteToken,
-            quoteTokenAmount
+            quoteTokenAmount,
+            config
         );
 
         poolsNFT.grind(poolId);
@@ -162,13 +160,15 @@ contract PoolsNFTTest is Test {
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 270e6;
+        IURUS.Config memory config = poolsNFT.getZeroConfig();
         deal(quoteToken, address(this), quoteTokenAmount);
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
             baseToken,
             quoteToken,
-            quoteTokenAmount
+            quoteTokenAmount,
+            config
         );
         pool = Strategy1Arbitrum(payable(poolsNFT.pools(poolId)));
     
@@ -187,13 +187,15 @@ contract PoolsNFTTest is Test {
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 270e6;
+        IURUS.Config memory config = poolsNFT.getZeroConfig();
         deal(quoteToken, address(this), quoteTokenAmount);
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
             baseToken,
             quoteToken,
-            quoteTokenAmount
+            quoteTokenAmount,
+            config
         );
 
         poolsNFT.exit(poolId);
@@ -209,13 +211,15 @@ contract PoolsNFTTest is Test {
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 270e6;
+        IURUS.Config memory config = poolsNFT.getZeroConfig();
         deal(quoteToken, address(this), 1000e6);
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
             baseToken,
             quoteToken,
-            quoteTokenAmount
+            quoteTokenAmount,
+            config
         );
         uint256 royaltyPriceBefore = poolsNFT.royaltyPrice(poolId);
         (
@@ -244,13 +248,15 @@ contract PoolsNFTTest is Test {
         address baseToken = wethArbitrum;
         address quoteToken = usdtArbitrum;
         uint256 quoteTokenAmount = 270e6;
+        IURUS.Config memory config = poolsNFT.getZeroConfig();
         deal(quoteToken, address(this), quoteTokenAmount);
         IToken(quoteToken).approve(address(poolsNFT), quoteTokenAmount);
         uint256 poolId = poolsNFT.mint(
             strategyId,
             baseToken,
             quoteToken,
-            quoteTokenAmount
+            quoteTokenAmount,
+            config
         );
         address receiver = address(777);
         poolsNFT.transfer(receiver, poolId);
