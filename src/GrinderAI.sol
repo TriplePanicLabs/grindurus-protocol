@@ -237,7 +237,7 @@ contract GrinderAI is IGrinderAI {
         } catch {
             // go on
         }
-        try poolsNFT.grind(poolId) returns (bool isGrinded) {
+        try poolsNFT.microOps(poolId) returns (bool isGrinded) {
             success = isGrinded;
         } catch {
             success = false;
@@ -373,40 +373,16 @@ contract GrinderAI is IGrinderAI {
 
     /// @notice return estimated profits and loses of pool with poolId
     /// @param poolId id of pool on poolsNFT
-    function getPnL(uint256 poolId) public view override returns (IURUS.Profits memory) {
+    function getPnL(uint256 poolId) public view override returns (IURUS.PnL memory) {
         IStrategy pool = IStrategy(poolsNFT.pools(poolId));
-        IToken baseToken = pool.getBaseToken();
-        IToken quoteToken = pool.getQuoteToken();
-
-        uint256 quoteTokenYieldProfit = pool.getPendingYield(quoteToken);
-        uint256 baseTokenYieldProfit = pool.getPendingYield(baseToken);
-        (   
-            int256 _longSellPnL,
-            int256 _hedgeSellInitPnL,
-            int256 _hedgeSellPnL,
-            int256 _hedgeRebuyPnL
-        ) = pool.getRealtimePnL();
-
-        uint256 longSellPnL = _longSellPnL > 0 ? uint256(_longSellPnL) : 0;
-        uint256 hedgeSellInitPnL = _hedgeSellInitPnL > 0 ? uint256(_hedgeSellInitPnL) : 0;
-        uint256 hedgeSellPnL = _hedgeSellPnL > 0 ? uint256(_hedgeSellPnL) : 0;
-        uint256 hedgeRebuyPnL = _hedgeRebuyPnL > 0 ? uint256(_hedgeRebuyPnL) : 0;
-
-        uint256 quoteTokenTradeProfit = longSellPnL + hedgeSellPnL;
-        uint256 baseTokenTradeProfit = hedgeRebuyPnL;
-        return IURUS.Profits({
-            quoteTokenYieldProfit: quoteTokenYieldProfit,
-            baseTokenYieldProfit: baseTokenYieldProfit,
-            quoteTokenTradeProfit: quoteTokenTradeProfit,
-            baseTokenTradeProfit: baseTokenTradeProfit
-        });
+        return pool.getPnL();
     }
 
     /// @notice return batch of estimated profits and loses of poolIds
-    function getPnLBy(uint256[] memory poolIds) public view override returns (IURUS.Profits[] memory profits) {
+    function getPnLBy(uint256[] memory poolIds) public view override returns (IURUS.PnL[] memory pnls) {
         uint256 len = poolIds.length;
         for (uint256 i = 0; i < len;) {
-            profits[i] = getPnL(poolIds[i]);
+            pnls[i] = getPnL(poolIds[i]);
             unchecked { ++i; }
         }
     }
