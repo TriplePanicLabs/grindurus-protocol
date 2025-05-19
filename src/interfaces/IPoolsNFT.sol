@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import { IGRETH } from "src/interfaces/IGRETH.sol";
 import { IERC721 } from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol"; // NFT
 import { IERC2981 } from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol"; // royalty
 import { IURUS } from "src/interfaces/IURUS.sol";
@@ -77,13 +76,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
         uint16 ownerShare;
     }
 
-    struct GRETHShares {
-        uint16 poolOwnerShare;
-        uint16 poolBuyerShare;
-        uint16 reserveShare;
-    }
-
-    struct RoyaltyShares {
+    struct Shares {
         uint16 poolOwnerShare;
         uint16 poolBuyerShare;
         uint16 reserveShare;
@@ -130,11 +123,11 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function setPoolsNFTLens(address _poolsNFTLens) external;
 
-    function setRoyaltyShares(RoyaltyShares memory _royaltyShares) external;
-
-    function setGRETHShares(GRETHShares memory _grethShares) external;
-
     function setRoyaltyPriceShares(RoyaltyPriceShares memory _royaltyPriceShares) external;
+
+    function setGRETHShares(Shares memory _grethShares) external;
+
+    function setRoyaltyShares(Shares memory _royaltyShares) external;
 
     function transferOwnership(address payable _owner) external;
 
@@ -256,9 +249,9 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function getRoyaltyPriceShares() external view returns (RoyaltyPriceShares memory);
 
-    function getGRETHShares() external view returns (GRETHShares memory);
+    function getGRETHShares() external view returns (Shares memory);
 
-    function getRoyaltyShares() external view returns (RoyaltyShares memory);
+    function getRoyaltyShares() external view returns (Shares memory);
 
     function weth() external view returns (address);
 
