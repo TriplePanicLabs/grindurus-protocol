@@ -217,6 +217,7 @@ contract GrinderAI is IGrinderAI {
     /// @notice grind with defined 
     /// @dev first make macromanagement, second micromamagement
     /// @param poolId id of pool
+    /// @param metaGrinder address of grinder
     function grindTo(uint256 poolId, address payable metaGrinder) public override returns (bool success) {
         grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
@@ -245,6 +246,7 @@ contract GrinderAI is IGrinderAI {
         if (!success) {
             _transmit(grinder, ownerOf, transmited);
         }
+        grinder = payable(address(0));
     }
 
     /// @notice AI grind
@@ -258,6 +260,17 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
+    /// @notice AI grind to
+    /// @param poolIds array of pool ids
+    /// @param metaGrinder address of grinder
+    function batchGrindTo(uint256[] memory poolIds, address payable metaGrinder) public override {
+        uint256 len = poolIds.length;
+        for (uint256 i = 0; i < len; ) {
+            grindTo(poolIds[i], metaGrinder);
+            unchecked { ++i; }
+        }
+    } 
+
     /// @notice microOp for simulation purposes
     function microOp(uint256 poolId, uint8 op) public override returns (bool) {
         return microOpTo(poolId, op, payable(msg.sender));
@@ -265,6 +278,7 @@ contract GrinderAI is IGrinderAI {
 
     /// @notice microOpTo for simulation purposes on behalf of metaGrinder
     /// @dev grinder make offchain microOp.staticCall(poolId, op) and receive success or fail of simulation
+    /// @param metaGrinder address of grinder
     function microOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
         grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
@@ -276,6 +290,7 @@ contract GrinderAI is IGrinderAI {
         if (!success) {
             _transmit(grinder, ownerOf, transmited);
         }
+        grinder = payable(address(0));
     }
 
     /// @notice macroOp for simulation purposes
@@ -285,6 +300,7 @@ contract GrinderAI is IGrinderAI {
 
     /// @notice macroOp for simulation purposes
     /// @dev grinder make offchain macroOp.staticCall(poolId, op) and receive success or fail of simulation
+    /// @param metaGrinder address of grinder
     function macroOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
         grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
@@ -305,6 +321,7 @@ contract GrinderAI is IGrinderAI {
         if (!success) {
             _transmit(grinder, ownerOf, transmited);
         }
+        grinder = payable(address(0));
     }
 
     /// @notice grind operation on behalf of `msg.sender`
@@ -318,6 +335,7 @@ contract GrinderAI is IGrinderAI {
     /// @dev can be called by anyone, especially by grinder EOA
     /// @param poolId id of pool
     /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy, 4 - branch, 5 unbranch
+    /// @param metaGrinder address of grinder
     function grindOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
         grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
@@ -353,6 +371,7 @@ contract GrinderAI is IGrinderAI {
         if (!success) {
             _transmit(grinder, ownerOf, transmited);
         }
+        grinder = payable(address(0));
     }
 
     /// @notice batch of grindOps
@@ -365,6 +384,21 @@ contract GrinderAI is IGrinderAI {
         uint256 len = poolIds.length;
         for (uint256 i = 0; i < len;) {
             grindOp(poolIds[i], ops[i]);
+            unchecked { ++i; }
+        }
+    }
+
+    /// @notice batch of grindOps on behalf of `metaGrinder`
+    /// @param poolIds array of pool ids
+    /// @param ops array of ops
+    /// @param metaGrinder address of grinder
+    function batchGrindOpTo(uint256[] memory poolIds, uint8[] memory ops, address payable metaGrinder) public override {
+        if (poolIds.length != ops.length) {
+            revert InvalidLength();
+        }
+        uint256 len = poolIds.length;
+        for (uint256 i = 0; i < len;) {
+            grindOpTo(poolIds[i], ops[i], metaGrinder);
             unchecked { ++i; }
         }
     }

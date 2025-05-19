@@ -73,6 +73,8 @@ interface IGrinderAI {
 
     function batchGrind(uint256[] memory poolIds) external;
 
+    function batchGrindTo(uint256[] memory poolIds, address payable metaGrinder) external;
+
     function microOp(uint256 poolId, uint8 op) external returns (bool success);
 
     function microOpTo(uint256 poolId, uint8 op, address payable metaGrinder) external returns (bool success);
@@ -86,6 +88,8 @@ interface IGrinderAI {
     function grindOpTo(uint256 poolId, uint8 op, address payable metaGrinder) external returns (bool);
 
     function batchGrindOp(uint256[] memory poolIds, uint8[] memory ops) external;
+
+    function batchGrindOpTo(uint256[] memory poolIds, uint8[] memory ops, address payable metaGrinder) external;
 
     function getIntent(address account) external view returns (Intent memory intent);
 
