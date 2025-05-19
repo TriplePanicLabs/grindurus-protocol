@@ -111,6 +111,8 @@ interface IGrinderAI {
 
     function getPnLBy(uint256[] memory poolIds) external view returns (IURUS.PnL[] memory pnls);
 
+    function getPnLShares(uint256 poolId) external view returns (PnLShares[] memory pnlShares);
+
     function isPaymentToken(address paymentToken) external view returns (bool);
 
     function executeGRAI(address target, uint256 value, bytes calldata data) external payable returns (bool success, bytes memory result);

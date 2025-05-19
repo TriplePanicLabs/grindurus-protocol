@@ -422,7 +422,7 @@ contract GrinderAI is IGrinderAI {
     }
 
     /// @param poolId id of pool
-    function getPnLShares(uint256 poolId) public view returns (PnLShares[] memory pnlShares) {
+    function getPnLShares(uint256 poolId) public view override returns (PnLShares[] memory pnlShares) {
         IURUS.PnL memory pnl = getPnL(poolId);
         IStrategy pool = IStrategy(poolsNFT.pools(poolId));
         uint256 baseTokenAmount = 0;
