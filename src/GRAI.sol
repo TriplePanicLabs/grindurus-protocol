@@ -101,14 +101,6 @@ contract GRAI is IGRAI, OFT {
         return amount;
     }
 
-    /// @notice burns amount of grAI
-    /// @dev callable only by grinderAI
-    function burn(address to, uint256 amount) public override returns (uint256) {
-        _onlyGrinderAI();
-        _burn(to, amount);
-        return amount;
-    }
-
     /// @notice transmit grAI for grind from `from` to `to  
     /// @dev callable only by grinderAI
     function transmit(address from, address to, uint256 amount) public override returns (uint256) {

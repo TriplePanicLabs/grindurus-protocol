@@ -40,8 +40,6 @@ interface IGRAI is IOFT {
 
     function mint(address to, uint256 amount) external returns (uint256); 
 
-    function burn(address to, uint256 amount) external returns (uint256);
-
     function transmit(address from, address to, uint256 amount) external returns (uint256);
 
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
