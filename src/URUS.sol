@@ -181,6 +181,8 @@ contract URUS is IURUS {
             conf.extraCoef > 0
         ) {
             return true;
+        } else {
+            return false;
         }
     }
 
