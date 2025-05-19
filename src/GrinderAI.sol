@@ -421,6 +421,64 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
+    /// @param poolId id of pool
+    function getPnLShares(uint256 poolId) public view returns (PnLShares[] memory pnlShares) {
+        IURUS.PnL memory pnl = getPnL(poolId);
+        IStrategy pool = IStrategy(poolsNFT.pools(poolId));
+        uint256 baseTokenAmount = 0;
+        if (pnl.hedgeRebuyRealtime > 0) {
+            baseTokenAmount += uint256(pnl.hedgeRebuyRealtime);
+        }
+        baseTokenAmount += pool.getPendingYield(pool.getBaseToken());
+        uint256 quoteTokenAmount;
+        if (pnl.longSellRealtime + pnl.hedgeSellRealtime > 0) {
+            quoteTokenAmount += uint256(pnl.longSellRealtime + pnl.hedgeSellRealtime);
+        }
+        quoteTokenAmount += pool.getPendingYield(pool.getQuoteToken());
+        (
+            address[] memory receivers,
+            uint256[] memory grethAmounts
+        ) = poolsNFT.calcGRETHShares(poolId, ratePerGRAI[address(0)]);
+        uint256 graiAmount = grAI.balanceOf(poolsNFT.ownerOf(poolId)) > 0 ? oneGRAI : 0;
+        (
+            ,
+            uint256[] memory baseTokenRoyalties
+        ) = poolsNFT.calcRoyaltyShares(poolId, baseTokenAmount);
+        (
+            ,
+            uint256[] memory quoteTokenRoyalties
+        ) = poolsNFT.calcRoyaltyShares(poolId, quoteTokenAmount);
+        pnlShares = new PnLShares[](4);
+        pnlShares[0] = PnLShares({
+            receiver: receivers[0],
+            grethAmount: grethAmounts[0],
+            graiAmount: 0,
+            baseTokenAmount: baseTokenRoyalties[0],
+            quoteTokenAmount: quoteTokenRoyalties[0]
+        });
+        pnlShares[1] = PnLShares({
+            receiver: receivers[1],
+            grethAmount: grethAmounts[1],
+            graiAmount: 0,
+            baseTokenAmount: baseTokenRoyalties[1],
+            quoteTokenAmount: quoteTokenRoyalties[1]
+        });
+        pnlShares[2] = PnLShares({
+            receiver: receivers[2],
+            grethAmount: grethAmounts[2],
+            graiAmount: 0,
+            baseTokenAmount: baseTokenRoyalties[2],
+            quoteTokenAmount: quoteTokenRoyalties[2]
+        });
+        pnlShares[3] = PnLShares({
+            receiver: receivers[3],
+            grethAmount: grethAmounts[3],
+            graiAmount: oneGRAI,
+            baseTokenAmount: baseTokenRoyalties[3],
+            quoteTokenAmount: quoteTokenRoyalties[3]
+        });
+    }
+
     /// @notice get intent for grinding of `account`
     /// @param account address of account
     function getIntent(address account) public view override returns (Intent memory intent) {

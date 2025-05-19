@@ -35,6 +35,14 @@ interface IGrinderAI {
         uint256[] poolIds;
     }
 
+    struct PnLShares {
+        address receiver;
+        uint256 grethAmount;
+        uint256 graiAmount;
+        uint256 baseTokenAmount;
+        uint256 quoteTokenAmount;
+    }
+
     function DENOMINATOR() external view returns (uint16);
 
     function poolsNFT() external view returns (IPoolsNFT);
