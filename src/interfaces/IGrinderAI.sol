@@ -43,6 +43,10 @@ interface IGrinderAI {
 
     function grinder() external view returns (address payable);
 
+    function oneGRAI() external view returns (uint256);
+
+    function ratePerGRAI(address paymentToken) external view returns (uint256);
+
     function init(address _poolsNFT, address _grAI) external;
 
     function owner() external view returns (address payable);
