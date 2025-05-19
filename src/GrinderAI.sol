@@ -440,14 +440,8 @@ contract GrinderAI is IGrinderAI {
             uint256[] memory grethAmounts
         ) = poolsNFT.calcGRETHShares(poolId, ratePerGRAI[address(0)]);
         uint256 graiAmount = grAI.balanceOf(poolsNFT.ownerOf(poolId)) > 0 ? oneGRAI : 0;
-        (
-            ,
-            uint256[] memory baseTokenRoyalties
-        ) = poolsNFT.calcRoyaltyShares(poolId, baseTokenAmount);
-        (
-            ,
-            uint256[] memory quoteTokenRoyalties
-        ) = poolsNFT.calcRoyaltyShares(poolId, quoteTokenAmount);
+        ( , uint256[] memory baseTokenRoyalties) = poolsNFT.calcRoyaltyShares(poolId, baseTokenAmount);
+        ( , uint256[] memory quoteTokenRoyalties) = poolsNFT.calcRoyaltyShares(poolId, quoteTokenAmount);
         pnlShares = new PnLShares[](4);
         pnlShares[0] = PnLShares({
             receiver: receivers[0],
