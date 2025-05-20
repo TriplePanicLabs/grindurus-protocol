@@ -4,6 +4,7 @@ pragma solidity =0.8.28;
 import { IToken } from "src/interfaces/IToken.sol";
 import { IWETH9 } from "src/interfaces/IWETH9.sol";
 import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
+import { IPoolsNFTLens } from "src/interfaces/IPoolsNFTLens.sol";
 import { IAgent } from "src/interfaces/IAgent.sol";
 import { IStrategy, IURUS } from "src/interfaces/IStrategy.sol";
 import { Ownable2Step, Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
@@ -436,6 +437,12 @@ contract GrinderAI is IGrinderAI {
             intents[i] = getIntent(accounts[i]);
             unchecked { ++i; }
         }
+    }
+
+    /// @notice get positions
+    /// @param poolIds array with pool ids
+    function getPositions(uint256[] memory poolIds) public view override returns (IPoolsNFTLens.Positions[] memory) {
+        return poolsNFT.getPositionsBy(poolIds);
     }
 
     /// @notice return true if `paymentToken` is payment token 

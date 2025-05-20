@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { IURUS } from "src/interfaces/IURUS.sol";
 import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
+import { IPoolsNFTLens } from "src/interfaces/IPoolsNFTLens.sol";
 import { IGRAI } from "src/interfaces/IGRAI.sol";
 
 interface IGrinderAI {
@@ -94,6 +95,8 @@ interface IGrinderAI {
     function getIntent(address account) external view returns (Intent memory intent);
 
     function getIntents(address[] memory accounts) external view returns (Intent[] memory intents);
+
+    function getPositions(uint256[] memory poolIds) external view returns (IPoolsNFTLens.Positions[] memory);
 
     function getPnL(uint256 poolId) external view returns (IURUS.PnL memory) ;
 
