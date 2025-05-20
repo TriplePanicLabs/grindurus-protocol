@@ -12,6 +12,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
     
     error NotOwner();
     error NotAgent();
+    error NotGrinderAI();
     error NoCapital();
     error NotMicroOp();
     error InvalidShares();
@@ -180,6 +181,8 @@ interface IPoolsNFT is IERC721, IERC2981 {
     function microOps(uint256 poolId) external returns (bool isGrinded);
 
     function microOp(uint256 poolId, uint8 op) external returns (bool isGrinded);
+
+    function airdropGRETH(uint256 poolId) external;
 
     function buyRoyalty(
         uint256 poolId

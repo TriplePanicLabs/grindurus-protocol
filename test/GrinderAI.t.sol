@@ -102,10 +102,10 @@ contract GrinderAITest is Test {
         uint256 paymentAmount = grinderAI.calcPayment(address(0), graiAmount);
         //console.log("paymentAmount: ", paymentAmount);
         
-        uint256 grinderBalanceBefore = grinderAI.grinder().balance;
+        uint256 ownerBalanceBefore = grinderAI.owner().balance;
         grinderAI.mint{value: paymentAmount}(address(0), graiAmount);
-        uint256 grinderBalanceAfter = grinderAI.grinder().balance;
-        assert(grinderBalanceAfter > grinderBalanceBefore);
+        uint256 ownerBalanceAfter = grinderAI.owner().balance;
+        assert(ownerBalanceAfter > ownerBalanceBefore);
 
         vm.stopBroadcast();
     }
@@ -117,11 +117,11 @@ contract GrinderAITest is Test {
         uint256 paymentAmount = grinderAI.calcPayment(address(0), graiAmount);
         //console.log("paymentAmount: ", paymentAmount);
         
-        uint256 grinderBalanceBefore = grinderAI.grinder().balance;
+        uint256 ownerBalanceBefore = grinderAI.owner().balance;
         grinderAI.mint{value: paymentAmount}(address(0), graiAmount);
         grinderAI.mint{value: paymentAmount}(address(0), graiAmount);
-        uint256 grinderBalanceAfter = grinderAI.grinder().balance;
-        assert(grinderBalanceAfter > grinderBalanceBefore);
+        uint256 ownerBalanceAfter = grinderAI.owner().balance;
+        assert(ownerBalanceAfter > ownerBalanceBefore);
 
         vm.stopBroadcast();
     }
@@ -139,10 +139,10 @@ contract GrinderAITest is Test {
         usdt.approve(address(grinderAI), paymentAmount);
         // console.log("   paymentAmount: ", paymentAmount);
 
-        uint256 grinderBalanceBefore = usdt.balanceOf(address(grinderAI));
+        uint256 ownerBalanceBefore = usdt.balanceOf(address(grinderAI.owner()));
         grinderAI.mint(usdtArbitrum, graiAmount);
-        uint256 grinderBalanceAfter = usdt.balanceOf(address(grinderAI));
-        assert(grinderBalanceAfter > grinderBalanceBefore);
+        uint256 ownerBalanceAfter = usdt.balanceOf(address(grinderAI.owner()));
+        assert(ownerBalanceAfter > ownerBalanceBefore);
 
         vm.stopBroadcast();
     }
@@ -180,19 +180,54 @@ contract GrinderAITest is Test {
         IToken usdt = IToken(quoteToken);
         usdt.approve(address(agentsNFT), quoteTokenAmount);
         uint256 agentId = agentsNFT.mint(strategyId, baseToken, quoteToken, quoteTokenAmount, config, agentConfig);
-        vm.stopBroadcast();
-        
-        address grinder = grinderAI.grinder();
-        vm.startBroadcast(grinder);
+      
         uint256[] memory poolIds = agentsNFT.getPoolIds(agentId);
         uint256 balanceBefore = grAI.balanceOf(user);
-        uint256 balanceGrinderBefore = grAI.balanceOf(grinder);
         bool success = grinderAI.grind(poolIds[0]);
         assert(success == true);
         uint256 balanceAfter = grAI.balanceOf(user);
-        uint256 balanceGrinderAfter = grAI.balanceOf(grinder);
-        assert(balanceAfter < balanceBefore);
-        assert(balanceGrinderAfter > balanceGrinderBefore);
+        assert(balanceAfter == balanceBefore);
+        vm.stopBroadcast();
+
+    }
+
+    function test_grind2() public {
+        vm.startBroadcast(user);
+        deal(user, 1e18);
+        deal(usdtArbitrum, user, 1000e6);
+
+        uint256 graiAmount = 100 * 1e18; // 600 GRAI
+        uint256 payment = grinderAI.calcPayment(address(0), graiAmount);
+        grinderAI.mint{value: payment}(address(0), graiAmount);
+
+        uint16 strategyId = 0;
+        address baseToken = wethArbitrum;
+        address quoteToken = usdtArbitrum;
+        uint256 quoteTokenAmount = 300e6; // 1 USDT
+        uint256 liquidityFragment = 100e6; // 1 USDT
+        uint16 positionsMax = 2;
+        uint16 subnodesMax = 1;
+        config = poolsNFT.getZeroConfig();
+        agentConfig = IAgent.AgentConfig({
+            liquidityFragment: liquidityFragment,
+            positionsMax: positionsMax,
+            subnodesMax: subnodesMax
+        });
+        IToken usdt = IToken(quoteToken);
+        usdt.approve(address(agentsNFT), quoteTokenAmount);
+        uint256 agentId = agentsNFT.mint(strategyId, baseToken, quoteToken, quoteTokenAmount, config, agentConfig);
+        vm.stopBroadcast();
+
+        vm.startBroadcast(owner);
+        uint256[] memory poolIds = agentsNFT.getPoolIds(agentId);
+        uint256 userBalanceBefore = grAI.balanceOf(user);
+        uint256 ownerBalanceBefore = grAI.balanceOf(owner);
+        bool success = grinderAI.grind(poolIds[0]);
+        assert(success == true);
+        uint256 userBalanceAfter = grAI.balanceOf(user);
+        uint256 ownerBalanceAfter = grAI.balanceOf(owner);
+        assert(userBalanceAfter < userBalanceBefore);
+        assert(ownerBalanceAfter > ownerBalanceBefore);
         vm.stopBroadcast();
 
     }
@@ -218,19 +253,13 @@ contract GrinderAITest is Test {
         IToken usdt = IToken(quoteToken);
         usdt.approve(address(agentsNFT), quoteTokenAmount);
         uint256 agentId = agentsNFT.mint(strategyId, baseToken, quoteToken, quoteTokenAmount, config, agentConfig);        
-        vm.stopBroadcast();
-        
-        address grinder = grinderAI.grinder();
-        vm.startBroadcast(grinder);
+ 
         uint256[] memory poolIds = agentsNFT.getPoolIds(agentId);
         uint256 balanceBefore = grAI.balanceOf(user);
-        uint256 balanceGrinderBefore = grAI.balanceOf(grinder);
         bool success = grinderAI.grind(poolIds[0]);
         assert(success == true);
         uint256 balanceAfter = grAI.balanceOf(user);
-        uint256 balanceGrinderAfter = grAI.balanceOf(grinder);
         assert(balanceAfter == balanceBefore);
-        assert(balanceGrinderAfter == balanceGrinderBefore);
         vm.stopBroadcast();
     }
 

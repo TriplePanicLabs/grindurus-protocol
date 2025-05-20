@@ -224,16 +224,19 @@ contract GrinderAI is IGrinderAI {
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
         uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
         try agent.asyncWithdraw(poolId) returns (uint256) {
+            poolsNFT.airdropGRETH(poolId);
             return true;
         } catch {
             // go on
         }
         try agent.unbranch(poolId) returns (uint256) {
+            poolsNFT.airdropGRETH(poolId);
             return true;
         } catch {
             // go on
         }
         try agent.branch(poolId) returns (uint256) {
+            poolsNFT.airdropGRETH(poolId);
             return true;
         } catch {
             // go on
@@ -308,12 +311,15 @@ contract GrinderAI is IGrinderAI {
         uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
         if (op == uint8(Op.BRANCH)) {
             uint256 branchPoolId = agent.branch(poolId);
+            poolsNFT.airdropGRETH(poolId);
             success = (branchPoolId != poolId);
         } else if (op == uint8(Op.UNBRANCH)) {
             uint256 abovePoolId = agent.unbranch(poolId);
+            poolsNFT.airdropGRETH(poolId);
             success = abovePoolId != poolId;
         } else if (op == uint8(Op.ASYNC_WITHDRAW)) {
             uint256 withdrawnPoolId = agent.asyncWithdraw(poolId);
+            poolsNFT.airdropGRETH(poolId);
             success = withdrawnPoolId == poolId;
         } else {
             revert NotMacroOp();
@@ -349,6 +355,7 @@ contract GrinderAI is IGrinderAI {
         } else if (op == uint8(Op.BRANCH)) {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
             try agent.branch(poolId) returns (uint256 branchPoolId) {
+                poolsNFT.airdropGRETH(poolId);
                 success = poolId != branchPoolId;
             } catch {
                 success = false;
@@ -356,6 +363,7 @@ contract GrinderAI is IGrinderAI {
         } else if (op == uint8(Op.UNBRANCH)) {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
             try agent.unbranch(poolId) returns (uint256 abovePoolId) {
+                poolsNFT.airdropGRETH(poolId);
                 success = abovePoolId != poolId;
             } catch {
                 success = false;
@@ -363,6 +371,7 @@ contract GrinderAI is IGrinderAI {
         } else if (op == uint8(Op.ASYNC_WITHDRAW)) {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
             try agent.asyncWithdraw(poolId) returns (uint256 withdrawnPoolId) {
+                poolsNFT.airdropGRETH(poolId);
                 success = withdrawnPoolId == poolId;
             } catch {
                 success = false;

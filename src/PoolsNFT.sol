@@ -128,6 +128,13 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         }
     }
 
+    /// @notice checks that msg.sender is grinderAI
+    function _onlyGrinderAI() private view {
+        if (msg.sender != address(grinderAI)) {
+            revert NotGrinderAI();
+        }
+    }
+
     /// @notice checks that msg.sender is agent
     function _onlyAgentOf(uint256 poolId) private view {
         if (!isAgentOf(poolId, msg.sender)) {
@@ -469,6 +476,14 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
         return true;
     }
 
+    /// @notice airdrop greth
+    /// @dev for executing agent related operations
+    /// @param poolId pool id of pool in array `pools`
+    function airdropGRETH(uint256 poolId) public override {
+        _onlyGrinderAI();
+        _airdropGRETH(poolId);
+    }
+
     /// @notice airdrop for executing micro op
     function _airdropGRETH(uint256 poolId) internal {
         uint256 grethAmount;
@@ -481,7 +496,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
             poolId,
             grethAmount
         );
-        grETH.mint(actors, _grethShares);
+        try grETH.mint(actors, _grethShares) {} catch {}
     }
 
     /// @notice transfert poolId from `msg.sender` to `to`
