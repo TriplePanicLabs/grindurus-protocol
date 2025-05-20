@@ -10,7 +10,6 @@ interface IGrinderAI {
 
     error FailTransferETH();
     error InvalidLength();
-    error InvalidShares();
     error NotPaymentToken();
     error NotOwner();
     error NotMicroOp();
