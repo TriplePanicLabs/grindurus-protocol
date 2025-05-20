@@ -256,7 +256,7 @@ contract GrinderAI is IGrinderAI {
         } else {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
             try agent.macroOp(poolId, op) returns (bool _success) {
-                if (success) {
+                if (_success) {
                     poolsNFT.airdropGRETH(poolId);
                 }
                 success = _success;
