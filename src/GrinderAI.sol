@@ -409,7 +409,7 @@ contract GrinderAI is IGrinderAI {
             quoteTokenAmount: quoteTokenRoyalties[2]
         });
         pnlShares[3] = PnLShares({
-            receiver: receivers[3],
+            receiver: receivers[3] != address(0) ? receivers[3] : msg.sender,
             grethAmount: grethAmounts[3],
             graiAmount: graiAmount,
             baseTokenAmount: baseTokenRoyalties[3],
