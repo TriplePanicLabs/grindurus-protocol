@@ -17,18 +17,6 @@ interface IGrinderAI {
 
     event Pay(address paymentToken, address payer, uint256 paymentAmount);
 
-    enum Op {
-        // micro operations (URUS algorithm)
-        LONG_BUY,   // 0
-        LONG_SELL,  // 1
-        HEDGE_SELL, // 2
-        HEDGE_REBUY,// 3 
-        // macro operations (Agent)
-        BRANCH,     // 4
-        UNBRANCH,   // 5
-        ASYNC_WITHDRAW // 6
-    }
-
     struct Intent {
         address account;
         uint256 grinds;

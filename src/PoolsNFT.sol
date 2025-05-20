@@ -70,7 +70,7 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     /// @dev pool strategy address => poolId
     mapping (address pool => uint256) public poolIds;
 
-    /// @notice store minter of pool for airdrop points
+    /// @notice store agent of pool
     /// @dev poolId => address of creator of NFT
     mapping (uint256 poolId => address) public agentOf;
 
@@ -461,13 +461,13 @@ contract PoolsNFT is IPoolsNFT, ERC721Enumerable {
     function microOp(uint256 poolId, uint8 op) external override returns (bool) {
         IStrategy pool = IStrategy(pools[poolId]);
         _checkCapital(pool);
-        if (op == uint8(IGrinderAI.Op.LONG_BUY)) {
+        if (op == uint8(IURUS.Op.LONG_BUY)) {
             pool.long_buy();
-        } else if (op == uint8(IGrinderAI.Op.LONG_SELL)) {
+        } else if (op == uint8(IURUS.Op.LONG_SELL)) {
             pool.long_sell();
-        } else if (op == uint8(IGrinderAI.Op.HEDGE_SELL)) {
+        } else if (op == uint8(IURUS.Op.HEDGE_SELL)) {
             pool.hedge_sell();
-        } else if (op == uint8(IGrinderAI.Op.HEDGE_REBUY)) {
+        } else if (op == uint8(IURUS.Op.HEDGE_REBUY)) {
             pool.hedge_rebuy();
         } else {
             revert NotMicroOp();

@@ -119,44 +119,7 @@ contract GrinderAI is IGrinderAI {
 
     //// END GRAI CONFIGURATION ////////////////////////////////////////////////////////////////
 
-    /// @notice withdraws amount of token to `msg.sender`
-    /// @dev callable only by owner
-    /// @param token address of token
-    /// @param amount amount of token to withdraw
-    /// @return withdrawn amount of token withdrawn
-    function withdraw(address token, uint256 amount) public override returns (uint256) {
-        return withdrawTo(token, msg.sender, amount);
-    }
-
-    /// @notice withdraws amount of token to `to`
-    /// @dev callable only by owner
-    /// @param token address of token
-    /// @param to address of receiver
-    /// @param amount amount of token to withdraw
-    /// @return withdrawn amount of token withdrawn
-    function withdrawTo(address token, address to, uint256 amount) public override returns (uint256 withdrawn) {
-        _onlyOwner();
-        uint256 balance;
-        if (token == address(0)) {
-            balance = address(this).balance;
-        } else {
-            balance = IToken(token).balanceOf(address(this));
-        }
-        if (amount > balance) {
-            amount = balance;
-        }
-        if (token == address(0)) {
-            (bool success, ) = payable(to).call{value: amount}("");
-            if (!success) {
-                revert FailTransferETH();
-            }
-        } else {
-            IToken(token).safeTransfer(to, amount);
-        }
-        withdrawn = amount;
-    }
-
-    //// GRINDING FUNCTIONS
+    //// GRAI FUNCTIONS ////////////////////////////////////////////////////////////////
 
     /// @notice calculate payment
     /// @param paymentToken address of token
@@ -207,6 +170,10 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
+    //// END GRAI FUNCTIONS ////////////////////////////////////////////////////////////////
+
+    //// GRINDING FUNCTIONS ////////////////////////////////////////////////////////////////
+
     /// @notice grind
     /// @dev first make macromanagement, second micromamagement
     /// @param poolId id of pool
@@ -214,8 +181,8 @@ contract GrinderAI is IGrinderAI {
         return grindTo(poolId, payable(msg.sender));
     }
 
-    /// @notice grind with defined 
-    /// @dev first make macromanagement, second micromamagement
+    /// @notice grind
+    /// @dev first makes macromanagement, second micromamagement
     /// @param poolId id of pool
     /// @param metaGrinder address of grinder
     function grindTo(uint256 poolId, address payable metaGrinder) public override returns (bool success) {
@@ -223,26 +190,16 @@ contract GrinderAI is IGrinderAI {
         address ownerOf = poolsNFT.ownerOf(poolId);
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
         uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
-        try agent.asyncWithdraw(poolId) returns (uint256) {
-            poolsNFT.airdropGRETH(poolId);
-            return true;
+        try agent.macroOps(poolId) returns (bool _success) {
+            if (_success) {
+                poolsNFT.airdropGRETH(poolId);
+            }
+            return _success;
         } catch {
             // go on
         }
-        try agent.unbranch(poolId) returns (uint256) {
-            poolsNFT.airdropGRETH(poolId);
-            return true;
-        } catch {
-            // go on
-        }
-        try agent.branch(poolId) returns (uint256) {
-            poolsNFT.airdropGRETH(poolId);
-            return true;
-        } catch {
-            // go on
-        }
-        try poolsNFT.microOps(poolId) returns (bool isGrinded) {
-            success = isGrinded;
+        try poolsNFT.microOps(poolId) returns (bool _success) {
+            success = _success;
         } catch {
             success = false;
         }
@@ -274,63 +231,7 @@ contract GrinderAI is IGrinderAI {
         }
     } 
 
-    /// @notice microOp for simulation purposes
-    function microOp(uint256 poolId, uint8 op) public override returns (bool) {
-        return microOpTo(poolId, op, payable(msg.sender));
-    }
-
-    /// @notice microOpTo for simulation purposes on behalf of metaGrinder
-    /// @dev grinder make offchain microOp.staticCall(poolId, op) and receive success or fail of simulation
-    /// @param metaGrinder address of grinder
-    function microOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
-        grinder = metaGrinder;
-        address ownerOf = poolsNFT.ownerOf(poolId);
-        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
-        if (op > uint8(Op.HEDGE_REBUY)) {
-            revert NotMicroOp();
-        }
-        success = poolsNFT.microOp(poolId, op);
-        if (!success) {
-            _transmit(grinder, ownerOf, transmited);
-        }
-        grinder = payable(address(0));
-    }
-
-    /// @notice macroOp for simulation purposes
-    function macroOp(uint256 poolId, uint8 op) public override returns (bool) {
-        return macroOpTo(poolId, op, payable(msg.sender));
-    }
-
-    /// @notice macroOp for simulation purposes
-    /// @dev grinder make offchain macroOp.staticCall(poolId, op) and receive success or fail of simulation
-    /// @param metaGrinder address of grinder
-    function macroOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
-        grinder = metaGrinder;
-        address ownerOf = poolsNFT.ownerOf(poolId);
-        IAgent agent = IAgent(poolsNFT.agentOf(poolId));
-        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
-        if (op == uint8(Op.BRANCH)) {
-            uint256 branchPoolId = agent.branch(poolId);
-            poolsNFT.airdropGRETH(poolId);
-            success = (branchPoolId != poolId);
-        } else if (op == uint8(Op.UNBRANCH)) {
-            uint256 abovePoolId = agent.unbranch(poolId);
-            poolsNFT.airdropGRETH(poolId);
-            success = abovePoolId != poolId;
-        } else if (op == uint8(Op.ASYNC_WITHDRAW)) {
-            uint256 withdrawnPoolId = agent.asyncWithdraw(poolId);
-            poolsNFT.airdropGRETH(poolId);
-            success = withdrawnPoolId == poolId;
-        } else {
-            revert NotMacroOp();
-        }
-        if (!success) {
-            _transmit(grinder, ownerOf, transmited);
-        }
-        grinder = payable(address(0));
-    }
-
-    /// @notice grind operation on behalf of `msg.sender`
+        /// @notice grind operation on behalf of `msg.sender`
     /// @param poolId id of pool
     /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy, 4 - branch, 5 unbranch
     function grindOp(uint256 poolId, uint8 op) public override returns (bool) {
@@ -346,33 +247,19 @@ contract GrinderAI is IGrinderAI {
         grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
         uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
-        if (op <= uint8(Op.HEDGE_REBUY)) {
-            try poolsNFT.microOp(poolId, op) returns (bool isGrinded) {
-                success = isGrinded;
+        if (op <= uint8(IURUS.Op.HEDGE_REBUY)) {
+            try poolsNFT.microOp(poolId, op) returns (bool _success) {
+                success = _success;
             } catch {
                 success = false;
             }
-        } else if (op == uint8(Op.BRANCH)) {
+        } else {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
-            try agent.branch(poolId) returns (uint256 branchPoolId) {
-                poolsNFT.airdropGRETH(poolId);
-                success = poolId != branchPoolId;
-            } catch {
-                success = false;
-            }
-        } else if (op == uint8(Op.UNBRANCH)) {
-            IAgent agent = IAgent(poolsNFT.agentOf(poolId));
-            try agent.unbranch(poolId) returns (uint256 abovePoolId) {
-                poolsNFT.airdropGRETH(poolId);
-                success = abovePoolId != poolId;
-            } catch {
-                success = false;
-            }
-        } else if (op == uint8(Op.ASYNC_WITHDRAW)) {
-            IAgent agent = IAgent(poolsNFT.agentOf(poolId));
-            try agent.asyncWithdraw(poolId) returns (uint256 withdrawnPoolId) {
-                poolsNFT.airdropGRETH(poolId);
-                success = withdrawnPoolId == poolId;
+            try agent.macroOp(poolId, op) returns (bool _success) {
+                if (success) {
+                    poolsNFT.airdropGRETH(poolId);
+                }
+                success = _success;
             } catch {
                 success = false;
             }
@@ -410,6 +297,54 @@ contract GrinderAI is IGrinderAI {
             grindOpTo(poolIds[i], ops[i], metaGrinder);
             unchecked { ++i; }
         }
+    }
+
+    /// @notice microOp for simulation purposes
+    function microOp(uint256 poolId, uint8 op) public override returns (bool) {
+        return microOpTo(poolId, op, payable(msg.sender));
+    }
+
+    /// @notice microOpTo for simulation purposes on behalf of metaGrinder
+    /// @dev grinder make offchain microOp.staticCall(poolId, op) and receive success or fail of simulation
+    /// @param metaGrinder address of grinder
+    function microOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
+        grinder = metaGrinder;
+        address ownerOf = poolsNFT.ownerOf(poolId);
+        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
+        if (op > uint8(IURUS.Op.HEDGE_REBUY)) {
+            revert NotMicroOp();
+        }
+        success = poolsNFT.microOp(poolId, op);
+        if (!success) {
+            _transmit(grinder, ownerOf, transmited);
+        }
+        grinder = payable(address(0));
+    }
+
+    /// @notice macroOp for simulation purposes
+    function macroOp(uint256 poolId, uint8 op) public override returns (bool) {
+        return macroOpTo(poolId, op, payable(msg.sender));
+    }
+
+    /// @notice macroOp for simulation purposes
+    /// @dev grinder make offchain macroOp.staticCall(poolId, op) and receive success or fail of simulation
+    /// @param metaGrinder address of grinder
+    function macroOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
+        grinder = metaGrinder;
+        address ownerOf = poolsNFT.ownerOf(poolId);
+        IAgent agent = IAgent(poolsNFT.agentOf(poolId));
+        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
+        if (op <= uint8(IURUS.Op.HEDGE_REBUY)) {
+            revert NotMacroOp();
+        }
+        success = agent.macroOp(poolId, op);
+        if (success) { 
+            poolsNFT.airdropGRETH(poolId);
+        }
+        if (!success) {
+            _transmit(grinder, ownerOf, transmited);
+        }
+        grinder = payable(address(0));
     }
 
     //// END GRINDING FUNCTIONS
@@ -506,6 +441,43 @@ contract GrinderAI is IGrinderAI {
     /// @notice return true if `paymentToken` is payment token 
     function isPaymentToken(address paymentToken) public view override returns (bool) {
         return ratePerGRAI[paymentToken] > 0;
+    }
+
+    /// @notice withdraws amount of token to `msg.sender`
+    /// @dev callable only by owner
+    /// @param token address of token
+    /// @param amount amount of token to withdraw
+    /// @return withdrawn amount of token withdrawn
+    function withdraw(address token, uint256 amount) public override returns (uint256) {
+        return withdrawTo(token, msg.sender, amount);
+    }
+
+    /// @notice withdraws amount of token to `to`
+    /// @dev callable only by owner
+    /// @param token address of token
+    /// @param to address of receiver
+    /// @param amount amount of token to withdraw
+    /// @return withdrawn amount of token withdrawn
+    function withdrawTo(address token, address to, uint256 amount) public override returns (uint256 withdrawn) {
+        _onlyOwner();
+        uint256 balance;
+        if (token == address(0)) {
+            balance = address(this).balance;
+        } else {
+            balance = IToken(token).balanceOf(address(this));
+        }
+        if (amount > balance) {
+            amount = balance;
+        }
+        if (token == address(0)) {
+            (bool success, ) = payable(to).call{value: amount}("");
+            if (!success) {
+                revert FailTransferETH();
+            }
+        } else {
+            IToken(token).safeTransfer(to, amount);
+        }
+        withdrawn = amount;
     }
 
     /// @notice execute any transaction on grAI
