@@ -142,7 +142,7 @@ contract GRAI is IGRAI, OFT {
             uint256 nativeFee,      // nativeFee = fee.nativeFee * multiplierNumerator / DENOMINATOR
             uint256 artificialFee,  // artificialFee = grinderAI.calcPayment(address(0), amount) * artificialFeeNumerator[dstChainId] / DENOMINATOR
             uint256 totalFee        // totalFee = nativeFee + artificialFee
-        ) = getTotalFeesForBridgeTo(dstChainId, toAddress, amount);
+        ) = getTotalFees(dstChainId, toAddress, amount);
         if (totalFee < msg.value) {
             revert InsufficientNativeFee();
         }
@@ -195,7 +195,7 @@ contract GRAI is IGRAI, OFT {
     /// @param dstChainId ID of the destination chain (LayerZero chain ID)
     /// @param toAddress Address of the recipient on the destination chain
     /// @param amount Amount of GRAI tokens to bridge
-    function getTotalFeesForBridgeTo(
+    function getTotalFees(
         uint32 dstChainId,
         bytes32 toAddress,
         uint256 amount

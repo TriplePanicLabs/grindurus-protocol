@@ -60,7 +60,7 @@ interface IGRAI is IOFT {
 
     function formMessagingFeeForBridgeTo(SendParam memory sendParam) external view returns (MessagingFee memory messagingFee);
 
-    function getTotalFeesForBridgeTo(
+    function getTotalFees(
         uint32 dstChainId,
         bytes32 toAddress,
         uint256 amount

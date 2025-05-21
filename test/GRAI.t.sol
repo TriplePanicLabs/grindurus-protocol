@@ -59,7 +59,7 @@ contract GRAITest is Test {
             uint256 nativeFee, 
             uint256 artificialFee, 
             uint256 totalNativeFee
-        ) = grAI.getTotalFeesForBridgeTo(dstChainId, toAddress, amount);
+        ) = grAI.getTotalFees(dstChainId, toAddress, amount);
         nativeFee; artificialFee;
         uint256 grAIbefore = grAI.balanceOf(address(this));
         grAI.bridgeTo{value: totalNativeFee}(dstChainId, toAddress, amount);
@@ -82,7 +82,7 @@ contract GRAITest is Test {
             uint256 nativeFee, 
             uint256 artificialFee, 
             uint256 totalNativeFee
-        ) = grAI.getTotalFeesForBridgeTo(dstChainId, toAddress, amount);
+        ) = grAI.getTotalFees(dstChainId, toAddress, amount);
         nativeFee; artificialFee;
         grAI.bridgeTo{value: totalNativeFee}(dstChainId, toAddress, amount);
     }
