@@ -58,7 +58,7 @@ contract GRETHTest is Test {
         amounts[1] = 200e18;
 
         vm.startPrank(address(poolsNFT));
-        uint256 totalShares = greth.mint(actors, amounts);
+        uint256 totalShares = greth.multimint(actors, amounts);
         vm.stopPrank();
 
         assertEq(totalShares, 300e18);
@@ -76,7 +76,7 @@ contract GRETHTest is Test {
         amounts[0] = 100e18;
 
         vm.startPrank(address(poolsNFT));
-        greth.mint(actors, amounts);
+        greth.multimint(actors, amounts);
         vm.stopPrank();
 
         uint256 burnAmount = 50e18;
@@ -95,7 +95,7 @@ contract GRETHTest is Test {
         amounts[0] = 200e18;
 
         vm.startPrank(address(poolsNFT));
-        greth.mint(actors, amounts);
+        greth.multimint(actors, amounts);
         vm.stopPrank();
 
         uint256[] memory burnAmounts = new uint256[](1);
