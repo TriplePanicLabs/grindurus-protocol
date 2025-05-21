@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import { Test, console } from "forge-std/Test.sol";
 import { IToken } from "src/interfaces/IToken.sol";
 import { IWETH9 } from "src/interfaces/IWETH9.sol";
 import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";

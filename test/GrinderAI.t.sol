@@ -263,4 +263,26 @@ contract GrinderAITest is Test {
         vm.stopBroadcast();
     }
 
+    function test_noAgent() public {
+         vm.startBroadcast(user);
+        deal(user, 1e18);
+        deal(usdtArbitrum, user, 1000e6);
+
+        uint16 strategyId = 0;
+        address baseToken = wethArbitrum;
+        address quoteToken = usdtArbitrum;
+        uint256 quoteTokenAmount = 300e6; // 1 USDT
+        config = poolsNFT.getZeroConfig();
+        IToken usdt = IToken(quoteToken);
+        usdt.approve(address(poolsNFT), quoteTokenAmount);
+        uint256 poolId = poolsNFT.mint(strategyId, baseToken, quoteToken, quoteTokenAmount, config);        
+ 
+        uint256 balanceBefore = grAI.balanceOf(user);
+        bool success = grinderAI.grind(poolId);
+        assert(success == true);
+        uint256 balanceAfter = grAI.balanceOf(user);
+        assert(balanceAfter == balanceBefore);
+        vm.stopBroadcast();
+    }
+
 }
