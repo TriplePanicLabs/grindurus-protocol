@@ -55,7 +55,7 @@ contract GRAI is IGRAI, OFT {
         return ERC20.balanceOf(account);
     }
 
-    //// CONFIGURATION OF BRIDGE OPTIONS ////
+    //// CONFIGURATION OF BRIDGE OPTIONS
 
     /// @notice sets bridge gas limit and value
     /// @param gasLimit gas limit for the bridge
@@ -90,6 +90,8 @@ contract GRAI is IGRAI, OFT {
         _onlyGrinderAI();
         _setPeer(eid, peer);
     }
+
+    //// END CONFIGURATION OF BRIDGE OPTIONS
 
     /// @notice mints amount of grAI to `to`
     /// @dev callable only by grinderAI
