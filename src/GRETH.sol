@@ -80,34 +80,34 @@ contract GRETH is IGRETH, ERC20 {
         }
     }
 
-    /// @notice mint GRETH to actors.
+    /// @notice mint GRETH to receivers.
     /// @dev callable only by `poolsNFT`
-    /// @param actors array of actors
+    /// @param receivers array of receivers
     /// @param amounts array of amounts that should be minted to amounts
-    function mint(
-        address[] memory actors,
+    function multimint(
+        address[] memory receivers,
         uint256[] memory amounts
     ) public returns (uint256 totalShares) {
         _onlyPoolsNFT();
-        if (actors.length != amounts.length) {
+        if (receivers.length != amounts.length) {
             return 0;
         }
         address _owner = owner();
-        uint256 len = actors.length;
+        uint256 len = receivers.length;
         for (uint256 i; i < len; ) {
             if (amounts[i] > 0) {
-                if (actors[i] == _owner) {
+                if (receivers[i] == _owner) {
                     _mint(address(this), amounts[i]);
                 } else {
-                    _mint(actors[i], amounts[i]);
+                    _mint(receivers[i], amounts[i]);
                 }
-                totalGrindedBy[actors[i]] += amounts[i];
+                totalGrindedBy[receivers[i]] += amounts[i];
                 totalGrinded += amounts[i];
                 totalShares += amounts[i];
             }
             unchecked { ++i; }
         }
-        emit Mint(actors, amounts, totalShares);
+        emit Mint(receivers, amounts, totalShares);
     }
 
     /// @notice burns grETH and get weth

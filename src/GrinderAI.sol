@@ -165,7 +165,7 @@ contract GrinderAI is IGrinderAI {
     /// @notice transmit grAI from `from` to `to`
     /// @param to address of `to`
     /// @param amount amount of grAI to burn
-    function _transmit(address from, address to, uint256 amount) internal returns (uint256 transmited) {
+    function _transmitGRAI(address from, address to, uint256 amount) internal returns (uint256 transmited) {
         if (amount > 0) {
             transmited = grAI.transmit(from, to, amount);
         }
@@ -174,6 +174,12 @@ contract GrinderAI is IGrinderAI {
     //// END GRAI FUNCTIONS ////////////////////////////////////////////////////////////////
 
     //// GRINDING FUNCTIONS ////////////////////////////////////////////////////////////////
+
+    /// @notice airdrops grETH to pool participants
+    function _airdropGRETH(uint256 poolId) internal {
+        uint256 grethAmount = ratePerGRAI[address(0)];
+        poolsNFT.airdrop(poolId, grethAmount);
+    }
 
     /// @notice grind
     /// @dev first make macromanagement, second micromamagement
@@ -190,22 +196,23 @@ contract GrinderAI is IGrinderAI {
         grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
-        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
         try agent.macroOps(poolId) returns (bool _success) {
             if (_success) {
-                poolsNFT.airdropGRETH(poolId);
+                _transmitGRAI(ownerOf, grinder, oneGRAI);
+                _airdropGRETH(poolId);
             }
             return _success;
         } catch {
             // go on
         }
         try poolsNFT.microOps(poolId) returns (bool _success) {
+            if (_success) {
+                _transmitGRAI(ownerOf, grinder, oneGRAI);
+                _airdropGRETH(poolId);
+            }
             success = _success;
         } catch {
             success = false;
-        }
-        if (!success) {
-            _transmit(grinder, ownerOf, transmited);
         }
         grinder = payable(address(0));
     }
@@ -232,9 +239,9 @@ contract GrinderAI is IGrinderAI {
         }
     } 
 
-        /// @notice grind operation on behalf of `msg.sender`
+    /// @notice grind operation on behalf of `msg.sender`
     /// @param poolId id of pool
-    /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy, 4 - branch, 5 unbranch
+    /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy; 4, 5,... agent related
     function grindOp(uint256 poolId, uint8 op) public override returns (bool) {
         return grindOpTo(poolId, op, payable(msg.sender));
     }
@@ -242,14 +249,17 @@ contract GrinderAI is IGrinderAI {
     /// @notice grind operation
     /// @dev can be called by anyone, especially by grinder EOA
     /// @param poolId id of pool
-    /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy, 4 - branch, 5 unbranch
+    /// @param op operation on IURUS.Op enumeration; 0 - buy, 1 - sell, 2 - hedge_sell, 3 - hedge_rebuy; 4, 5,... agent related
     /// @param metaGrinder address of grinder
     function grindOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
         grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
-        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
         if (op <= uint8(IURUS.Op.HEDGE_REBUY)) {
             try poolsNFT.microOp(poolId, op) returns (bool _success) {
+                if (_success) {
+                    _transmitGRAI(ownerOf, grinder, oneGRAI);
+                    _airdropGRETH(poolId);
+                }
                 success = _success;
             } catch {
                 success = false;
@@ -258,15 +268,13 @@ contract GrinderAI is IGrinderAI {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
             try agent.macroOp(poolId, op) returns (bool _success) {
                 if (_success) {
-                    poolsNFT.airdropGRETH(poolId);
+                    _transmitGRAI(ownerOf, grinder, oneGRAI);
+                    _airdropGRETH(poolId);
                 }
                 success = _success;
             } catch {
                 success = false;
             }
-        }
-        if (!success) {
-            _transmit(grinder, ownerOf, transmited);
         }
         grinder = payable(address(0));
     }
@@ -311,13 +319,13 @@ contract GrinderAI is IGrinderAI {
     function microOpTo(uint256 poolId, uint8 op, address payable metaGrinder) public override returns (bool success) {
         grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
-        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
         if (op > uint8(IURUS.Op.HEDGE_REBUY)) {
             revert NotMicroOp();
         }
         success = poolsNFT.microOp(poolId, op);
-        if (!success) {
-            _transmit(grinder, ownerOf, transmited);
+        if (success) {
+            _transmitGRAI(ownerOf, grinder, oneGRAI);
+            _airdropGRETH(poolId);
         }
         grinder = payable(address(0));
     }
@@ -334,16 +342,13 @@ contract GrinderAI is IGrinderAI {
         grinder = metaGrinder;
         address ownerOf = poolsNFT.ownerOf(poolId);
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
-        uint256 transmited = _transmit(ownerOf, grinder, oneGRAI);
         if (op <= uint8(IURUS.Op.HEDGE_REBUY)) {
             revert NotMacroOp();
         }
         success = agent.macroOp(poolId, op);
-        if (success) { 
-            poolsNFT.airdropGRETH(poolId);
-        }
-        if (!success) {
-            _transmit(grinder, ownerOf, transmited);
+        if (success) {
+            _transmitGRAI(ownerOf, grinder, oneGRAI);
+            _airdropGRETH(poolId);
         }
         grinder = payable(address(0));
     }

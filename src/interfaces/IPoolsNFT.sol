@@ -182,7 +182,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function microOp(uint256 poolId, uint8 op) external returns (bool isGrinded);
 
-    function airdropGRETH(uint256 poolId) external;
+    function airdrop(uint256 poolId, uint256 grethAmount) external;
 
     function buyRoyalty(
         uint256 poolId
@@ -231,9 +231,7 @@ interface IPoolsNFT is IERC721, IERC2981 {
 
     function getZeroConfig() external view returns (IURUS.Config memory);
 
-    function getRoyaltyReceiver(
-        uint256 poolId
-    ) external view returns (address receiver);
+    function getRoyaltyReceiver(uint256 poolId) external view returns (address receiver);
 
     function isAgentOf(uint256 poolId, address account) external view returns (bool);
 

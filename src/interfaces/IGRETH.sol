@@ -32,7 +32,7 @@ interface IGRETH is IToken {
 
     function mintTo(address receiver) external payable returns (uint256 mintedAmount);
 
-    function mint(
+    function multimint(
         address[] memory actors,
         uint256[] memory shares
     ) external returns (uint256 totalShares);
