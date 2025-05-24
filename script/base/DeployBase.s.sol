@@ -5,7 +5,6 @@ import { Script, console } from "forge-std/Script.sol";
 import { PoolsNFT } from "src/PoolsNFT.sol";
 import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
 import { GRETH } from "src/GRETH.sol";
-import { GRAI } from "src/GRAI.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
 import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { Agent } from "src/Agent.sol";
@@ -77,7 +76,7 @@ contract DeployBaseScript is Script {
     PoolsNFTLens public poolsNFTLens;
     GRETH public grETH;
 
-    GRAI public grAI;
+    // GRAI public grAI;
     GrinderAI public grinderAI;
     TransparentUpgradeableProxy public proxyGrinderAI;
 
@@ -103,11 +102,9 @@ contract DeployBaseScript is Script {
         
         grETH = new GRETH(address(poolsNFT), wethBase);
 
-        grinderAI = new GrinderAI();
-        grAI = new GRAI(lzEndpointBase, address(grinderAI));
+        grinderAI = new GrinderAI(address(poolsNFT));
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
-        grinderAI.init(address(poolsNFT), address(grAI));
 
         agent = new Agent();
         agentsNFT = new AgentsNFT(address(poolsNFT), address(agent));
@@ -124,7 +121,6 @@ contract DeployBaseScript is Script {
         console.log("PoolsNFTLens: ", address(poolsNFTLens));
         console.log("GRETH: ", address(grETH));
         console.log("GrinderAI: ", address(grinderAI));
-        console.log("GRAI: ", address(grAI));
         console.log("RegistryBase: ", address(registry));
         console.log("Strategy1: ", address(strategy1));
         console.log("Strategy1Factory: ", address(factory1));

@@ -2,6 +2,7 @@
 pragma solidity =0.8.28;
 
 import { Script, console } from "forge-std/Script.sol";
+import { PoolsNFT } from "src/PoolsNFT.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
 
 // Test purposes:
@@ -12,6 +13,8 @@ import { GrinderAI } from "src/GrinderAI.sol";
 
 
 contract GrinderAIScript is Script {
+
+    PoolsNFT public poolsNFT = PoolsNFT(payable(address(0)));   // address can be changed
 
     GrinderAI public grinderAI;
 
@@ -24,7 +27,7 @@ contract GrinderAIScript is Script {
         vm.createSelectFork("arbitrum");
         vm.startBroadcast(deployerPrivateKey);
 
-        grinderAI = new GrinderAI();
+        grinderAI = new GrinderAI(address(poolsNFT));
         
         vm.stopBroadcast();
     }

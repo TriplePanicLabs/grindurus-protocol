@@ -5,9 +5,7 @@ import { Script, console } from "forge-std/Script.sol";
 import { PoolsNFT } from "src/PoolsNFT.sol";
 import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
 import { GRETH } from "src/GRETH.sol";
-import { GRAI} from "src/GRAI.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
-import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { Agent } from "src/Agent.sol";
 import { AgentsNFT } from "src/AgentsNFT.sol";
 import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
@@ -25,9 +23,11 @@ import { Strategy1FactoryArbitrum } from "src/strategies/arbitrum/strategy1/Stra
 // $ forge script script/arbitrum/DeployArbitrum.s.sol:DeployArbitrumScript --slow --broadcast --verify --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
 // Verify:
-// $ forge verify-contract 0xfC7a86Ab7c0E48F26F3aEe7382eBc6fe313956Db src/PoolsNFT.sol:PoolsNFT --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
+// $ forge verify-contract 0x2915F020C1eAF94dfaCa576914dA829231178a13 src/PoolsNFT.sol:PoolsNFT --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY
 
-// $ forge verify-contract 0xae4312A2E0D15550B0cD9889B2aF56a520589E53 src/GRETH.sol:GRETH --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address,address)" "0xfC7a86Ab7c0E48F26F3aEe7382eBc6fe313956Db" "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1")
+// $ forge verify-contract 0x80140D46F7491C26d02938759D7Dc345e73080Ea src/PoolsNFTLens.sol:PoolsNFTLens --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address)" "0x2915F020C1eAF94dfaCa576914dA829231178a13")
+
+// $ forge verify-contract 0x5399084C72671555D7576E2A0842b250A7C05b92 src/GRETH.sol:GRETH --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address,address)" "0x2915F020C1eAF94dfaCa576914dA829231178a13" "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1")
 
 // $ forge verify-contract 0x8BCC8B5Cd7e9E0138896A82E6Db7b55b283EbBcB src/registries/RegistryArbitrum.sol:RegistryArbitrum --chain-id 42161 --verifier-url "https://api.arbiscan.io/api" --etherscan-api-key $ARBITRUMSCAN_API_KEY --constructor-args $(cast abi-encode "constructor(address)" "0xfC7a86Ab7c0E48F26F3aEe7382eBc6fe313956Db")
 
@@ -53,9 +53,7 @@ contract DeployArbitrumScript is Script {
 
     GRETH public grETH;
 
-    GRAI public grAI;
     GrinderAI public grinderAI;
-    TransparentUpgradeableProxy public proxyGrinderAI;
 
     RegistryArbitrum public registry;
 
@@ -79,14 +77,9 @@ contract DeployArbitrumScript is Script {
         
         grETH = new GRETH(address(poolsNFT), wethArbitrum);
 
-        grinderAI = new GrinderAI();
-        grAI = new GRAI(lzEndpointArbitrum, address(grinderAI));
+        grinderAI = new GrinderAI(address(poolsNFT));
 
         poolsNFT.init(address(poolsNFTLens), address(grETH), address(grinderAI));
-        grinderAI.init(address(poolsNFT), address(grAI));
-
-        agent = new Agent();
-        agentsNFT = new AgentsNFT(address(poolsNFT), address(agent));
 
         registry = new RegistryArbitrum(address(poolsNFT));
 
@@ -95,18 +88,52 @@ contract DeployArbitrumScript is Script {
 
         poolsNFT.setStrategyFactory(address(factory1));
 
+        // agent = new Agent();
+        // agentsNFT = new AgentsNFT(address(poolsNFT), address(agent));
 
         console.log("PoolsNFT: ", address(poolsNFT));
         console.log("PoolsNFTLens: ", address(poolsNFTLens));
         console.log("GRETH: ", address(grETH));
         console.log("GrinderAI: ", address(grinderAI));
-        console.log("GRAI: ", address(grAI));
         console.log("RegistryArbitrum: ", address(registry));
         console.log("Strategy1: ", address(strategy1));
         console.log("Strategy1Factory: ", address(factory1));
+        // console.log("Agent: ", address(agent));
+        // console.log("AgentsNFT: ", address(agentsNFT));
+
+        vm.stopBroadcast();
+    }
+}
+
+// Test purposes:
+// $ forge script script/arbitrum/DeployArbitrum.s.sol:DeployAgentsArbitrumScript
+
+// Mainnet deploy command: (without verification)
+// $ forge script script/arbitrum/DeployArbitrum.s.sol:DeployAgentsArbitrumScript --slow --broadcast
+
+contract DeployAgentsArbitrumScript is Script {
+
+    PoolsNFT public poolsNFT = PoolsNFT(payable(address(0)));
+
+    Agent public agent;
+    AgentsNFT public agentsNFT;
+
+    function run() public {
+        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+
+        address deployer = vm.addr(deployerPrivateKey);
+        console.log("Deployer: ", deployer);
+
+        vm.createSelectFork("arbitrum");
+        vm.startBroadcast(deployerPrivateKey);
+
+        require(address(poolsNFT) != address(0), "NOT INSTANTIATED POOLSNFT");
+        agent = new Agent();
+        agentsNFT = new AgentsNFT(address(poolsNFT), address(agent));
+
         console.log("Agent: ", address(agent));
         console.log("AgentsNFT: ", address(agentsNFT));
-
+        
         vm.stopBroadcast();
     }
 }
