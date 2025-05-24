@@ -22,10 +22,11 @@ interface IGrinderAI {
         uint256 quoteTokenAmount;
     }
 
+    error NotOwner();
+    error NotConfigurator();
     error FailTransferETH();
     error InvalidLength();
     error NotPaymentToken();
-    error NotOwner();
     error NotMicroOp();
     error NotMacroOp();
 
@@ -39,10 +40,36 @@ interface IGrinderAI {
 
     function ratePerGRAI(address paymentToken) external view returns (uint256);
 
+    function isConfigurator(address configurator) external view returns (bool);
+
+    function crosschainAdapter(uint8 crosschainAdapterId) external view returns (address);
+
     function owner() external view returns (address);
 
     function setRatePerGRAI(address paymentToken, uint256 rate) external;
+
+    function setConfigurator(address configurator, bool _isConfigurator) external;
     
+    function setCrosschainAdapter(uint8 id, address adapter) external;
+
+    /// SETTING CONFIGS
+
+    function setConfig(uint256 poolId, IURUS.Config memory conf) external;
+    function setLongNumberMax(uint256 poolId, uint8 longNumberMax) external;
+    function setHedgeNumberMax(uint256 poolId, uint8 hedgeNumberMax) external;
+    function setExtraCoef(uint256 poolId, uint256 extraCoef) external;
+    function setPriceVolatilityPercent(uint256 poolId, uint256 priceVolatilityPercent) external;
+    function setOpReturnPercent(uint256 poolId, uint8 op, uint256 returnPercent) external;
+    function setOpFeeCoef(uint256 poolId, uint8 op, uint256 feeCoef) external;
+
+    function batchSetConfig(uint256[] memory poolIds, IURUS.Config[] memory confs) external;
+    function batchSetLongNumberMax(uint256[] memory poolIds, uint8[] memory longNumberMaxs) external;
+    function batchSetHedgeNumberMax(uint256[] memory poolIds, uint8[] memory hedgeNumberMaxs) external;
+    function batchSetExtraCoef(uint256[] memory poolIds, uint256[] memory extraCoefs) external;
+    function batchPriceVolatilityPercent(uint256[] memory poolIds, uint256[] memory priceVolatilityPercents) external;
+    function batchSetOpReturnPercent(uint256[] memory poolIds, uint8[] memory ops, uint256[] memory priceVolatilityPercents) external;
+    function batchSetOpFeeCoef(uint256[] memory poolIds, uint8[] memory ops, uint256[] memory priceVolatilityPercents) external;
+
     function calcMintPayment(address paymentToken, uint256 graiAmount) external view returns (uint256 paymentAmount);
 
     function mint(address paymentToken, uint256 graiAmount) external payable returns (uint256);
