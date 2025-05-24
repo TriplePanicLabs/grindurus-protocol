@@ -1,26 +1,17 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity =0.8.28;
 
 import { IURUS } from "src/interfaces/IURUS.sol";
 import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
 import { IPoolsNFTLens } from "src/interfaces/IPoolsNFTLens.sol";
-import { IGRAI } from "src/interfaces/IGRAI.sol";
 
 interface IGrinderAI {
-
-    error FailTransferETH();
-    error InvalidLength();
-    error NotPaymentToken();
-    error NotOwner();
-    error NotMicroOp();
-    error NotMacroOp();
-
-    event Pay(address paymentToken, address payer, uint256 paymentAmount);
 
     struct Intent {
         address account;
         uint256 grinds;
         uint256[] poolIds;
+        IPoolsNFTLens.PoolInfo[] poolInfos;
     }
 
     struct PnLShares {
@@ -31,37 +22,28 @@ interface IGrinderAI {
         uint256 quoteTokenAmount;
     }
 
-    function DENOMINATOR() external view returns (uint16);
+    error FailTransferETH();
+    error InvalidLength();
+    error NotPaymentToken();
+    error NotOwner();
+    error NotMicroOp();
+    error NotMacroOp();
+
+    event Pay(address paymentToken, address payer, uint256 paymentAmount);
 
     function poolsNFT() external view returns (IPoolsNFT);
 
-    function grAI() external view returns (IGRAI);
-
     function grinder() external view returns (address payable);
-
+    
     function oneGRAI() external view returns (uint256);
 
     function ratePerGRAI(address paymentToken) external view returns (uint256);
 
-    function init(address _poolsNFT, address _grAI) external;
-
-    function owner() external view returns (address payable);
+    function owner() external view returns (address);
 
     function setRatePerGRAI(address paymentToken, uint256 rate) external;
-
-    function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) external;
-
-    function setMultiplierNumerator(uint256 _multiplierNumerator) external;
-
-    function setArtificialFeeNumerator(uint32 endpointId, uint256 artificialFeeNumerator) external;
-
-    function setPeer(uint32 eid, bytes32 peer) external;
-
-    function withdraw(address token, uint256 amount) external returns (uint256);
-
-    function withdrawTo(address token, address to, uint256 amount) external returns (uint256 withdrawn);
-
-    function calcPayment(address paymentToken, uint256 graiAmount) external view returns (uint256 paymentAmount);
+    
+    function calcMintPayment(address paymentToken, uint256 graiAmount) external view returns (uint256 paymentAmount);
 
     function mint(address paymentToken, uint256 graiAmount) external payable returns (uint256);
 
@@ -75,14 +57,6 @@ interface IGrinderAI {
 
     function batchGrindTo(uint256[] memory poolIds, address payable metaGrinder) external;
 
-    function microOp(uint256 poolId, uint8 op) external returns (bool success);
-
-    function microOpTo(uint256 poolId, uint8 op, address payable metaGrinder) external returns (bool success);
-
-    function macroOp(uint256 poolId, uint8 op) external returns (bool success);
-
-    function macroOpTo(uint256 poolId, uint8 op, address payable metaGrinder) external returns (bool success);
-
     function grindOp(uint256 poolId, uint8 op) external returns (bool);
 
     function grindOpTo(uint256 poolId, uint8 op, address payable metaGrinder) external returns (bool);
@@ -91,11 +65,17 @@ interface IGrinderAI {
 
     function batchGrindOpTo(uint256[] memory poolIds, uint8[] memory ops, address payable metaGrinder) external;
 
+    function microOp(uint256 poolId, uint8 op) external returns (bool success);
+
+    function microOpTo(uint256 poolId, uint8 op, address payable metaGrinder) external returns (bool success);
+
+    function macroOp(uint256 poolId, uint8 op) external returns (bool success);
+
+    function macroOpTo(uint256 poolId, uint8 op, address payable metaGrinder) external returns (bool success);
+
     function getIntent(address account) external view returns (Intent memory intent);
 
     function getIntents(address[] memory accounts) external view returns (Intent[] memory intents);
-
-    function getPositions(uint256[] memory poolIds) external view returns (IPoolsNFTLens.Positions[] memory);
 
     function getPnL(uint256 poolId) external view returns (IURUS.PnL memory) ;
 
@@ -103,10 +83,16 @@ interface IGrinderAI {
 
     function getPnLShares(uint256 poolId) external view returns (PnLShares[] memory pnlShares);
 
-    function isPaymentToken(address paymentToken) external view returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
 
-    function executeGRAI(address target, uint256 value, bytes calldata data) external payable returns (bool success, bytes memory result);
+    function transfer(address to, uint256 amount) external returns (bool);
 
-    function execute(address target, uint256 value, bytes calldata data) external payable returns (bool success, bytes memory result);
+    function balanceOf(address account) external view returns (uint256);
+
+    function withdraw(address token, uint256 amount) external returns (uint256);
+
+    function withdrawTo(address token, address to, uint256 amount) external returns (uint256 withdrawn);
+
+    function execute(address target, uint256 value, bytes memory data) external payable returns (bool success, bytes memory result);
 
 }

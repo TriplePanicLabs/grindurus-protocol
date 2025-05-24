@@ -2,30 +2,21 @@
 pragma solidity =0.8.28;
 
 import { IToken } from "src/interfaces/IToken.sol";
-import { IWETH9 } from "src/interfaces/IWETH9.sol";
 import { IPoolsNFT } from "src/interfaces/IPoolsNFT.sol";
-import { IPoolsNFTLens } from "src/interfaces/IPoolsNFTLens.sol";
 import { IAgent } from "src/interfaces/IAgent.sol";
-import { IStrategy, IURUS } from "src/interfaces/IStrategy.sol";
-import { Ownable2Step, Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IGRAI } from "src/interfaces/IGRAI.sol";
+import { IStrategy, IURUS } from "src/interfaces/IStrategy.sol";
 import { IGrinderAI } from "src/interfaces/IGrinderAI.sol";
 
-/// @title GrinderAI
-/// @notice provide transpanet mechanism for effective interaction with GrindURUS protocol via AI agent
-contract GrinderAI is IGrinderAI {
+/// @title Grinder Attention Intelligence Token
+/// @author Triple Panic Labs. CTO Vakhtanh Chikhladze (the.vaho1337@gmail.com)
+/// @notice GrinderAI ERC20 token
+contract GrinderAI is ERC20, IGrinderAI {
     using SafeERC20 for IToken;
-
-    /// @notice denominator. Used for calculating royalties
-    /// @dev this value of denominator is 100% 
-    uint16 public constant DENOMINATOR = 100_00;
 
     /// @dev address of poolsNFT
     IPoolsNFT public poolsNFT;
-
-    /// @dev address of grAI
-    IGRAI public grAI;
 
     /// @dev address of grinder
     /// @dev intime variable of initiator of grind tx
@@ -41,20 +32,18 @@ contract GrinderAI is IGrinderAI {
     /// @dev if ratePerGRAI==0, than this is not payment token
     mapping (address paymentToken => uint256) public ratePerGRAI;
 
-    /// @notice initialize function
-    function init(address _poolsNFT, address _grAI) public override {
-        require(
-            address(poolsNFT) == address(0) &&
-            address(grAI) == address(0)
-        );
+    /// @dev id of crosschain adapter => address of adapter
+    mapping (uint8 crosschainAdapterId => address) public crosschainAdapter;
+
+    /// @param _poolsNFT address of grinderAI
+    constructor(address _poolsNFT) ERC20("Grinder Attention Intelligence Token", "GRAI") {
         poolsNFT = IPoolsNFT(_poolsNFT);
-        grAI = IGRAI(_grAI);
-        oneGRAI = 1e18; // 1 GRAI
+        oneGRAI = 1e18;
         ratePerGRAI[address(0)] = 0.0001 ether; // 0.0001 ETH per 1 grAI
     }
 
     /// @notice return owner of grinderAI
-    function owner() public view returns (address payable) {
+    function owner() public view override returns (address) {
         try poolsNFT.owner() returns(address payable _owner){
             return _owner;
         } catch {
@@ -69,7 +58,7 @@ contract GrinderAI is IGrinderAI {
         }
     }
 
-    //// GRINDER AI CONFIGURATION
+    //// OWNER FUNCTIONS 
 
     /// @notice sets rate per GRAI
     /// @dev if rate == 0, than this is not payment token
@@ -80,53 +69,15 @@ contract GrinderAI is IGrinderAI {
         ratePerGRAI[paymentToken] = rate;
     }
 
-    //// END GRINDER AI CONFIGURATION
+    //// END OWNER FUNCTIONS ////////////////////////////////////////////////////////////////
 
-    //// GRAI CONFIGURATION
-
-    /// @notice sets bridge gas limit and value
-    /// @param endpointId id of the endpoint
-    /// @param gasLimit gas limit for the bridge
-    /// @param value value for the bridge
-    function setLzReceivOptions(uint32 endpointId, uint128 gasLimit, uint128 value) public override {
-        _onlyOwner();
-        grAI.setLzReceivOptions(endpointId, gasLimit, value);
-    }
-
-    /// @notice sets multiplier numerator on grAI
-    /// @dev denominator is 100% = 100_00
-    /// @param multiplierNumerator numerator of multiplier
-    function setMultiplierNumerator(uint256 multiplierNumerator) public override {
-        _onlyOwner();
-        grAI.setMultiplierNumerator(multiplierNumerator);
-    }
-
-    /// @notice sets native bridge fee numerator on grAI
-    /// @dev denominator is 100% = 100_00
-    /// @param artificialFeeNumerator numerator of artificial fee
-    function setArtificialFeeNumerator(uint32 endpointId, uint256 artificialFeeNumerator) public override {
-        _onlyOwner();
-        grAI.setArtificialFeeNumerator(endpointId, artificialFeeNumerator);
-    }
-
-    /// @notice sets peer address on grAI
-    /// @param eid id of the peer
-    /// @param peer address of the peer
-    /// @dev peer is a bytes32 to accommodate non-evm chains
-    function setPeer(uint32 eid, bytes32 peer) public override {
-        _onlyOwner();
-        grAI.setPeer(eid, peer);
-    }
-
-    //// END GRAI CONFIGURATION ////////////////////////////////////////////////////////////////
-
-    //// GRAI FUNCTIONS ////////////////////////////////////////////////////////////////
+    //// MINT GRAI 
 
     /// @notice calculate payment
     /// @param paymentToken address of token
     /// @param graiAmount amount of grai
-    function calcPayment(address paymentToken, uint256 graiAmount) public view override returns (uint256 paymentAmount) {      
-        if (!isPaymentToken(paymentToken)) {
+    function calcMintPayment(address paymentToken, uint256 graiAmount) public view override returns (uint256 paymentAmount) {      
+        if (ratePerGRAI[paymentToken] == 0) {
             revert NotPaymentToken();
         }
         if (ratePerGRAI[paymentToken] == type(uint256).max) { // free
@@ -147,31 +98,43 @@ contract GrinderAI is IGrinderAI {
     /// @param to address of `to`
     /// @param graiAmount amount of grinds
     function mintTo(address paymentToken, address to, uint256 graiAmount) public payable override returns (uint256) {
-        uint256 paymentAmount = calcPayment(paymentToken, graiAmount);
+        uint256 paymentAmount = calcMintPayment(paymentToken, graiAmount);
         if (paymentAmount > 0) {
-            address payable _owner = owner();
+            address _owner = owner();
             if (paymentToken == address(0)) {
-                (bool success, ) = _owner.call{value: paymentAmount}("");
+                (bool success, ) = payable(_owner).call{value: paymentAmount}("");
                 success;
             } else {
                 IToken(paymentToken).safeTransferFrom(msg.sender, _owner, paymentAmount);
             }
             emit Pay(paymentToken, msg.sender, paymentAmount);
         }
-        grAI.mint(to, graiAmount);
+        _mint(to, graiAmount);
         return graiAmount;
     }
 
-    /// @notice transmit grAI from `from` to `to`
-    /// @param to address of `to`
-    /// @param amount amount of grAI to burn
-    function _transmitGRAI(address from, address to, uint256 amount) internal returns (uint256 transmited) {
-        if (amount > 0) {
-            transmited = grAI.transmit(from, to, amount);
+    //// END MINT GRAI
+
+    /// @notice transmit grAI for grind from `from` to `to  
+    /// @dev callable only by grinderAI
+    function _transmit(address from, address to, uint256 amount) internal returns (uint256) {
+        if (balanceOf(from) < amount) {
+            return 0;
         }
+        _transfer(from, to, amount);
+        return amount;
     }
 
-    //// END GRAI FUNCTIONS ////////////////////////////////////////////////////////////////
+    function transferFrom(address from, address to, uint256 amount) public override(ERC20, IGrinderAI) returns (bool) {
+        return ERC20.transferFrom(from, to, amount);
+    }
+
+    /// @notice direct transfer grAI
+    /// @param to address of to
+    /// @param amount amount of grAI
+    function transfer(address to, uint256 amount) public override(ERC20, IGrinderAI) returns (bool) {
+        return ERC20.transfer(to, amount);
+    }
 
     //// GRINDING FUNCTIONS ////////////////////////////////////////////////////////////////
 
@@ -198,7 +161,7 @@ contract GrinderAI is IGrinderAI {
         IAgent agent = IAgent(poolsNFT.agentOf(poolId));
         try agent.macroOps(poolId) returns (bool _success) {
             if (_success) {
-                _transmitGRAI(ownerOf, grinder, oneGRAI);
+                _transmit(ownerOf, grinder, oneGRAI);
                 _airdropGRETH(poolId);
             }
         } catch {
@@ -206,7 +169,7 @@ contract GrinderAI is IGrinderAI {
         }
         try poolsNFT.microOps(poolId) returns (bool _success) {
             if (_success) {
-                _transmitGRAI(ownerOf, grinder, oneGRAI);
+                _transmit(ownerOf, grinder, oneGRAI);
                 _airdropGRETH(poolId);
             }
             success = _success;
@@ -256,7 +219,7 @@ contract GrinderAI is IGrinderAI {
         if (op <= uint8(IURUS.Op.HEDGE_REBUY)) {
             try poolsNFT.microOp(poolId, op) returns (bool _success) {
                 if (_success) {
-                    _transmitGRAI(ownerOf, grinder, oneGRAI);
+                    _transmit(ownerOf, grinder, oneGRAI);
                     _airdropGRETH(poolId);
                 }
                 success = _success;
@@ -267,7 +230,7 @@ contract GrinderAI is IGrinderAI {
             IAgent agent = IAgent(poolsNFT.agentOf(poolId));
             try agent.macroOp(poolId, op) returns (bool _success) {
                 if (_success) {
-                    _transmitGRAI(ownerOf, grinder, oneGRAI);
+                    _transmit(ownerOf, grinder, oneGRAI);
                     _airdropGRETH(poolId);
                 }
                 success = _success;
@@ -323,7 +286,7 @@ contract GrinderAI is IGrinderAI {
         }
         success = poolsNFT.microOp(poolId, op);
         if (success) {
-            _transmitGRAI(ownerOf, grinder, oneGRAI);
+            _transmit(ownerOf, grinder, oneGRAI);
             _airdropGRETH(poolId);
         }
         grinder = payable(address(0));
@@ -346,13 +309,36 @@ contract GrinderAI is IGrinderAI {
         }
         success = agent.macroOp(poolId, op);
         if (success) {
-            _transmitGRAI(ownerOf, grinder, oneGRAI);
+            _transmit(ownerOf, grinder, oneGRAI);
             _airdropGRETH(poolId);
         }
         grinder = payable(address(0));
     }
 
     //// END GRINDING FUNCTIONS
+
+    /// @notice get intent for grinding of `account`
+    /// @param account address of account
+    function getIntent(address account) public view override returns (Intent memory intent) {
+        uint256[] memory poolIds = poolsNFT.getPoolIdsOf(account);
+        intent = Intent({
+            account: account,
+            grinds: balanceOf(account) / oneGRAI,
+            poolIds: poolIds,
+            poolInfos: poolsNFT.getPoolInfosBy(poolIds)
+        });
+    }
+
+    /// @notice get intents for grinding of `accounts`
+    /// @param accounts array of accounts
+    function getIntents(address[] memory accounts) public view override returns (Intent[] memory intents) {
+        uint256 len = accounts.length;
+        intents = new Intent[](len);
+        for (uint256 i; i < len; ) {
+            intents[i] = getIntent(accounts[i]);
+            unchecked { ++i; }
+        }
+    }
 
     /// @notice return estimated profits and loses of pool with poolId
     /// @param poolId id of pool on poolsNFT
@@ -388,7 +374,7 @@ contract GrinderAI is IGrinderAI {
             address[] memory receivers,
             uint256[] memory grethAmounts
         ) = poolsNFT.calcGRETHShares(poolId, ratePerGRAI[address(0)]);
-        uint256 graiAmount = grAI.balanceOf(poolsNFT.ownerOf(poolId)) >= oneGRAI ? oneGRAI : 0;
+        uint256 graiAmount = balanceOf(poolsNFT.ownerOf(poolId)) >= oneGRAI ? oneGRAI : 0;
         ( , uint256[] memory baseTokenRoyalties) = poolsNFT.calcRoyaltyShares(poolId, baseTokenAmount);
         ( , uint256[] memory quoteTokenRoyalties) = poolsNFT.calcRoyaltyShares(poolId, quoteTokenAmount);
         pnlShares = new PnLShares[](4);
@@ -422,36 +408,10 @@ contract GrinderAI is IGrinderAI {
         });
     }
 
-    /// @notice get intent for grinding of `account`
+    /// @notice balance of grAI
     /// @param account address of account
-    function getIntent(address account) public view override returns (Intent memory intent) {
-        intent = Intent({
-            account: account,
-            grinds: grAI.balanceOf(account) / oneGRAI,
-            poolIds: poolsNFT.getPoolIdsOf(account)
-        });
-    }
-
-    /// @notice get intents for grinding of `accounts`
-    /// @param accounts array of accounts
-    function getIntents(address[] memory accounts) public view override returns (Intent[] memory intents) {
-        uint256 len = accounts.length;
-        intents = new Intent[](len);
-        for (uint256 i; i < len; ) {
-            intents[i] = getIntent(accounts[i]);
-            unchecked { ++i; }
-        }
-    }
-
-    /// @notice get positions
-    /// @param poolIds array with pool ids
-    function getPositions(uint256[] memory poolIds) public view override returns (IPoolsNFTLens.Positions[] memory) {
-        return poolsNFT.getPositionsBy(poolIds);
-    }
-
-    /// @notice return true if `paymentToken` is payment token 
-    function isPaymentToken(address paymentToken) public view override returns (bool) {
-        return ratePerGRAI[paymentToken] > 0;
+    function balanceOf(address account) public view override(ERC20, IGrinderAI) returns (uint256) {
+        return ERC20.balanceOf(account);
     }
 
     /// @notice withdraws amount of token to `msg.sender`
@@ -491,21 +451,12 @@ contract GrinderAI is IGrinderAI {
         withdrawn = amount;
     }
 
-    /// @notice execute any transaction on grAI
+    /// @notice execute any transaction on target smart contract
     /// @dev callable only by owner
-    /// @param target address of target
+    /// @param target address of target contract
     /// @param value amount of ETH
-    /// @param data calldata to target
-    function executeGRAI(address target, uint256 value, bytes calldata data) external payable virtual override returns (bool success, bytes memory result) {
-        _onlyOwner();
-        (success, result) = grAI.execute{value: value}(target, value, data);
-    }
-
-    /// @notice execute any transaction
-    /// @param target address of target
-    /// @param value amount of ETH
-    /// @param data calldata to target
-    function execute(address target, uint256 value, bytes calldata data) external payable virtual override returns (bool success, bytes memory result) {
+    /// @param data data to execute on target contract
+    function execute(address target, uint256 value, bytes memory data) public payable virtual override returns (bool success, bytes memory result) {
         _onlyOwner();
         (success, result) = target.call{value: value}(data);
     }
