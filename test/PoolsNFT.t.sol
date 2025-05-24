@@ -8,7 +8,6 @@ import { PoolsNFT } from "src/PoolsNFT.sol";
 import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
 import { GRETH } from "src/GRETH.sol";
 
-import { GRAI } from "src/GRAI.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
 
 import { RegistryArbitrum } from "src/registries/RegistryArbitrum.sol";
@@ -35,7 +34,6 @@ contract PoolsNFTTest is Test {
     PoolsNFTLens public poolsNFTLens;
 
     GRETH public greth;
-    GRAI public grAI;
 
     GrinderAI public grinderAI;
 
@@ -57,11 +55,9 @@ contract PoolsNFTTest is Test {
         
         greth = new GRETH(address(poolsNFT), wethArbitrum);
 
-        grinderAI = new GrinderAI();        
-        grAI = new GRAI(lzEndpointArbitrum, address(grinderAI));
+        grinderAI = new GrinderAI(address(poolsNFT));        
 
         poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
-        grinderAI.init(address(poolsNFT), address(grAI));
 
         registry = new RegistryArbitrum(address(poolsNFT));
 

@@ -6,7 +6,6 @@ import { PoolsNFT } from "src/PoolsNFT.sol";
 import { GRETH } from "src/GRETH.sol";
 import { IWETH9 } from "src/interfaces/IWETH9.sol";
 import { PoolsNFTLens } from "src/PoolsNFTLens.sol";
-import { GRAI } from "src/GRAI.sol";
 import { GrinderAI } from "src/GrinderAI.sol";
 
 
@@ -24,8 +23,6 @@ contract GRETHTest is Test {
     
     GRETH public greth;
 
-    GRAI public grAI;
-
     GrinderAI public grinderAI;
 
     function setUp() public {
@@ -39,11 +36,9 @@ contract GRETHTest is Test {
         poolsNFTLens = new PoolsNFTLens(address(poolsNFT));
         greth = new GRETH(address(poolsNFT), wethArbitrum);
         
-        grinderAI = new GrinderAI();
-        grAI = new GRAI(lzEndpointArbitrum, address(grinderAI));
+        grinderAI = new GrinderAI(address(poolsNFT));
 
         poolsNFT.init(address(poolsNFTLens), address(greth), address(grinderAI));
-        grinderAI.init(address(poolsNFT), address(grAI));
 
         vm.stopPrank();
     }
