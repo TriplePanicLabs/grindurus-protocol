@@ -112,7 +112,7 @@ contract GrinderAI is ERC20, IGrinderAI {
         uint256 len = poolIds.length;
         checkLength(len, dexParams.length);
         for (uint256 i = 0; i < len;) {
-            IAgent(poolsNFT.agentOf(poolIds[i])).setDexParams(poolIds[i], dexParams[i]);
+            IAgent(poolsNFT.agentOf(poolIds[i])).setStrategyConfig(poolIds[i], uint8(IAgent.Op.SET_STRATEGY_DEX_PARAMS), dexParams[i]);
             unchecked { ++i; }
         }
     }
@@ -123,18 +123,20 @@ contract GrinderAI is ERC20, IGrinderAI {
         uint256 len = poolIds.length;
         checkLength(len, lendingParams.length);
         for (uint256 i = 0; i < len;) {
-            IAgent(poolsNFT.agentOf(poolIds[i])).setLendingParams(poolIds[i], lendingParams[i]);
+            IAgent(poolsNFT.agentOf(poolIds[i])).setStrategyConfig(poolIds[i], uint8(IAgent.Op.SET_STRATEGY_LENDING_PARAMS), lendingParams[i]);
             unchecked { ++i; }
         }
-    } 
+    }
 
     /// @notice batch set config
-    function batchSetConfig(uint256[] memory poolIds, IURUS.Config[] memory confs) public override {
+    function batchSetURUSConfig(uint256[] memory poolIds, IURUS.Config[] memory confs) public override {
         _onlyConfigurator();
         uint256 len = poolIds.length;
         checkLength(len, confs.length);
+        bytes memory arg;
         for (uint256 i = 0; i < len;) {
-            IAgent(poolsNFT.agentOf(poolIds[i])).setConfig(poolIds[i], confs[i]);
+            arg = abi.encode(confs[i]);
+            IAgent(poolsNFT.agentOf(poolIds[i])).setStrategyConfig(poolIds[i], uint8(IAgent.Op.SET_URUS_CONFIG), arg);
             unchecked { ++i; }
         }
     }
@@ -144,8 +146,10 @@ contract GrinderAI is ERC20, IGrinderAI {
         _onlyConfigurator();
         uint256 len = poolIds.length;
         checkLength(len, longNumberMaxs.length);
+        bytes memory arg;
         for (uint256 i = 0; i < len;) {
-            IAgent(poolsNFT.agentOf(poolIds[i])).setLongNumberMax(poolIds[i], longNumberMaxs[i]);
+            arg = abi.encode(longNumberMaxs[i]);
+            IAgent(poolsNFT.agentOf(poolIds[i])).setStrategyConfig(poolIds[i], uint8(IAgent.Op.SET_URUS_LONG_NUMBER_MAX), arg);
             unchecked { ++i; }
         }
     }
@@ -155,8 +159,10 @@ contract GrinderAI is ERC20, IGrinderAI {
         _onlyConfigurator();
         uint256 len = poolIds.length;
         checkLength(len, hedgeNumberMaxs.length);
+        bytes memory arg;
         for (uint256 i = 0; i < len;) {
-            IAgent(poolsNFT.agentOf(poolIds[i])).setLongNumberMax(poolIds[i], hedgeNumberMaxs[i]);
+            arg = abi.encode(hedgeNumberMaxs[i]);
+            IAgent(poolsNFT.agentOf(poolIds[i])).setStrategyConfig(poolIds[i], uint8(IAgent.Op.SET_URUS_HEDGE_NUMBER_MAX), arg);
             unchecked { ++i; }
         }
     }
@@ -166,8 +172,10 @@ contract GrinderAI is ERC20, IGrinderAI {
         _onlyConfigurator();
         uint256 len = poolIds.length;
         checkLength(len, extraCoefs.length);
+        bytes memory arg;
         for (uint256 i = 0; i < len;) {
-            IAgent(poolsNFT.agentOf(poolIds[i])).setExtraCoef(poolIds[i], extraCoefs[i]);
+            arg = abi.encode(extraCoefs[i]);
+            IAgent(poolsNFT.agentOf(poolIds[i])).setStrategyConfig(poolIds[i], uint8(IAgent.Op.SET_URUS_EXTRA_COEF), arg);
             unchecked { ++i; }
         }
     }
@@ -177,8 +185,10 @@ contract GrinderAI is ERC20, IGrinderAI {
         _onlyConfigurator();
         uint256 len = poolIds.length;
         checkLength(len, priceVolatilityPercents.length);
+        bytes memory arg;
         for (uint256 i = 0; i < len;) {
-            IAgent(poolsNFT.agentOf(poolIds[i])).setExtraCoef(poolIds[i], priceVolatilityPercents[i]);
+            arg = abi.encode(priceVolatilityPercents[i]);
+            IAgent(poolsNFT.agentOf(poolIds[i])).setStrategyConfig(poolIds[i], uint8(IAgent.Op.SET_URUS_PRICE_VOLATILITY), arg);
             unchecked { ++i; }
         }
     }
@@ -189,8 +199,10 @@ contract GrinderAI is ERC20, IGrinderAI {
         uint256 len = poolIds.length;
         checkLength(len, ops.length);
         checkLength(len, returnPercents.length);
+        bytes memory arg;
         for (uint256 i = 0; i < len;) {
-            IAgent(poolsNFT.agentOf(poolIds[i])).setOpReturnPercent(poolIds[i], ops[i], returnPercents[i]);
+            arg = abi.encode(ops[i], returnPercents[i]);    
+            IAgent(poolsNFT.agentOf(poolIds[i])).setStrategyConfig(poolIds[i], uint8(IAgent.Op.SET_URUS_OP_RETURN_PERCENT), arg);
             unchecked { ++i; }
         }
     }
@@ -201,8 +213,10 @@ contract GrinderAI is ERC20, IGrinderAI {
         uint256 len = poolIds.length;
         checkLength(len, ops.length);
         checkLength(len, feeCoefs.length);
+        bytes memory arg;
         for (uint256 i = 0; i < len;) {
-            IAgent(poolsNFT.agentOf(poolIds[i])).setOpFeeCoef(poolIds[i], ops[i], feeCoefs[i]);
+            arg = abi.encode(ops[i], feeCoefs[i]);
+            IAgent(poolsNFT.agentOf(poolIds[i])).setStrategyConfig(poolIds[i], uint8(IAgent.Op.SET_URUS_OP_FEE_COEF), arg);
             unchecked { ++i; }
         }
     }

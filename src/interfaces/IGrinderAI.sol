@@ -57,7 +57,7 @@ interface IGrinderAI {
     function checkLength(uint256 len0, uint256 len1) external view;
     function batchSetDexParams(uint256[] memory poolIds, bytes[] memory dexParams) external;
     function batchSetLendingParams(uint256[] memory poolIds, bytes[] memory lendingParams) external;
-    function batchSetConfig(uint256[] memory poolIds, IURUS.Config[] memory confs) external;
+    function batchSetURUSConfig(uint256[] memory poolIds, IURUS.Config[] memory confs) external;
     function batchSetLongNumberMax(uint256[] memory poolIds, uint8[] memory longNumberMaxs) external;
     function batchSetHedgeNumberMax(uint256[] memory poolIds, uint8[] memory hedgeNumberMaxs) external;
     function batchSetExtraCoef(uint256[] memory poolIds, uint256[] memory extraCoefs) external;
