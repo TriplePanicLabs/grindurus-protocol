@@ -18,6 +18,9 @@ contract GrinderAI is ERC20, IGrinderAI {
     /// @dev address of poolsNFT
     IPoolsNFT public poolsNFT;
 
+    /// @dev address of configurator
+    address public configurator;
+
     /// @dev address of grinder
     /// @dev intime variable of initiator of grind tx
     address payable public grinder;
@@ -32,8 +35,6 @@ contract GrinderAI is ERC20, IGrinderAI {
     /// @dev if ratePerGRAI==0, than this is not payment token
     mapping (address paymentToken => uint256) public ratePerGRAI;
 
-    mapping (address configurator => bool) public isConfigurator;
-
     /// @dev id of crosschain adapter => address of adapter
     mapping (uint8 crosschainAdapterId => address) public crosschainAdapter;
 
@@ -42,7 +43,7 @@ contract GrinderAI is ERC20, IGrinderAI {
         poolsNFT = IPoolsNFT(_poolsNFT);
         oneGRAI = 1e18;
         ratePerGRAI[address(0)] = 0.0001 ether; // 0.0001 ETH per 1 grAI
-        isConfigurator[poolsNFT.owner()] = true;
+        configurator = poolsNFT.owner();
     }
 
     /// @notice return owner of grinderAI
@@ -61,9 +62,9 @@ contract GrinderAI is ERC20, IGrinderAI {
         }
     }
 
-     /// @notice checks that msg.sender is configurator
+    /// @notice checks that msg.sender is configurator
     function _onlyConfigurator() private view {
-        if (!isConfigurator[msg.sender]) {
+        if (msg.sender != configurator) {
             revert NotConfigurator();
         }
     }
@@ -80,11 +81,10 @@ contract GrinderAI is ERC20, IGrinderAI {
     }
 
     /// @notice set configutator
-    /// @param configurator EOA that make configuration
-    /// @param _isConfigurator true - configurator; false - not configurator
-    function setConfigurator(address configurator, bool _isConfigurator) public override {
+    /// @param _configurator address of configurator
+    function setConfigurator(address _configurator) public override {
         _onlyOwner();
-        isConfigurator[configurator] = _isConfigurator;
+        configurator = _configurator;
     }
 
     /// @notice set crosschain adapter
@@ -99,10 +99,40 @@ contract GrinderAI is ERC20, IGrinderAI {
 
     //// CONFIGURATOR FUNCTIONS ////////////////////////////////////////////////////////////////
 
+    /// @notice check the length
+    function checkLength(uint256 len0, uint256 len1) public view override {
+        if (len0 != len1) {
+            revert InvalidLength();
+        }
+    }
+
+    /// @notice batch set dex params
+    function batchSetDexParams(uint256[] memory poolIds, bytes[] memory dexParams) public override {
+        _onlyConfigurator();
+        uint256 len = poolIds.length;
+        checkLength(len, dexParams.length);
+        for (uint256 i = 0; i < len;) {
+            IAgent(poolsNFT.agentOf(poolIds[i])).setDexParams(poolIds[i], dexParams[i]);
+            unchecked { ++i; }
+        }
+    }
+
+    /// @notice batch set lending params
+    function batchSetLendingParams(uint256[] memory poolIds, bytes[] memory lendingParams) public override {
+        _onlyConfigurator();
+        uint256 len = poolIds.length;
+        checkLength(len, lendingParams.length);
+        for (uint256 i = 0; i < len;) {
+            IAgent(poolsNFT.agentOf(poolIds[i])).setLendingParams(poolIds[i], lendingParams[i]);
+            unchecked { ++i; }
+        }
+    } 
+
     /// @notice batch set config
     function batchSetConfig(uint256[] memory poolIds, IURUS.Config[] memory confs) public override {
         _onlyConfigurator();
         uint256 len = poolIds.length;
+        checkLength(len, confs.length);
         for (uint256 i = 0; i < len;) {
             IAgent(poolsNFT.agentOf(poolIds[i])).setConfig(poolIds[i], confs[i]);
             unchecked { ++i; }
@@ -113,6 +143,7 @@ contract GrinderAI is ERC20, IGrinderAI {
     function batchSetLongNumberMax(uint256[] memory poolIds, uint8[] memory longNumberMaxs) public override {
         _onlyConfigurator();
         uint256 len = poolIds.length;
+        checkLength(len, longNumberMaxs.length);
         for (uint256 i = 0; i < len;) {
             IAgent(poolsNFT.agentOf(poolIds[i])).setLongNumberMax(poolIds[i], longNumberMaxs[i]);
             unchecked { ++i; }
@@ -123,6 +154,7 @@ contract GrinderAI is ERC20, IGrinderAI {
     function batchSetHedgeNumberMax(uint256[] memory poolIds, uint8[] memory hedgeNumberMaxs) public override {
         _onlyConfigurator();
         uint256 len = poolIds.length;
+        checkLength(len, hedgeNumberMaxs.length);
         for (uint256 i = 0; i < len;) {
             IAgent(poolsNFT.agentOf(poolIds[i])).setLongNumberMax(poolIds[i], hedgeNumberMaxs[i]);
             unchecked { ++i; }
@@ -133,6 +165,7 @@ contract GrinderAI is ERC20, IGrinderAI {
     function batchSetExtraCoef(uint256[] memory poolIds, uint256[] memory extraCoefs) public override {
         _onlyConfigurator();
         uint256 len = poolIds.length;
+        checkLength(len, extraCoefs.length);
         for (uint256 i = 0; i < len;) {
             IAgent(poolsNFT.agentOf(poolIds[i])).setExtraCoef(poolIds[i], extraCoefs[i]);
             unchecked { ++i; }
@@ -140,9 +173,10 @@ contract GrinderAI is ERC20, IGrinderAI {
     }
 
     /// @notice batch set price volatility percent
-    function batchPriceVolatilityPercent(uint256[] memory poolIds, uint256[] memory priceVolatilityPercents) public override {
+    function batchSetPriceVolatilityPercent(uint256[] memory poolIds, uint256[] memory priceVolatilityPercents) public override {
         _onlyConfigurator();
         uint256 len = poolIds.length;
+        checkLength(len, priceVolatilityPercents.length);
         for (uint256 i = 0; i < len;) {
             IAgent(poolsNFT.agentOf(poolIds[i])).setExtraCoef(poolIds[i], priceVolatilityPercents[i]);
             unchecked { ++i; }
@@ -153,6 +187,8 @@ contract GrinderAI is ERC20, IGrinderAI {
     function batchSetOpReturnPercent(uint256[] memory poolIds, uint8[] memory ops, uint256[] memory returnPercents) public override {
         _onlyConfigurator();
         uint256 len = poolIds.length;
+        checkLength(len, ops.length);
+        checkLength(len, returnPercents.length);
         for (uint256 i = 0; i < len;) {
             IAgent(poolsNFT.agentOf(poolIds[i])).setOpReturnPercent(poolIds[i], ops[i], returnPercents[i]);
             unchecked { ++i; }
@@ -163,52 +199,12 @@ contract GrinderAI is ERC20, IGrinderAI {
     function batchSetOpFeeCoef(uint256[] memory poolIds, uint8[] memory ops, uint256[] memory feeCoefs) public override {
         _onlyConfigurator();
         uint256 len = poolIds.length;
+        checkLength(len, ops.length);
+        checkLength(len, feeCoefs.length);
         for (uint256 i = 0; i < len;) {
             IAgent(poolsNFT.agentOf(poolIds[i])).setOpFeeCoef(poolIds[i], ops[i], feeCoefs[i]);
             unchecked { ++i; }
         }
-    }
-
-    /// @notice set config via Agent
-    function setConfig(uint256 poolId, IURUS.Config memory conf) public override {
-        _onlyConfigurator();
-        IAgent(poolsNFT.agentOf(poolId)).setConfig(poolId, conf);
-    }
-
-    /// @notice set long number max
-    function setLongNumberMax(uint256 poolId, uint8 longNumberMax) public override {
-        _onlyConfigurator();
-        IAgent(poolsNFT.agentOf(poolId)).setLongNumberMax(poolId, longNumberMax);
-    }
-
-    /// @notice set hedge number max
-    function setHedgeNumberMax(uint256 poolId, uint8 hedgeNumberMax) public override {
-        _onlyConfigurator();
-        IAgent(poolsNFT.agentOf(poolId)).setHedgeNumberMax(poolId, hedgeNumberMax);
-    }
-
-    /// @notice set extra coef
-    function setExtraCoef(uint256 poolId, uint256 extraCoef) public override {
-        _onlyConfigurator();
-        IAgent(poolsNFT.agentOf(poolId)).setExtraCoef(poolId, extraCoef);
-    }
-
-    /// @notice set price volatility percent
-    function setPriceVolatilityPercent(uint256 poolId, uint256 priceVolatilityPercent) public override {
-        _onlyConfigurator();
-        IAgent(poolsNFT.agentOf(poolId)).setPriceVolatilityPercent(poolId, priceVolatilityPercent);
-    }
-
-    /// @notice set return percent of operation
-    function setOpReturnPercent(uint256 poolId, uint8 op, uint256 returnPercent) public override {
-        _onlyConfigurator();
-        IAgent(poolsNFT.agentOf(poolId)).setOpReturnPercent(poolId, op, returnPercent);
-    }
-
-    /// @notice sets fee coeficient of operation 
-    function setOpFeeCoef(uint256 poolId, uint8 op, uint256 feeCoef) public override {
-        _onlyConfigurator();
-        IAgent(poolsNFT.agentOf(poolId)).setOpFeeCoef(poolId, op, feeCoef);
     }
 
     //// END CONFIGURATOR FUNCTIONS ////////////////////////////////////////////////////////////////

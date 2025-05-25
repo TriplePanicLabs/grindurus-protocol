@@ -34,13 +34,13 @@ interface IGrinderAI {
 
     function poolsNFT() external view returns (IPoolsNFT);
 
+    function configurator() external view returns (address);
+
     function grinder() external view returns (address payable);
     
     function oneGRAI() external view returns (uint256);
 
     function ratePerGRAI(address paymentToken) external view returns (uint256);
-
-    function isConfigurator(address configurator) external view returns (bool);
 
     function crosschainAdapter(uint8 crosschainAdapterId) external view returns (address);
 
@@ -48,25 +48,20 @@ interface IGrinderAI {
 
     function setRatePerGRAI(address paymentToken, uint256 rate) external;
 
-    function setConfigurator(address configurator, bool _isConfigurator) external;
+    function setConfigurator(address _configurator) external;
     
     function setCrosschainAdapter(uint8 id, address adapter) external;
 
     /// SETTING CONFIGS
 
-    function setConfig(uint256 poolId, IURUS.Config memory conf) external;
-    function setLongNumberMax(uint256 poolId, uint8 longNumberMax) external;
-    function setHedgeNumberMax(uint256 poolId, uint8 hedgeNumberMax) external;
-    function setExtraCoef(uint256 poolId, uint256 extraCoef) external;
-    function setPriceVolatilityPercent(uint256 poolId, uint256 priceVolatilityPercent) external;
-    function setOpReturnPercent(uint256 poolId, uint8 op, uint256 returnPercent) external;
-    function setOpFeeCoef(uint256 poolId, uint8 op, uint256 feeCoef) external;
-
+    function checkLength(uint256 len0, uint256 len1) external view;
+    function batchSetDexParams(uint256[] memory poolIds, bytes[] memory dexParams) external;
+    function batchSetLendingParams(uint256[] memory poolIds, bytes[] memory lendingParams) external;
     function batchSetConfig(uint256[] memory poolIds, IURUS.Config[] memory confs) external;
     function batchSetLongNumberMax(uint256[] memory poolIds, uint8[] memory longNumberMaxs) external;
     function batchSetHedgeNumberMax(uint256[] memory poolIds, uint8[] memory hedgeNumberMaxs) external;
     function batchSetExtraCoef(uint256[] memory poolIds, uint256[] memory extraCoefs) external;
-    function batchPriceVolatilityPercent(uint256[] memory poolIds, uint256[] memory priceVolatilityPercents) external;
+    function batchSetPriceVolatilityPercent(uint256[] memory poolIds, uint256[] memory priceVolatilityPercents) external;
     function batchSetOpReturnPercent(uint256[] memory poolIds, uint8[] memory ops, uint256[] memory priceVolatilityPercents) external;
     function batchSetOpFeeCoef(uint256[] memory poolIds, uint8[] memory ops, uint256[] memory priceVolatilityPercents) external;
 
